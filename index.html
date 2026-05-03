@@ -898,9 +898,117 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeLightbox(); }
 
 function setStatus(msg,type){ const el=document.getElementById('upload-status'); el.textContent=msg; el.className=type; }
 
+// ── Categories ───────────────────────────────
+let allCategorias = [];
+let filtroActivo = '';
+
+async function cargarCategorias() {
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/categorias?order=nombre.asc', { headers: hdrs() });
+    allCategorias = await res.json();
+    renderCatCheckboxes();
+    renderCatFilter();
+    renderCatList();
+  } catch(e) { console.error('Error cargando categorias', e); }
+}
+
+function renderCatCheckboxes() {
+  const cont = document.getElementById('cats-checkboxes');
+  if(!cont) return;
+  cont.innerHTML = '';
+  allCategorias.forEach(c => {
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:0.8rem;cursor:pointer;padding:4px 0;';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = c.nombre;
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(c.nombre));
+    cont.appendChild(label);
+  });
+}
+
+function renderCatFilter() {
+  const bar = document.getElementById('filtros-bar');
+  if(!bar) return;
+  const todas = bar.querySelector('[data-cat=""]');
+  bar.innerHTML = '';
+  if(todas) bar.appendChild(todas);
+  allCategorias.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'filtro-btn';
+    btn.setAttribute('data-cat', c.nombre);
+    btn.textContent = c.nombre;
+    btn.onclick = function(){ filtrarPor(this); };
+    bar.appendChild(btn);
+  });
+}
+
+function renderCatList() {
+  const cont = document.getElementById('cats-list');
+  if(!cont) return;
+  cont.innerHTML = '';
+  allCategorias.forEach(c => {
+    const tag = document.createElement('span');
+    tag.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);font-size:0.75rem;letter-spacing:0.08em;';
+    tag.textContent = c.nombre;
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.style.cssText = 'background:none;border:none;cursor:pointer;color:#aaa;font-size:0.8rem;padding:0;';
+    del.onclick = () => eliminarCategoria(c.id, c.nombre);
+    tag.appendChild(del);
+    cont.appendChild(tag);
+  });
+}
+
+async function agregarCategoria() {
+  const input = document.getElementById('nueva-cat-input');
+  const nombre = input.value.trim();
+  if(!nombre) return;
+  const st = document.getElementById('cats-status');
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/categorias', {
+      method:'POST',
+      headers:{...hdrs(),'Prefer':'return=representation'},
+      body: JSON.stringify({nombre})
+    });
+    if(!res.ok) throw new Error('Error al agregar');
+    input.value = '';
+    st.textContent = '✓ Categoría agregada'; st.style.color='#2e7d32';
+    setTimeout(()=>{ st.textContent=''; }, 2500);
+    await cargarCategorias();
+  } catch(e) {
+    st.textContent = 'Error: '+e.message; st.style.color='var(--red)';
+  }
+}
+
+async function eliminarCategoria(id, nombre) {
+  if(!confirm('¿Eliminar categoría "'+nombre+'"?')) return;
+  await fetch(SUPABASE_URL+'/rest/v1/categorias?id=eq.'+id, {method:'DELETE',headers:hdrs()});
+  await cargarCategorias();
+}
+
+function getSelectedCats() {
+  const checks = document.querySelectorAll('#cats-checkboxes input[type=checkbox]:checked');
+  return Array.from(checks).map(c => c.value);
+}
+
+function filtrarPor(btn) {
+  document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filtroActivo = btn.getAttribute('data-cat');
+  const cards = document.querySelectorAll('.ficha-card');
+  cards.forEach(card => {
+    if(!filtroActivo) { card.style.display=''; return; }
+    const cats = JSON.parse(card.getAttribute('data-cats') || '[]');
+    card.style.display = cats.includes(filtroActivo) ? '' : 'none';
+  });
+}
+
 // ── Init ─────────────────────────────────────
 loadContent();
 loadContact();
+cargarCategorias();
 cargarCatalogo();
 </script>
 </body>
