@@ -20,7 +20,7 @@ body { background:var(--cream); color:var(--dark); font-family:'Jost',sans-serif
 
 /* ─── NAV ─────────────────────────────── */
 nav {
-  position: fixed; top:0; left:0; right:0; z-index:100;
+  position: fixed; top:0; left:0; right:0; z-index:150;
   background: rgba(247,243,238,0.96);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
@@ -223,10 +223,28 @@ body.admin-mode .btn-delete { display:block; }
 
 /* ─── ADMIN PANEL ─────────────────────── */
 #admin-panel {
-  display:none; background:var(--white);
-  border-bottom:1px solid var(--border); padding:30px 60px;
+  display:none;
+  position:fixed; top:0; right:0; bottom:0;
+  width:min(420px, 100vw);
+  background:var(--white);
+  border-left:1px solid var(--border);
+  padding:24px 24px 40px;
+  z-index:200;
+  overflow-y:auto;
+  box-shadow:-4px 0 24px rgba(0,0,0,0.1);
 }
 #admin-panel.visible { display:block; }
+#admin-close {
+  position:absolute; top:16px; right:20px;
+  background:none; border:none; font-size:1.4rem;
+  cursor:pointer; color:var(--gray); line-height:1;
+}
+#admin-close:hover { color:var(--dark); }
+#admin-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.3); z-index:199;
+}
+#admin-overlay.visible { display:block; }
 .admin-inner { max-width:720px; }
 .admin-inner h3 {
   font-family:'Cormorant Garamond',serif;
@@ -349,7 +367,7 @@ footer {
 .hamburger {
   display:none; flex-direction:column; gap:5px;
   background:none; border:none; cursor:pointer; padding:4px;
-  position:relative; z-index:101;
+  position:relative; z-index:201;
 }
 .hamburger span {
   display:block; width:24px; height:2px; background:var(--dark);
@@ -395,8 +413,12 @@ footer {
   </div>
 </nav>
 
+<!-- ADMIN OVERLAY -->
+<div id="admin-overlay" onclick="toggleAdmin()"></div>
+
 <!-- ADMIN PANEL -->
 <div id="admin-panel">
+  <button id="admin-close" onclick="toggleAdmin()">✕</button>
   <div class="admin-inner">
     <h3>Panel de administración</h3>
     <div class="admin-tabs">
@@ -711,6 +733,7 @@ function toggleAdmin() {
     // logout
     adminMode = false;
     document.getElementById('admin-panel').classList.remove('visible');
+    document.getElementById('admin-overlay').classList.remove('visible');
     document.getElementById('toggle-admin').classList.remove('active');
     document.body.classList.remove('admin-mode');
     return;
@@ -727,9 +750,9 @@ function checkPassword() {
     adminMode = true;
     document.getElementById('pass-modal').style.display = 'none';
     document.getElementById('admin-panel').classList.add('visible');
+    document.getElementById('admin-overlay').classList.add('visible');
     document.getElementById('toggle-admin').classList.add('active');
     document.body.classList.add('admin-mode');
-    document.getElementById('admin-panel').scrollIntoView({behavior:'smooth'});
     document.getElementById('pass-error').style.display = 'none';
     renderCatCheckboxes();
   } else {
