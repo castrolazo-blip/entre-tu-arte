@@ -731,6 +731,7 @@ function checkPassword() {
     document.body.classList.add('admin-mode');
     document.getElementById('admin-panel').scrollIntoView({behavior:'smooth'});
     document.getElementById('pass-error').style.display = 'none';
+    renderCatCheckboxes();
   } else {
     document.getElementById('pass-error').style.display = 'block';
     document.getElementById('pass-input').value = '';
@@ -748,6 +749,8 @@ function switchTab(name, btn) {
   document.getElementById('tab-upload').style.display = name==='upload' ? 'block' : 'none';
   document.getElementById('tab-content').classList.toggle('visible', name==='content');
   document.getElementById('tab-contact').classList.toggle('visible', name==='contact');
+  document.getElementById('tab-cats').classList.toggle('visible', name==='cats');
+  if(name==='upload') renderCatCheckboxes();
 }
 
 // ── Upload ──────────────────────────────────
@@ -770,12 +773,21 @@ async function subirFicha() {
   try {
     const ext = selectedFile.name.split('.').pop();
     const fileName = 'ficha_'+Date.now()+'.'+ext;
+    const mimeType = selectedFile.type || 'image/jpeg';
     const up = await fetch(SUPABASE_URL+'/storage/v1/object/'+BUCKET+'/'+fileName, {
       method:'POST',
-      headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':selectedFile.type },
+      headers:{
+        'apikey':SUPABASE_KEY,
+        'Authorization':'Bearer '+SUPABASE_KEY,
+        'Content-Type': mimeType,
+        'x-upsert': 'true'
+      },
       body: selectedFile
     });
-    if(!up.ok) throw new Error('Error al subir imagen');
+    if(!up.ok) {
+      const errText = await up.text();
+      throw new Error('Storage: '+errText);
+    }
     const imageUrl = SUPABASE_URL+'/storage/v1/object/public/'+BUCKET+'/'+fileName;
     const titulo = document.getElementById('titulo-input').value.trim();
     const cats = getSelectedCats();
