@@ -848,9 +848,10 @@ async function cargarCatalogo() {
       delBtn.onclick = function(){ eliminarFichaBtn(this); };
       footer.appendChild(titleSpan);
       footer.appendChild(delBtn);
-      // cat tags
+      // build card: img → catBar → footer
       const cats = f.categorias || [];
       card.setAttribute('data-cats', JSON.stringify(cats));
+      card.appendChild(img);
       if(cats.length > 0) {
         const catBar = document.createElement('div');
         catBar.className = 'card-cats';
@@ -860,10 +861,8 @@ async function cargarCatalogo() {
           tag.textContent = c;
           catBar.appendChild(tag);
         });
-        card.insertBefore(catBar, footer);
+        card.appendChild(catBar);
       }
-      card.appendChild(img);
-      card.insertBefore(img, card.firstChild);
       card.appendChild(footer);
       // apply active filter
       if(filtroActivo && !cats.includes(filtroActivo)) card.style.display='none';
@@ -916,14 +915,18 @@ function renderCatCheckboxes() {
   const cont = document.getElementById('cats-checkboxes');
   if(!cont) return;
   cont.innerHTML = '';
+  cont.style.cssText = 'display:flex;flex-direction:column;gap:6px;width:100%;';
   allCategorias.forEach(c => {
     const label = document.createElement('label');
-    label.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:0.8rem;cursor:pointer;padding:4px 0;';
+    label.style.cssText = 'display:flex;align-items:center;gap:14px;font-size:0.85rem;cursor:pointer;padding:12px 14px;border:1px solid var(--border);background:var(--cream);letter-spacing:0.05em;user-select:none;';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.value = c.nombre;
+    cb.style.cssText = 'width:20px;height:20px;flex-shrink:0;cursor:pointer;accent-color:#1c1c1c;';
+    const txt = document.createElement('span');
+    txt.textContent = c.nombre;
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(c.nombre));
+    label.appendChild(txt);
     cont.appendChild(label);
   });
 }
