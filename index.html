@@ -703,7 +703,27 @@ async function cargarCatalogo() {
       const imgUrl = f.imagen_url;
       const titulo = f.titulo || '';
       const fid = f.id;
-      card.innerHTML = '<img src="' + imgUrl + '" alt="' + (titulo||'Ficha') + '" loading="lazy" onclick="openLightbox(this.src)"><div class=\"card-footer\"><span class=\"card-title\">' + titulo + '</span><button class=\"btn-delete\" data-id="' + fid + '" data-url="' + imgUrl + '" onclick=\"eliminarFichaBtn(this)\" title=\"Eliminar\">✕</button></div>';
+      const img = document.createElement('img');
+      img.src = imgUrl;
+      img.alt = titulo || 'Ficha';
+      img.loading = 'lazy';
+      img.onclick = function(){ openLightbox(this.src); };
+      const footer = document.createElement('div');
+      footer.className = 'card-footer';
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'card-title';
+      titleSpan.textContent = titulo;
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn-delete';
+      delBtn.title = 'Eliminar';
+      delBtn.textContent = '✕';
+      delBtn.setAttribute('data-id', fid);
+      delBtn.setAttribute('data-url', imgUrl);
+      delBtn.onclick = function(){ eliminarFichaBtn(this); };
+      footer.appendChild(titleSpan);
+      footer.appendChild(delBtn);
+      card.appendChild(img);
+      card.appendChild(footer);
       grid.appendChild(card);
     });
   } catch(err) {
