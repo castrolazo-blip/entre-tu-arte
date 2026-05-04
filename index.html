@@ -445,10 +445,11 @@ footer {
   <div class="admin-inner">
     <h3>Panel de administración</h3>
     <div class="admin-tabs">
-      <button class="admin-tab active" onclick="switchTab('upload',this)">Subir ficha</button>
-      <button class="admin-tab" onclick="switchTab('content',this)">Editar contenido</button>
-      <button class="admin-tab" onclick="switchTab('contact',this)">Editar contacto</button>
-      <button class="admin-tab" onclick="switchTab('cats',this)">Categorías</button>
+      <button class="admin-tab active" onclick="switchTab('upload',this)">+ Subir</button>
+      <button class="admin-tab" onclick="switchTab('obras',this)">Obras</button>
+      <button class="admin-tab" onclick="switchTab('content',this)">Historia</button>
+      <button class="admin-tab" onclick="switchTab('contact',this)">Contacto</button>
+      <button class="admin-tab" onclick="switchTab('cats',this)">Espacios</button>
     </div>
 
     <!-- TAB: UPLOAD -->
@@ -469,6 +470,12 @@ footer {
       </div>
       <button class="btn-upload" id="btn-subir" onclick="subirFicha()">Subir al catálogo</button>
       <div id="upload-status"></div>
+    </div>
+
+    <!-- TAB: OBRAS -->
+    <div id="tab-obras" class="content-editor">
+      <p style="font-size:0.75rem;color:var(--gray);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;">Toca una obra para cambiar estado o eliminar</p>
+      <div id="admin-obras-grid" style="display:flex;flex-direction:column;gap:12px;"></div>
     </div>
 
     <!-- TAB: CONTENT -->
@@ -831,14 +838,17 @@ function switchTab(name, btn) {
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   const tabUpload = document.getElementById('tab-upload');
+  const tabObras = document.getElementById('tab-obras');
   const tabContent = document.getElementById('tab-content');
   const tabContact = document.getElementById('tab-contact');
   const tabCats = document.getElementById('tab-cats');
   if(tabUpload) tabUpload.style.display = name==='upload' ? 'block' : 'none';
+  if(tabObras) tabObras.classList.toggle('visible', name==='obras');
   if(tabContent) tabContent.classList.toggle('visible', name==='content');
   if(tabContact) tabContact.classList.toggle('visible', name==='contact');
   if(tabCats) tabCats.classList.toggle('visible', name==='cats');
   if(name==='upload') renderCatCheckboxes();
+  if(name==='obras') renderAdminObras();
 }
 
 // ── Upload ──────────────────────────────────
@@ -1002,6 +1012,78 @@ async function eliminarFicha(id, imageUrl, btn) {
   const n = document.querySelectorAll('.ficha-card').length;
   document.getElementById('ficha-count').textContent = n+(n===1?' obra':' obras');
   if(n===0) document.getElementById('empty-state').classList.add('visible');
+}
+
+async function renderAdminObras() {
+  const grid = document.getElementById('admin-obras-grid');
+  if(!grid) return;
+  grid.innerHTML = '<p style="color:var(--gray);font-size:0.8rem;">Cargando...</p>';
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/fichas?order=created_at.desc', { headers: hdrs() });
+    const fichas = await res.json();
+    grid.innerHTML = '';
+    if(!fichas || fichas.length === 0) {
+      grid.innerHTML = '<p style="color:var(--gray);font-size:0.85rem;font-style:italic;">No hay obras en el catálogo.</p>';
+      return;
+    }
+    fichas.forEach(f => {
+      const estado = f.estado || 'disponible';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--border);background:var(--cream);';
+
+      const img = document.createElement('img');
+      img.src = f.imagen_url;
+      img.style.cssText = 'width:60px;height:60px;object-fit:cover;flex-shrink:0;'+(estado==='vendida'?'filter:grayscale(60%);opacity:0.7;':'');
+
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;';
+      const title = document.createElement('p');
+      title.style.cssText = 'font-size:0.8rem;letter-spacing:0.05em;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      title.textContent = f.titulo || '(Sin título)';
+      const badge = document.createElement('span');
+      badge.textContent = estado === 'vendida' ? 'VENDIDA' : 'DISPONIBLE';
+      badge.style.cssText = 'font-size:0.62rem;letter-spacing:0.1em;padding:2px 7px;border:1px solid '+(estado==='vendida'?'#c0392b':'#2e7d32')+';color:'+(estado==='vendida'?'#c0392b':'#2e7d32')+';';
+      info.appendChild(title);
+      info.appendChild(badge);
+
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;flex-direction:column;gap:6px;flex-shrink:0;';
+
+      const toggleBtn = document.createElement('button');
+      toggleBtn.textContent = estado === 'vendida' ? '↺ Disponible' : '✓ Vendida';
+      toggleBtn.style.cssText = 'background:none;border:1px solid var(--border);font-family:"Jost",sans-serif;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:5px 10px;color:var(--gray);white-space:nowrap;';
+      toggleBtn.onclick = async () => {
+        const nuevoEstado = estado === 'vendida' ? 'disponible' : 'vendida';
+        await fetch(SUPABASE_URL+'/rest/v1/fichas?id=eq.'+f.id, {
+          method:'PATCH', headers:{...hdrs(),'Prefer':'return=minimal'},
+          body: JSON.stringify({estado: nuevoEstado})
+        });
+        renderAdminObras();
+        cargarCatalogo();
+      };
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑 Eliminar';
+      delBtn.style.cssText = 'background:none;border:1px solid #fcc;font-family:"Jost",sans-serif;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:5px 10px;color:#c0392b;white-space:nowrap;';
+      delBtn.onclick = async () => {
+        if(!confirm('¿Eliminar esta obra del catálogo?')) return;
+        await fetch(SUPABASE_URL+'/rest/v1/fichas?id=eq.'+f.id, {method:'DELETE', headers:hdrs()});
+        const fileName = f.imagen_url.split('/').pop();
+        await fetch(SUPABASE_URL+'/storage/v1/object/'+BUCKET+'/'+fileName, {method:'DELETE', headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}});
+        renderAdminObras();
+        cargarCatalogo();
+      };
+
+      actions.appendChild(toggleBtn);
+      actions.appendChild(delBtn);
+      row.appendChild(img);
+      row.appendChild(info);
+      row.appendChild(actions);
+      grid.appendChild(row);
+    });
+  } catch(e) {
+    grid.innerHTML = '<p style="color:var(--red);font-size:0.85rem;">Error al cargar obras.</p>';
+  }
 }
 
 async function cambiarEstado(btn) {
