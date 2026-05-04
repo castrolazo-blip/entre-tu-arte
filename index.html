@@ -830,10 +830,14 @@ function closePassModal() {
 function switchTab(name, btn) {
   document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-upload').style.display = name==='upload' ? 'block' : 'none';
-  document.getElementById('tab-content').classList.toggle('visible', name==='content');
-  document.getElementById('tab-contact').classList.toggle('visible', name==='contact');
-  document.getElementById('tab-cats').classList.toggle('visible', name==='cats');
+  const tabUpload = document.getElementById('tab-upload');
+  const tabContent = document.getElementById('tab-content');
+  const tabContact = document.getElementById('tab-contact');
+  const tabCats = document.getElementById('tab-cats');
+  if(tabUpload) tabUpload.style.display = name==='upload' ? 'block' : 'none';
+  if(tabContent) tabContent.classList.toggle('visible', name==='content');
+  if(tabContact) tabContact.classList.toggle('visible', name==='contact');
+  if(tabCats) tabCats.classList.toggle('visible', name==='cats');
   if(name==='upload') renderCatCheckboxes();
 }
 
@@ -1144,6 +1148,9 @@ function filtrarPor(btn) {
 }
 
 // ── Init ─────────────────────────────────────
+// Clear any old localStorage data
+localStorage.removeItem('eta_content');
+localStorage.removeItem('eta_contact');
 loadConfig();
 cargarCategorias();
 cargarCatalogo();
