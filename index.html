@@ -197,6 +197,7 @@ section { padding:100px 60px; }
 }
 .btn-delete:hover { color:var(--red); }
 body.admin-mode .btn-delete { display:block; }
+body.admin-mode .btn-estado { display:block !important; }
 #loading { grid-column:1/-1; text-align:center; padding:60px; font-size:0.8rem; color:var(--gray); letter-spacing:0.1em; }
 #empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; display:none; }
 #empty-state.visible { display:block; }
@@ -593,7 +594,10 @@ footer {
   </div>
   <!-- FILTROS -->
   <div id="filtros-bar" style="max-width:1200px;margin:0 auto 28px;display:flex;flex-wrap:wrap;gap:10px;">
-    <button class="filtro-btn active" data-cat="" onclick="filtrarPor(this)">Todas</button>
+    <button class="filtro-btn active" data-cat="" data-estado="" onclick="filtrarPor(this)">Todas</button>
+    <button class="filtro-btn" data-cat="" data-estado="disponible" onclick="filtrarPor(this)">Disponibles</button>
+    <button class="filtro-btn" data-cat="" data-estado="vendida" onclick="filtrarPor(this)">Vendidas</button>
+    <span style="width:1px;height:20px;background:var(--border);margin:0 4px;display:inline-block;"></span>
   </div>
   <div id="catalog-grid">
     <div id="loading">Cargando catálogo…</div>
@@ -652,68 +656,97 @@ function hdrs() {
   return { 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json' };
 }
 
-// ── Content (localStorage) ──────────────────
-const CONTENT_KEY = 'eta_content';
-const CONTACT_KEY = 'eta_contact';
+// ── Config (Supabase) ────────────────────────
+async function loadConfig() {
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/configuracion?select=clave,valor', { headers: hdrs() });
+    const rows = await res.json();
+    const cfg = {};
+    rows.forEach(r => cfg[r.clave] = r.valor);
 
-function loadContent() {
-  const c = JSON.parse(localStorage.getItem(CONTENT_KEY) || '{}');
-  if(c.titulo)   document.getElementById('nos-titulo').textContent = c.titulo;
-  if(c.p1)       document.getElementById('nos-p1').textContent = c.p1;
-  if(c.p2)       document.getElementById('nos-p2').textContent = c.p2;
-  if(c.p3)       document.getElementById('nos-p3').textContent = c.p3;
-  if(c.p4)       document.getElementById('nos-p4').textContent = c.p4;
-  if(c.cierre)   document.getElementById('nos-cierre').textContent = c.cierre;
-  // fill editor
-  document.getElementById('ed-titulo').value = c.titulo || '';
-  document.getElementById('ed-p1').value = c.p1 || '';
-  document.getElementById('ed-p2').value = c.p2 || '';
-  document.getElementById('ed-p3').value = c.p3 || '';
-  document.getElementById('ed-p4').value = c.p4 || '';
-  document.getElementById('ed-cierre').value = c.cierre || '';
+    // Apply to page
+    if(cfg.nos_titulo) document.getElementById('nos-titulo').textContent = cfg.nos_titulo;
+    if(cfg.nos_p1)     document.getElementById('nos-p1').textContent = cfg.nos_p1;
+    if(cfg.nos_p2)     document.getElementById('nos-p2').textContent = cfg.nos_p2;
+    if(cfg.nos_p3)     document.getElementById('nos-p3').textContent = cfg.nos_p3;
+    if(cfg.nos_p4)     document.getElementById('nos-p4').textContent = cfg.nos_p4;
+    if(cfg.nos_cierre) document.getElementById('nos-cierre').textContent = cfg.nos_cierre;
+
+    // Fill editor fields
+    document.getElementById('ed-titulo').value  = cfg.nos_titulo  || '';
+    document.getElementById('ed-p1').value      = cfg.nos_p1      || '';
+    document.getElementById('ed-p2').value      = cfg.nos_p2      || '';
+    document.getElementById('ed-p3').value      = cfg.nos_p3      || '';
+    document.getElementById('ed-p4').value      = cfg.nos_p4      || '';
+    document.getElementById('ed-cierre').value  = cfg.nos_cierre  || '';
+    document.getElementById('ed-whatsapp').value = cfg.whatsapp   || '';
+    document.getElementById('ed-instagram').value= cfg.instagram  || '';
+    document.getElementById('ed-facebook').value = cfg.facebook   || '';
+    document.getElementById('ed-email').value    = cfg.email      || '';
+
+    renderContactLinks(cfg);
+  } catch(e) { console.error('Error cargando config', e); }
 }
 
-function saveContent() {
-  const c = {
-    titulo: document.getElementById('ed-titulo').value.trim(),
-    p1: document.getElementById('ed-p1').value.trim(),
-    p2: document.getElementById('ed-p2').value.trim(),
-    p3: document.getElementById('ed-p3').value.trim(),
-    p4: document.getElementById('ed-p4').value.trim(),
-    cierre: document.getElementById('ed-cierre').value.trim()
-  };
-  localStorage.setItem(CONTENT_KEY, JSON.stringify(c));
-  loadContent();
+async function upsertConfig(clave, valor) {
+  await fetch(SUPABASE_URL+'/rest/v1/configuracion', {
+    method: 'POST',
+    headers: {...hdrs(), 'Prefer': 'resolution=merge-duplicates'},
+    body: JSON.stringify({clave, valor, updated_at: new Date().toISOString()})
+  });
+}
+
+async function saveContent() {
   const st = document.getElementById('content-status');
-  st.textContent = '✓ Cambios guardados'; st.className='success';
-  setTimeout(()=>{ st.textContent=''; st.className=''; }, 3000);
+  st.textContent = 'Guardando...'; st.className='';
+  try {
+    const fields = {
+      nos_titulo: document.getElementById('ed-titulo').value.trim(),
+      nos_p1:     document.getElementById('ed-p1').value.trim(),
+      nos_p2:     document.getElementById('ed-p2').value.trim(),
+      nos_p3:     document.getElementById('ed-p3').value.trim(),
+      nos_p4:     document.getElementById('ed-p4').value.trim(),
+      nos_cierre: document.getElementById('ed-cierre').value.trim()
+    };
+    await Promise.all(Object.entries(fields).map(([k,v]) => upsertConfig(k,v)));
+    await loadConfig();
+    st.textContent = '✓ Cambios guardados'; st.className='success';
+    setTimeout(()=>{ st.textContent=''; st.className=''; }, 3000);
+  } catch(e) {
+    st.textContent = 'Error al guardar'; st.className='error';
+  }
 }
 
-function loadContact() {
-  const defaults = {
-    whatsapp: '', instagram: '', facebook: '', email: ''
-  };
-  const c = JSON.parse(localStorage.getItem(CONTACT_KEY) || '{}');
-  const data = {...defaults, ...c};
-  // fill editor
-  document.getElementById('ed-whatsapp').value = data.whatsapp;
-  document.getElementById('ed-instagram').value = data.instagram;
-  document.getElementById('ed-facebook').value = data.facebook;
-  document.getElementById('ed-email').value = data.email;
-  renderContactLinks(data);
+async function saveContact() {
+  const st = document.getElementById('contact-status');
+  st.textContent = 'Guardando...'; st.className='';
+  try {
+    const fields = {
+      whatsapp:  document.getElementById('ed-whatsapp').value.trim(),
+      instagram: document.getElementById('ed-instagram').value.trim(),
+      facebook:  document.getElementById('ed-facebook').value.trim(),
+      email:     document.getElementById('ed-email').value.trim()
+    };
+    await Promise.all(Object.entries(fields).map(([k,v]) => upsertConfig(k,v)));
+    await loadConfig();
+    st.textContent = '✓ Contacto guardado'; st.className='success';
+    setTimeout(()=>{ st.textContent=''; st.className=''; }, 3000);
+  } catch(e) {
+    st.textContent = 'Error al guardar'; st.className='error';
+  }
 }
 
-function renderContactLinks(data) {
+function renderContactLinks(cfg) {
   const container = document.getElementById('contact-links');
   container.innerHTML = '';
   const items = [];
-  if(data.whatsapp) items.push({ icon:'💬', label:'WhatsApp', href:'https://wa.me/'+data.whatsapp.replace(/[^0-9]/g,'') });
-  if(data.instagram) items.push({ icon:'📷', label:'@'+data.instagram, href:'https://instagram.com/'+data.instagram });
-  if(data.facebook) {
-    const fbHref = data.facebook.startsWith('http') ? data.facebook : 'https://facebook.com/'+data.facebook;
+  if(cfg.whatsapp)  items.push({ icon:'💬', label:'WhatsApp', href:'https://wa.me/'+cfg.whatsapp.replace(/[^0-9]/g,'') });
+  if(cfg.instagram) items.push({ icon:'📷', label:'@'+cfg.instagram, href:'https://instagram.com/'+cfg.instagram });
+  if(cfg.facebook) {
+    const fbHref = cfg.facebook.startsWith('http') ? cfg.facebook : 'https://facebook.com/'+cfg.facebook;
     items.push({ icon:'👤', label:'Facebook', href:fbHref });
   }
-  if(data.email) items.push({ icon:'✉️', label:data.email, href:'mailto:'+data.email });
+  if(cfg.email) items.push({ icon:'✉️', label:cfg.email, href:'mailto:'+cfg.email });
   if(items.length === 0) {
     container.innerHTML = '<p style="color:#666;font-size:0.85rem;">Agrega datos de contacto desde el panel Admin.</p>';
     return;
@@ -726,20 +759,6 @@ function renderContactLinks(data) {
     a.innerHTML = '<span class="icon">'+item.icon+'</span><span>'+item.label+'</span>';
     container.appendChild(a);
   });
-}
-
-function saveContact() {
-  const c = {
-    whatsapp: document.getElementById('ed-whatsapp').value.trim(),
-    instagram: document.getElementById('ed-instagram').value.trim(),
-    facebook: document.getElementById('ed-facebook').value.trim(),
-    email: document.getElementById('ed-email').value.trim()
-  };
-  localStorage.setItem(CONTACT_KEY, JSON.stringify(c));
-  renderContactLinks(c);
-  const st = document.getElementById('contact-status');
-  st.textContent = '✓ Contacto guardado'; st.className='success';
-  setTimeout(()=>{ st.textContent=''; st.className=''; }, 3000);
 }
 
 // ── Admin ───────────────────────────────────
@@ -858,6 +877,8 @@ async function subirFicha() {
     document.getElementById('preview-img').style.display='none';
     document.getElementById('file-input').value='';
     selectedFile=null;
+    // Limpiar checkboxes
+    document.querySelectorAll('#cats-checkboxes input[type=checkbox]').forEach(cb => cb.checked = false);
     cargarCatalogo();
   } catch(err) {
     setStatus('Error: '+err.message,'error');
@@ -885,16 +906,35 @@ async function cargarCatalogo() {
       const imgUrl = f.imagen_url;
       const titulo = f.titulo || '';
       const fid = f.id;
+      const estado = f.estado || 'disponible';
       const img = document.createElement('img');
       img.src = imgUrl;
       img.alt = titulo || 'Ficha';
       img.loading = 'lazy';
+      img.style.cssText = estado === 'vendida' ? 'filter:grayscale(60%);opacity:0.75;' : '';
       img.onclick = function(){ openLightbox(this.src); };
       const footer = document.createElement('div');
       footer.className = 'card-footer';
       const titleSpan = document.createElement('span');
       titleSpan.className = 'card-title';
       titleSpan.textContent = titulo;
+
+      // Estado badge
+      const estadoBadge = document.createElement('span');
+      estadoBadge.textContent = estado === 'vendida' ? 'VENDIDA' : 'DISPONIBLE';
+      estadoBadge.style.cssText = 'font-size:0.62rem;letter-spacing:0.12em;padding:3px 8px;border:1px solid '+(estado==='vendida'?'#c0392b':'#2e7d32')+';color:'+(estado==='vendida'?'#c0392b':'#2e7d32')+';font-weight:500;';
+
+      // Toggle estado btn (admin only)
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'btn-estado';
+      toggleBtn.textContent = estado === 'vendida' ? '↺ Disponible' : '✓ Vendida';
+      toggleBtn.setAttribute('data-id', fid);
+      toggleBtn.setAttribute('data-estado', estado);
+      toggleBtn.style.cssText = 'display:none;background:none;border:1px solid var(--border);font-family:"Jost",sans-serif;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;padding:4px 8px;color:var(--gray);transition:all 0.2s;';
+      toggleBtn.onmouseenter = function(){ this.style.borderColor='var(--dark)'; this.style.color='var(--dark)'; };
+      toggleBtn.onmouseleave = function(){ this.style.borderColor='var(--border)'; this.style.color='var(--gray)'; };
+      toggleBtn.onclick = function(){ cambiarEstado(this); };
+
       const delBtn = document.createElement('button');
       delBtn.className = 'btn-delete';
       delBtn.title = 'Eliminar';
@@ -902,11 +942,22 @@ async function cargarCatalogo() {
       delBtn.setAttribute('data-id', fid);
       delBtn.setAttribute('data-url', imgUrl);
       delBtn.onclick = function(){ eliminarFichaBtn(this); };
-      footer.appendChild(titleSpan);
-      footer.appendChild(delBtn);
+
+      footer.style.cssText = 'padding:10px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;';
+      const leftSide = document.createElement('div');
+      leftSide.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
+      leftSide.appendChild(titleSpan);
+      leftSide.appendChild(estadoBadge);
+      const rightSide = document.createElement('div');
+      rightSide.style.cssText = 'display:flex;gap:6px;align-items:center;';
+      rightSide.appendChild(toggleBtn);
+      rightSide.appendChild(delBtn);
+      footer.appendChild(leftSide);
+      footer.appendChild(rightSide);
       // build card: img → catBar → footer
       const cats = f.categorias || [];
       card.setAttribute('data-cats', JSON.stringify(cats));
+      card.setAttribute('data-estado', estado);
       card.appendChild(img);
       if(cats.length > 0) {
         const catBar = document.createElement('div');
@@ -938,6 +989,20 @@ async function eliminarFicha(id, imageUrl, btn) {
   const n = document.querySelectorAll('.ficha-card').length;
   document.getElementById('ficha-count').textContent = n+(n===1?' obra':' obras');
   if(n===0) document.getElementById('empty-state').classList.add('visible');
+}
+
+async function cambiarEstado(btn) {
+  const id = btn.getAttribute('data-id');
+  const estadoActual = btn.getAttribute('data-estado');
+  const nuevoEstado = estadoActual === 'vendida' ? 'disponible' : 'vendida';
+  try {
+    await fetch(SUPABASE_URL+'/rest/v1/fichas?id=eq.'+id, {
+      method:'PATCH',
+      headers: {...hdrs(), 'Prefer':'return=representation'},
+      body: JSON.stringify({estado: nuevoEstado})
+    });
+    cargarCatalogo();
+  } catch(e) { alert('Error al cambiar estado'); }
 }
 
 function eliminarFichaBtn(btn) {
@@ -1052,21 +1117,25 @@ function getSelectedCats() {
   return Array.from(checks).map(c => c.value);
 }
 
+let filtroEstado = '';
+
 function filtrarPor(btn) {
   document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   filtroActivo = btn.getAttribute('data-cat');
+  filtroEstado = btn.getAttribute('data-estado') || '';
   const cards = document.querySelectorAll('.ficha-card');
   cards.forEach(card => {
-    if(!filtroActivo) { card.style.display=''; return; }
     const cats = JSON.parse(card.getAttribute('data-cats') || '[]');
-    card.style.display = cats.includes(filtroActivo) ? '' : 'none';
+    const estado = card.getAttribute('data-estado') || 'disponible';
+    const catOk = !filtroActivo || cats.includes(filtroActivo);
+    const estadoOk = !filtroEstado || estado === filtroEstado;
+    card.style.display = (catOk && estadoOk) ? '' : 'none';
   });
 }
 
 // ── Init ─────────────────────────────────────
-loadContent();
-loadContact();
+loadConfig();
 cargarCategorias();
 cargarCatalogo();
 </script>
