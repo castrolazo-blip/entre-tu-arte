@@ -934,8 +934,18 @@ async function cargarCatalogo() {
       img.src = imgUrl;
       img.alt = titulo || 'Ficha';
       img.loading = 'lazy';
-      img.style.cssText = estado === 'vendida' ? 'filter:grayscale(60%);opacity:0.75;' : '';
+      img.style.cssText = 'width:100%;display:block;cursor:pointer;'+(estado === 'vendida' ? 'filter:grayscale(70%);opacity:0.8;' : '');
       img.onclick = function(){ openLightbox(this.src); };
+
+      // Vendida ribbon
+      if(estado === 'vendida') {
+        const ribbon = document.createElement('div');
+        ribbon.textContent = 'VENDIDA';
+        ribbon.style.cssText = 'position:absolute;top:16px;right:-28px;background:#c0392b;color:white;font-size:0.65rem;letter-spacing:0.15em;padding:5px 36px;transform:rotate(45deg);font-family:"Jost",sans-serif;font-weight:500;';
+        card.style.position = 'relative';
+        card.style.overflow = 'hidden';
+        card.appendChild(ribbon);
+      }
       const footer = document.createElement('div');
       footer.className = 'card-footer';
       const titleSpan = document.createElement('span');
@@ -1048,6 +1058,29 @@ async function renderAdminObras() {
 
       const actions = document.createElement('div');
       actions.style.cssText = 'display:flex;flex-direction:column;gap:6px;flex-shrink:0;';
+
+      // Edit title inline
+      const editRow = document.createElement('div');
+      editRow.style.cssText = 'display:none;gap:4px;margin-bottom:4px;';
+      const editInput = document.createElement('input');
+      editInput.type = 'text';
+      editInput.value = f.titulo || '';
+      editInput.placeholder = 'Título de la obra';
+      editInput.style.cssText = 'flex:1;padding:4px 8px;border:1px solid var(--border);font-family:"Jost",sans-serif;font-size:0.78rem;background:white;outline:none;min-width:0;';
+      const saveTitle = document.createElement('button');
+      saveTitle.textContent = '✓';
+      saveTitle.style.cssText = 'background:var(--dark);color:white;border:none;padding:4px 8px;cursor:pointer;font-size:0.8rem;';
+      saveTitle.onclick = async () => {
+        await fetch(SUPABASE_URL+'/rest/v1/fichas?id=eq.'+f.id, {
+          method:'PATCH', headers:{...hdrs(),'Prefer':'return=minimal'},
+          body: JSON.stringify({titulo: editInput.value.trim()})
+        });
+        renderAdminObras(); cargarCatalogo();
+      };
+      editRow.appendChild(editInput);
+      editRow.appendChild(saveTitle);
+      editRow.style.display = 'flex';
+      info.appendChild(editRow);
 
       const toggleBtn = document.createElement('button');
       toggleBtn.textContent = estado === 'vendida' ? '↺ Disponible' : '✓ Vendida';
