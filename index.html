@@ -934,7 +934,7 @@ async function cargarCatalogo() {
       img.src = imgUrl;
       img.alt = titulo || 'Ficha';
       img.loading = 'lazy';
-      img.style.cssText = 'width:100%;display:block;cursor:pointer;'+(estado === 'vendida' ? 'filter:grayscale(70%);opacity:0.8;' : '');
+      img.style.cssText = 'width:100%;display:block;cursor:pointer;';
       img.onclick = function(){ openLightbox(this.src); };
 
       // Vendida ribbon
@@ -1043,7 +1043,7 @@ async function renderAdminObras() {
 
       const img = document.createElement('img');
       img.src = f.imagen_url;
-      img.style.cssText = 'width:60px;height:60px;object-fit:cover;flex-shrink:0;'+(estado==='vendida'?'filter:grayscale(60%);opacity:0.7;':'');
+      img.style.cssText = 'width:60px;height:60px;object-fit:cover;flex-shrink:0;';
 
       const info = document.createElement('div');
       info.style.cssText = 'flex:1;min-width:0;';
