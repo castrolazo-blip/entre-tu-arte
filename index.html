@@ -535,6 +535,92 @@ footer {
       <div id="contact-status"></div>
     </div>
 
+    <!-- TAB: CATS -->
+    <div id="tab-cats" class="content-editor">
+      <div class="editor-field">
+        <label>Agregar nueva categoría</label>
+        <div style="display:flex;gap:10px;">
+          <input type="text" id="nueva-cat-input" placeholder="Ej: Corredor" style="flex:1;padding:10px 14px;border:1px solid var(--border);background:var(--cream);font-family:'Jost',sans-serif;font-size:0.82rem;outline:none;">
+          <button class="btn-save-content" onclick="agregarCategoria()" style="white-space:nowrap;">+ Agregar</button>
+        </div>
+        <div id="cats-status" style="margin-top:8px;font-size:0.78rem;"></div>
+      </div>
+      <div class="editor-field">
+        <label>Categorías existentes</label>
+        <div id="cats-list" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+    </div>
+
+    <!-- TAB: BLOG -->
+    <div id="tab-blog" class="content-editor">
+      <div id="blog-list-admin" style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px;"></div>
+      <button class="btn-save-content" onclick="mostrarFormBlog()">+ Nuevo artículo</button>
+      <div id="blog-form" style="display:none;margin-top:20px;border-top:1px solid var(--border);padding-top:20px;">
+        <input type="hidden" id="blog-edit-id">
+        <div class="editor-field">
+          <label>Título del artículo</label>
+          <input type="text" id="blog-titulo" placeholder="Ej: 5 ideas para decorar tu sala">
+        </div>
+        <div class="editor-field">
+          <label>Subtítulo</label>
+          <input type="text" id="blog-subtitulo" placeholder="Descripción breve">
+        </div>
+        <div class="editor-field">
+          <label>Imagen de portada</label>
+          <div class="upload-area" style="padding:16px;position:relative;">
+            <input type="file" accept="image/*" onchange="previewBlogImg(event,'blog-portada-preview','blog-portada-file')" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+            <p style="font-size:0.78rem;color:var(--gray);">📷 Seleccionar imagen de portada</p>
+          </div>
+          <img id="blog-portada-preview" style="display:none;max-height:120px;margin-top:8px;border:1px solid var(--border);">
+          <input type="hidden" id="blog-portada-url">
+        </div>
+        <div class="editor-field">
+          <label>Bloque de texto 1</label>
+          <textarea id="blog-bloque1" rows="4" placeholder="Primer párrafo..."></textarea>
+        </div>
+        <div class="editor-field">
+          <label>Imagen 1</label>
+          <div class="upload-area" style="padding:16px;position:relative;">
+            <input type="file" accept="image/*" onchange="previewBlogImg(event,'blog-img1-preview','blog-img1-file')" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+            <p style="font-size:0.78rem;color:var(--gray);">📷 Seleccionar imagen</p>
+          </div>
+          <img id="blog-img1-preview" style="display:none;max-height:120px;margin-top:8px;border:1px solid var(--border);">
+          <input type="hidden" id="blog-img1-url">
+        </div>
+        <div class="editor-field">
+          <label>Bloque de texto 2</label>
+          <textarea id="blog-bloque2" rows="4" placeholder="Segundo párrafo..."></textarea>
+        </div>
+        <div class="editor-field">
+          <label>Imagen 2</label>
+          <div class="upload-area" style="padding:16px;position:relative;">
+            <input type="file" accept="image/*" onchange="previewBlogImg(event,'blog-img2-preview','blog-img2-file')" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+            <p style="font-size:0.78rem;color:var(--gray);">📷 Seleccionar imagen</p>
+          </div>
+          <img id="blog-img2-preview" style="display:none;max-height:120px;margin-top:8px;border:1px solid var(--border);">
+          <input type="hidden" id="blog-img2-url">
+        </div>
+        <div class="editor-field">
+          <label>Bloque de texto 3</label>
+          <textarea id="blog-bloque3" rows="4" placeholder="Tercer párrafo..."></textarea>
+        </div>
+        <div class="editor-field">
+          <label>Imagen 3</label>
+          <div class="upload-area" style="padding:16px;position:relative;">
+            <input type="file" accept="image/*" onchange="previewBlogImg(event,'blog-img3-preview','blog-img3-file')" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+            <p style="font-size:0.78rem;color:var(--gray);">📷 Seleccionar imagen</p>
+          </div>
+          <img id="blog-img3-preview" style="display:none;max-height:120px;margin-top:8px;border:1px solid var(--border);">
+          <input type="hidden" id="blog-img3-url">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="btn-save-content" onclick="guardarBlog()">Guardar artículo</button>
+          <button onclick="cancelarFormBlog()" style="background:none;border:1px solid var(--border);padding:11px 20px;font-family:'Jost',sans-serif;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;color:var(--gray);">Cancelar</button>
+        </div>
+        <div id="blog-save-status" style="margin-top:10px;font-size:0.78rem;"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
