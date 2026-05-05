@@ -434,6 +434,7 @@ footer {
   <div class="nav-links" id="nav-links">
     <a href="#nosotros" onclick="closeMenu()">Nosotros</a>
     <a href="#catalogo" onclick="closeMenu()">Catálogo</a>
+    <a href="#blog" onclick="closeMenu()">Blog</a>
     <a href="#contacto" onclick="closeMenu()">Contacto</a>
     <button class="btn-admin-nav" id="toggle-admin" onclick="toggleAdmin()">⚙ Admin</button>
   </div>
@@ -453,6 +454,7 @@ footer {
       <button class="admin-tab" onclick="switchTab('content',this)">Historia</button>
       <button class="admin-tab" onclick="switchTab('contact',this)">Contacto</button>
       <button class="admin-tab" onclick="switchTab('cats',this)">Espacios</button>
+      <button class="admin-tab" onclick="switchTab('blog',this)">Blog</button>
     </div>
 
     <!-- TAB: UPLOAD -->
@@ -541,6 +543,7 @@ footer {
   <button id="mobile-close" onclick="closeMenu()">✕</button>
   <a href="#nosotros" onclick="closeMenu()">Nosotros</a>
   <a href="#catalogo" onclick="closeMenu()">Catálogo</a>
+  <a href="#blog" onclick="closeMenu()">Blog</a>
   <a href="#contacto" onclick="closeMenu()">Contacto</a>
   <button id="mobile-menu-admin" onclick="closeMenu(); toggleAdmin()">⚙ Admin</button>
 </div>
@@ -554,6 +557,7 @@ footer {
   <div class="hero-cta">
     <a href="#catalogo" class="btn-primary">Ver Catálogo</a>
     <a href="#nosotros" class="btn-outline">Nuestra Historia</a>
+    <a href="#blog" class="btn-outline">Blog</a>
   </div>
   <div class="scroll-hint">
     <div class="scroll-line"></div>
@@ -616,6 +620,28 @@ footer {
     </div>
   </div>
 </section>
+
+<!-- BLOG -->
+<section id="blog" style="background:var(--white);padding:100px 60px;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <p class="section-label">Inspiración & Decoración</p>
+    <h2 class="section-title">Blog</h2>
+    <div id="blog-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:32px;">
+      <div id="blog-loading" style="grid-column:1/-1;text-align:center;padding:40px;font-size:0.8rem;color:var(--gray);letter-spacing:0.1em;">Cargando artículos...</div>
+      <div id="blog-empty" style="grid-column:1/-1;text-align:center;padding:60px;display:none;">
+        <p style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:300;color:var(--gray);font-style:italic;">Próximamente artículos de decoración.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BLOG POST MODAL -->
+<div id="blog-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:800;overflow-y:auto;padding:40px 20px;">
+  <div id="blog-modal-inner" style="background:white;max-width:760px;margin:0 auto;padding:60px 50px;position:relative;">
+    <button onclick="closeBlogModal()" style="position:absolute;top:20px;right:24px;background:none;border:none;font-size:1.6rem;cursor:pointer;color:var(--gray);">✕</button>
+    <div id="blog-modal-content"></div>
+  </div>
+</div>
 
 <!-- CONTACTO -->
 <section id="contacto">
@@ -867,6 +893,9 @@ function switchTab(name, btn) {
   if(tabContent) tabContent.classList.toggle('visible', name==='content');
   if(tabContact) tabContact.classList.toggle('visible', name==='contact');
   if(tabCats) tabCats.classList.toggle('visible', name==='cats');
+  const tabBlog = document.getElementById('tab-blog');
+  if(tabBlog) tabBlog.classList.toggle('visible', name==='blog');
+  if(name==='blog') cargarBlogAdmin();
   if(name==='upload') renderCatCheckboxes();
   if(name==='obras') renderAdminObras();
 }
@@ -1175,7 +1204,8 @@ function openLightbox(url, titulo, estado) {
   document.getElementById('lightbox-wa').href = waLink;
 
   // Share button - sends image link to anyone
-  const shareMsg = encodeURIComponent('Mira esta obra de arte 🎨 *' + obraName + '*\n' + url);
+  const catalogoUrl = window.location.href.split('#')[0];
+  const shareMsg = encodeURIComponent('Mira esta obra de arte 🎨 *' + obraName + '*\n' + url + '\n\n¿Te gusta? Hay más obras en el catálogo:\n' + catalogoUrl);
   document.getElementById('lightbox-share').href = 'https://wa.me/?text=' + shareMsg;
 }
 function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow = ''; }
@@ -1299,6 +1329,210 @@ function filtrarPor(btn) {
   });
 }
 
+// ── Blog ─────────────────────────────────────
+let blogFiles = {};
+
+function previewBlogImg(e, previewId, fileKey) {
+  const file = e.target.files[0];
+  if(!file) return;
+  blogFiles[fileKey] = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = document.getElementById(previewId);
+    img.src = ev.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadBlogImg(fileKey) {
+  const file = blogFiles[fileKey];
+  if(!file) return null;
+  const ext = file.name.split('.').pop();
+  const fileName = 'blog_'+Date.now()+'_'+fileKey+'.'+ext;
+  const res = await fetch(SUPABASE_URL+'/storage/v1/object/'+BUCKET+'/'+fileName, {
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':file.type,'x-upsert':'true'},
+    body: file
+  });
+  if(!res.ok) throw new Error('Error subiendo imagen blog');
+  return SUPABASE_URL+'/storage/v1/object/public/'+BUCKET+'/'+fileName;
+}
+
+function mostrarFormBlog() {
+  document.getElementById('blog-form').style.display = 'block';
+  document.getElementById('blog-edit-id').value = '';
+  ['blog-titulo','blog-subtitulo','blog-bloque1','blog-bloque2','blog-bloque3'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  ['blog-portada-url','blog-img1-url','blog-img2-url','blog-img3-url'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  ['blog-portada-preview','blog-img1-preview','blog-img2-preview','blog-img3-preview'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+  blogFiles = {};
+}
+
+function cancelarFormBlog() {
+  document.getElementById('blog-form').style.display = 'none';
+  blogFiles = {};
+}
+
+async function guardarBlog() {
+  const st = document.getElementById('blog-save-status');
+  st.textContent = 'Guardando...'; st.style.color = 'var(--gray)';
+  try {
+    // Upload images if new files selected
+    const portadaUrl = blogFiles['blog-portada-file'] ? await uploadBlogImg('blog-portada-file') : document.getElementById('blog-portada-url').value;
+    const img1Url = blogFiles['blog-img1-file'] ? await uploadBlogImg('blog-img1-file') : document.getElementById('blog-img1-url').value;
+    const img2Url = blogFiles['blog-img2-file'] ? await uploadBlogImg('blog-img2-file') : document.getElementById('blog-img2-url').value;
+    const img3Url = blogFiles['blog-img3-file'] ? await uploadBlogImg('blog-img3-file') : document.getElementById('blog-img3-url').value;
+
+    const data = {
+      titulo: document.getElementById('blog-titulo').value.trim(),
+      subtitulo: document.getElementById('blog-subtitulo').value.trim(),
+      bloque1: document.getElementById('blog-bloque1').value.trim(),
+      imagen1_url: img1Url || null,
+      bloque2: document.getElementById('blog-bloque2').value.trim(),
+      imagen2_url: img2Url || null,
+      bloque3: document.getElementById('blog-bloque3').value.trim(),
+      imagen3_url: img3Url || null,
+      imagen_portada_url: portadaUrl || null,
+      publicado: true
+    };
+
+    if(!data.titulo) { st.textContent = 'El título es obligatorio'; st.style.color='var(--red)'; return; }
+
+    const editId = document.getElementById('blog-edit-id').value;
+    if(editId) {
+      await fetch(SUPABASE_URL+'/rest/v1/blogs?id=eq.'+editId, {
+        method:'PATCH', headers:{...hdrs(),'Prefer':'return=minimal'}, body: JSON.stringify(data)
+      });
+    } else {
+      await fetch(SUPABASE_URL+'/rest/v1/blogs', {
+        method:'POST', headers:{...hdrs(),'Prefer':'return=minimal'}, body: JSON.stringify(data)
+      });
+    }
+    st.textContent = '✓ Artículo guardado'; st.style.color='#2e7d32';
+    setTimeout(()=>{ cancelarFormBlog(); cargarBlogAdmin(); cargarBlog(); }, 1500);
+  } catch(e) {
+    st.textContent = 'Error: '+e.message; st.style.color='var(--red)';
+  }
+}
+
+async function cargarBlogAdmin() {
+  const cont = document.getElementById('blog-list-admin');
+  if(!cont) return;
+  cont.innerHTML = '<p style="color:var(--gray);font-size:0.8rem;">Cargando...</p>';
+  const res = await fetch(SUPABASE_URL+'/rest/v1/blogs?order=created_at.desc', { headers: hdrs() });
+  const blogs = await res.json();
+  cont.innerHTML = '';
+  if(!blogs || blogs.length === 0) {
+    cont.innerHTML = '<p style="color:var(--gray);font-size:0.8rem;font-style:italic;">No hay artículos aún.</p>';
+    return;
+  }
+  blogs.forEach(b => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);background:var(--cream);';
+    const title = document.createElement('span');
+    title.style.cssText = 'flex:1;font-size:0.82rem;';
+    title.textContent = b.titulo;
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️ Editar';
+    editBtn.style.cssText = 'background:none;border:1px solid var(--border);font-family:"Jost",sans-serif;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:5px 10px;color:var(--gray);';
+    editBtn.onclick = () => editarBlog(b);
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.style.cssText = 'background:none;border:1px solid #fcc;font-size:0.85rem;cursor:pointer;padding:5px 8px;color:#c0392b;';
+    delBtn.onclick = async () => {
+      if(!confirm('¿Eliminar "'+b.titulo+'"?')) return;
+      await fetch(SUPABASE_URL+'/rest/v1/blogs?id=eq.'+b.id, {method:'DELETE',headers:hdrs()});
+      cargarBlogAdmin(); cargarBlog();
+    };
+    row.appendChild(title); row.appendChild(editBtn); row.appendChild(delBtn);
+    cont.appendChild(row);
+  });
+}
+
+function editarBlog(b) {
+  mostrarFormBlog();
+  document.getElementById('blog-edit-id').value = b.id;
+  document.getElementById('blog-titulo').value = b.titulo || '';
+  document.getElementById('blog-subtitulo').value = b.subtitulo || '';
+  document.getElementById('blog-bloque1').value = b.bloque1 || '';
+  document.getElementById('blog-bloque2').value = b.bloque2 || '';
+  document.getElementById('blog-bloque3').value = b.bloque3 || '';
+  ['portada','img1','img2','img3'].forEach((key,i) => {
+    const urlKey = key === 'portada' ? 'imagen_portada_url' : 'imagen'+(i)+'_url';
+    const fields = {portada:'imagen_portada_url',img1:'imagen1_url',img2:'imagen2_url',img3:'imagen3_url'};
+    const url = b[fields[key]];
+    document.getElementById('blog-'+key+'-url').value = url || '';
+    const prev = document.getElementById('blog-'+key+'-preview');
+    if(prev && url){ prev.src = url; prev.style.display='block'; }
+  });
+}
+
+async function cargarBlog() {
+  const grid = document.getElementById('blog-grid');
+  if(!grid) return;
+  document.getElementById('blog-loading').style.display = 'block';
+  document.getElementById('blog-empty').style.display = 'none';
+  grid.querySelectorAll('.blog-card').forEach(c => c.remove());
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/blogs?publicado=eq.true&order=created_at.desc', { headers: hdrs() });
+    const blogs = await res.json();
+    document.getElementById('blog-loading').style.display = 'none';
+    if(!blogs || blogs.length === 0) { document.getElementById('blog-empty').style.display='block'; return; }
+    blogs.forEach(b => {
+      const card = document.createElement('div');
+      card.className = 'blog-card';
+      card.style.cssText = 'background:white;border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;';
+      card.onmouseenter = () => { card.style.transform='translateY(-4px)'; card.style.boxShadow='0 12px 30px rgba(0,0,0,0.09)'; };
+      card.onmouseleave = () => { card.style.transform=''; card.style.boxShadow=''; };
+      card.onclick = () => abrirBlogModal(b);
+      let inner = '';
+      if(b.imagen_portada_url) inner += '<img src="'+b.imagen_portada_url+'" style="width:100%;height:200px;object-fit:cover;display:block;" loading="lazy">';
+      inner += '<div style="padding:24px;">';
+      inner += '<p style="font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);margin-bottom:8px;">Decoración</p>';
+      inner += '<h3 style="font-family:Cormorant Garamond,serif;font-size:1.4rem;font-weight:400;line-height:1.3;margin-bottom:8px;">'+b.titulo+'</h3>';
+      if(b.subtitulo) inner += '<p style="font-size:0.82rem;color:var(--gray);line-height:1.6;">'+b.subtitulo+'</p>';
+      inner += '<p style="margin-top:16px;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--dark);border-bottom:1px solid var(--dark);display:inline-block;padding-bottom:2px;">Leer más</p>';
+      inner += '</div>';
+      card.innerHTML = inner;
+      grid.appendChild(card);
+    });
+  } catch(e) {
+    document.getElementById('blog-loading').textContent = 'Error al cargar el blog.';
+  }
+}
+
+function abrirBlogModal(b) {
+  let content = '<h1 style="font-family:Cormorant Garamond,serif;font-size:2.2rem;font-weight:300;line-height:1.2;margin-bottom:12px;">'+b.titulo+'</h1>';
+  if(b.subtitulo) content += '<p style="font-size:1rem;color:var(--gray);margin-bottom:40px;font-style:italic;">'+b.subtitulo+'</p>';
+  if(b.imagen_portada_url) content += '<img src="'+b.imagen_portada_url+'" style="width:100%;max-height:400px;object-fit:cover;margin-bottom:40px;display:block;">';
+  if(b.bloque1) content += '<p style="font-size:1rem;line-height:1.9;color:#444;margin-bottom:32px;font-weight:300;">'+b.bloque1.split('\n').join('<br>')+'</p>';
+
+  if(b.imagen1_url) content += '<img src="'+b.imagen1_url+'" style="width:100%;max-height:380px;object-fit:cover;margin-bottom:32px;display:block;">';
+  if(b.bloque2) content += '<p style="font-size:1rem;line-height:1.9;color:#444;margin-bottom:32px;font-weight:300;">'+b.bloque2.split('\n').join('<br>')+'</p>';
+
+  if(b.imagen2_url) content += '<img src="'+b.imagen2_url+'" style="width:100%;max-height:380px;object-fit:cover;margin-bottom:32px;display:block;">';
+  if(b.bloque3) content += '<p style="font-size:1rem;line-height:1.9;color:#444;margin-bottom:32px;font-weight:300;">'+b.bloque3.split('\n').join('<br>')+'</p>';
+
+  if(b.imagen3_url) content += '<img src="'+b.imagen3_url+'" style="width:100%;max-height:380px;object-fit:cover;margin-bottom:32px;display:block;">';
+  document.getElementById('blog-modal-content').innerHTML = content;
+  document.getElementById('blog-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBlogModal() {
+  document.getElementById('blog-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
 // ── Init ─────────────────────────────────────
 // Clear any old localStorage data
 localStorage.removeItem('eta_content');
@@ -1306,6 +1540,7 @@ localStorage.removeItem('eta_contact');
 loadConfig();
 cargarCategorias();
 cargarCatalogo();
+cargarBlog();
 </script>
 </body>
 </html>
