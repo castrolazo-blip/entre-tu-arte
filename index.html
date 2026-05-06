@@ -121,7 +121,7 @@ nav {
 }
 
 /* ─── SECTION BASE ─────────────────────── */
-section { padding:100px 60px; }
+section { padding:100px 60px; scroll-margin-top:80px; }
 .section-label {
   font-size:0.7rem; letter-spacing:0.25em; text-transform:uppercase;
   color:var(--red); font-weight:400; margin-bottom:16px;
@@ -414,6 +414,7 @@ footer {
   nav { padding:12px 20px; }
   .hamburger { display:flex; }
   .nav-links { display:none !important; }
+  #nav-desktop { display:none; }
   section { padding:70px 24px; }
   .nosotros-grid, .contact-grid { grid-template-columns:1fr; gap:40px; }
   #catalog-grid { grid-template-columns:1fr; }
@@ -740,7 +741,7 @@ footer {
 </div>
 
 <!-- DECORA TU ESPACIO -->
-<section id="decora" style="background:var(--dark);padding:100px 60px;">
+<section id="decora" style="background:var(--dark);padding:100px 60px;scroll-margin-top:80px;">
   <div style="max-width:800px;margin:0 auto;text-align:center;">
     <p class="section-label" style="color:var(--red);">Herramienta exclusiva</p>
     <h2 class="section-title" style="color:var(--cream);margin-bottom:16px;">Decora tu espacio</h2>
@@ -794,6 +795,7 @@ footer {
       <!-- STEP 3: Elegir obra -->
       <div id="step3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:32px;margin-bottom:16px;">
         <p style="color:var(--cream);font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:20px;">Paso 3 — Elige la obra que te gusta</p>
+        <button onclick="cargarObrasDecora()" style="background:rgba(255,255,255,0.1);color:#aaa;border:1px solid rgba(255,255,255,0.2);padding:8px 20px;font-family:'Jost',sans-serif;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;margin-bottom:16px;">↺ Cargar obras</button>
         <div id="decora-obras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;max-height:320px;overflow-y:auto;"></div>
         <p id="decora-obra-sel" style="color:#aaa;font-size:0.78rem;margin-top:12px;font-style:italic;"></p>
       </div>
@@ -1609,11 +1611,11 @@ cargarObrasDecora();
 const decoraObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if(entry.isIntersecting) {
-      const cont = document.getElementById('decora-obras');
-      if(cont && cont.children.length === 0) cargarObrasDecora();
+      cargarObrasDecora();
+      decoraObserver.disconnect();
     }
   });
-}, {threshold: 0.1});
+}, {threshold: 0.05});
 const decoraSection = document.getElementById('decora');
 if(decoraSection) decoraObserver.observe(decoraSection); }, 1500);
   } catch(e) {
