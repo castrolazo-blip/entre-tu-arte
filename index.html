@@ -434,6 +434,7 @@ footer {
     <a href="#nosotros" onclick="closeMenu()">Nosotros</a>
     <a href="#catalogo" onclick="closeMenu()">Catálogo</a>
     <a href="#blog" onclick="closeMenu()">Blog</a>
+    <a href="#decora" onclick="closeMenu()">Decora tu espacio</a>
     <a href="#contacto" onclick="closeMenu()">Contacto</a>
     <button class="btn-admin-nav" id="toggle-admin" onclick="toggleAdmin()">⚙ Admin</button>
   </div>
@@ -637,6 +638,7 @@ footer {
   <a href="#nosotros" onclick="closeMenu()">Nosotros</a>
   <a href="#catalogo" onclick="closeMenu()">Catálogo</a>
   <a href="#blog" onclick="closeMenu()">Blog</a>
+  <a href="#decora" onclick="closeMenu()">Decora tu espacio</a>
   <a href="#contacto" onclick="closeMenu()">Contacto</a>
   <button id="mobile-menu-admin" onclick="closeMenu(); toggleAdmin()">⚙ Admin</button>
 </div>
@@ -651,6 +653,7 @@ footer {
     <a href="#catalogo" class="btn-primary">Ver Catálogo</a>
     <a href="#nosotros" class="btn-outline">Nuestra Historia</a>
     <a href="#blog" class="btn-outline">Blog</a>
+    <a href="#decora" class="btn-outline">✨ Decora tu espacio</a>
   </div>
   <div class="scroll-hint">
     <div class="scroll-line"></div>
@@ -735,6 +738,88 @@ footer {
     <div id="blog-modal-content"></div>
   </div>
 </div>
+
+<!-- DECORA TU ESPACIO -->
+<section id="decora" style="background:var(--dark);padding:100px 60px;">
+  <div style="max-width:800px;margin:0 auto;text-align:center;">
+    <p class="section-label" style="color:var(--red);">Herramienta exclusiva</p>
+    <h2 class="section-title" style="color:var(--cream);margin-bottom:16px;">Decora tu espacio</h2>
+    <p style="color:#aaa;font-size:0.95rem;line-height:1.8;margin-bottom:48px;font-weight:300;">Sube una foto de tu sala, cuarto o espacio favorito. Elige la obra que te llama la atención y nuestra IA te dirá cómo quedaría y qué tamaño se adapta mejor a tu espacio.</p>
+
+    <div id="decora-steps">
+
+      <!-- STEP 1: Upload foto -->
+      <div id="step1" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:32px;margin-bottom:16px;">
+        <p style="color:var(--cream);font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:20px;">Paso 1 — Foto de tu espacio</p>
+        <div id="foto-upload-area" style="border:2px dashed rgba(255,255,255,0.2);padding:32px;cursor:pointer;position:relative;transition:border-color 0.2s;">
+          <input type="file" id="foto-espacio" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;" onchange="previewEspacio(event)">
+          <p style="color:#aaa;font-size:0.85rem;">📷 Toca aquí para subir la foto de tu espacio</p>
+          <p style="color:#666;font-size:0.72rem;margin-top:6px;">JPG o PNG</p>
+        </div>
+        <img id="foto-espacio-preview" style="display:none;max-height:200px;margin:16px auto 0;border:1px solid rgba(255,255,255,0.1);">
+      </div>
+
+      <!-- STEP 2: Medidas opcionales -->
+      <div id="step2" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:32px;margin-bottom:16px;">
+        <p style="color:var(--cream);font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">Paso 2 — Medidas (opcional)</p>
+        <p style="color:#666;font-size:0.75rem;margin-bottom:20px;">Si nos das las medidas podremos recomendarte el tamaño ideal del cuadro</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;">
+          <div>
+            <label style="color:#aaa;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Ancho de la pared (cm)</label>
+            <input type="number" id="med-pared-ancho" placeholder="Ej: 250" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:white;font-family:'Jost',sans-serif;font-size:0.85rem;outline:none;">
+          </div>
+          <div>
+            <label style="color:#aaa;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Alto de la pared (cm)</label>
+            <input type="number" id="med-pared-alto" placeholder="Ej: 240" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:white;font-family:'Jost',sans-serif;font-size:0.85rem;outline:none;">
+          </div>
+          <div>
+            <label style="color:#aaa;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Mueble de referencia (cm)</label>
+            <input type="number" id="med-mueble" placeholder="Ej: ancho sofá 180" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:white;font-family:'Jost',sans-serif;font-size:0.85rem;outline:none;">
+          </div>
+          <div>
+            <label style="color:#aaa;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Estilo del espacio</label>
+            <select id="med-estilo" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:white;font-family:'Jost',sans-serif;font-size:0.85rem;outline:none;">
+              <option value="">Seleccionar...</option>
+              <option value="moderno">Moderno</option>
+              <option value="clasico">Clásico</option>
+              <option value="minimalista">Minimalista</option>
+              <option value="rustico">Rústico</option>
+              <option value="industrial">Industrial</option>
+              <option value="bohemio">Bohemio</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Elegir obra -->
+      <div id="step3" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:32px;margin-bottom:16px;">
+        <p style="color:var(--cream);font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:20px;">Paso 3 — Elige la obra que te gusta</p>
+        <div id="decora-obras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;max-height:320px;overflow-y:auto;"></div>
+        <p id="decora-obra-sel" style="color:#aaa;font-size:0.78rem;margin-top:12px;font-style:italic;"></p>
+      </div>
+
+      <!-- ANALIZAR -->
+      <button id="btn-analizar" onclick="analizarEspacio()" style="background:var(--red);color:white;border:none;padding:16px 48px;font-family:'Jost',sans-serif;font-size:0.85rem;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;width:100%;transition:background 0.2s;margin-bottom:16px;">
+        ✨ Analizar mi espacio
+      </button>
+
+      <!-- RESULTADO -->
+      <div id="decora-resultado" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);padding:32px;text-align:left;">
+        <p style="color:var(--red);font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">✨ Recomendación para tu espacio</p>
+        <div id="decora-resultado-text" style="color:#ddd;font-size:0.9rem;line-height:1.8;font-weight:300;"></div>
+        <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
+          <a id="decora-wa-btn" href="" target="_blank" style="display:flex;align-items:center;gap:8px;background:#25D366;color:white;padding:12px 24px;text-decoration:none;font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;">
+            💬 Quiero esta obra
+          </a>
+          <button onclick="resetDecora()" style="background:none;border:1px solid rgba(255,255,255,0.2);color:#aaa;padding:12px 24px;font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">
+            Probar otra obra
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
 
 <!-- CONTACTO -->
 <section id="contacto">
@@ -895,7 +980,7 @@ function renderContactLinks(cfg) {
   const container = document.getElementById('contact-links');
   container.innerHTML = '';
   const items = [];
-  if(cfg.whatsapp)  items.push({ icon:'💬', label:'WhatsApp', href:'https://wa.me/'+cfg.whatsapp.replace(/[^0-9]/g,'') });
+  if(cfg.whatsapp)  items.push({ icon:'💬', label:'WhatsApp', href:'https://wa.me/'+cfg.whatsapp.split('').filter(c=>'0123456789'.includes(c)).join('') });
   if(cfg.instagram) items.push({ icon:'📷', label:'@'+cfg.instagram, href:'https://instagram.com/'+cfg.instagram });
   if(cfg.facebook) {
     const fbHref = cfg.facebook.startsWith('http') ? cfg.facebook : 'https://facebook.com/'+cfg.facebook;
@@ -1297,7 +1382,7 @@ function openLightbox(url, titulo, estado) {
   const obraName = titulo ? titulo : 'una obra';
   const estadoTexto = estado === 'vendida' ? ' _(esta obra está vendida, ¿puedes crear una similar?)_' : '';
   const msg = encodeURIComponent('Hola, me interesa la obra: *' + obraName + '*' + estadoTexto + '\nLink de la imagen: ' + url);
-  const waLink = waNumber ? 'https://wa.me/' + waNumber.replace(/[^0-9]/g,'') + '?text=' + msg : 'https://wa.me/?text=' + msg;
+  const waLink = waNumber ? 'https://wa.me/' + waNumber.split('').filter(c=>'0123456789'.includes(c)).join('') + '?text=' + msg : 'https://wa.me/?text=' + msg;
   document.getElementById('lightbox-wa').href = waLink;
   document.getElementById('lightbox-wa').onclick = () => registrarEvento('me_interesa', 'catalogo', null, obraName);
 
@@ -1517,7 +1602,8 @@ async function guardarBlog() {
       });
     }
     st.textContent = '✓ Artículo guardado'; st.style.color='#2e7d32';
-    setTimeout(()=>{ cancelarFormBlog(); cargarBlogAdmin(); cargarBlog(); }, 1500);
+    setTimeout(()=>{ cancelarFormBlog(); cargarBlogAdmin(); cargarBlog();
+cargarObrasDecora(); }, 1500);
   } catch(e) {
     st.textContent = 'Error: '+e.message; st.style.color='var(--red)';
   }
@@ -1631,6 +1717,158 @@ function abrirBlogModal(b) {
 function closeBlogModal() {
   document.getElementById('blog-modal').style.display = 'none';
   document.body.style.overflow = '';
+}
+
+// ── Decora tu espacio ────────────────────────
+let obraSeleccionada = null;
+let fotoEspacioFile = null;
+
+function previewEspacio(e) {
+  fotoEspacioFile = e.target.files[0];
+  if(!fotoEspacioFile) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = document.getElementById('foto-espacio-preview');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(fotoEspacioFile);
+}
+
+async function cargarObrasDecora() {
+  const cont = document.getElementById('decora-obras');
+  if(!cont) return;
+  try {
+    const res = await fetch(SUPABASE_URL+'/rest/v1/fichas?estado=eq.disponible&order=created_at.desc', { headers: hdrs() });
+    const fichas = await res.json();
+    cont.innerHTML = '';
+    fichas.forEach(f => {
+      const div = document.createElement('div');
+      div.style.cssText = 'cursor:pointer;border:2px solid transparent;transition:border-color 0.2s;position:relative;';
+      div.onclick = () => seleccionarObra(f, div);
+      const img = document.createElement('img');
+      img.src = f.imagen_url;
+      img.style.cssText = 'width:100%;height:100px;object-fit:cover;display:block;';
+      img.loading = 'lazy';
+      const label = document.createElement('p');
+      label.style.cssText = 'font-size:0.65rem;color:#aaa;padding:4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      label.textContent = f.titulo || 'Sin título';
+      div.appendChild(img);
+      div.appendChild(label);
+      div.setAttribute('data-id', f.id);
+      cont.appendChild(div);
+    });
+  } catch(e) { console.error(e); }
+}
+
+function seleccionarObra(f, div) {
+  obraSeleccionada = f;
+  document.querySelectorAll('#decora-obras > div').forEach(d => {
+    d.style.borderColor = 'transparent';
+  });
+  div.style.borderColor = 'var(--red)';
+  document.getElementById('decora-obra-sel').textContent = '✓ Seleccionada: ' + (f.titulo || 'Sin título') + ' — ' + (f.categorias && f.categorias.length ? f.categorias.join(', ') : '');
+}
+
+async function analizarEspacio() {
+  if(!fotoEspacioFile) { alert('Por favor sube una foto de tu espacio primero.'); return; }
+  if(!obraSeleccionada) { alert('Por favor selecciona una obra del catálogo.'); return; }
+
+  const btn = document.getElementById('btn-analizar');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analizando tu espacio...';
+
+  const paredAncho = document.getElementById('med-pared-ancho').value;
+  const paredAlto = document.getElementById('med-pared-alto').value;
+  const mueble = document.getElementById('med-mueble').value;
+  const estilo = document.getElementById('med-estilo').value;
+
+  try {
+    // Convert photo to base64
+    const base64 = await new Promise((res) => {
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result.split(',')[1]);
+      reader.readAsDataURL(fotoEspacioFile);
+    });
+
+    const obraInfo = 'Obra: ' + (obraSeleccionada.titulo || 'Sin título') +
+      '. Tamaño en catálogo: ' + (obraSeleccionada.categorias ? obraSeleccionada.categorias.join(', ') : 'no especificado');
+
+    const medidas = [
+      paredAncho ? 'Ancho de pared: '+paredAncho+'cm' : '',
+      paredAlto ? 'Alto de pared: '+paredAlto+'cm' : '',
+      mueble ? 'Mueble referencia: '+mueble+'cm de ancho' : '',
+      estilo ? 'Estilo del espacio: '+estilo : ''
+    ].filter(Boolean).join('. ');
+
+    const prompt = 'Eres un experto en decoracion de interiores y arte. ' +
+      'El cliente quiere saber como quedaria la obra "' + (obraSeleccionada.titulo || 'seleccionada') + '". ' +
+      'Informacion del cliente: ' + (medidas || 'No proporciono medidas.') + '. ' +
+      'Analiza y responde en espanol con: ' +
+      '1. Como quedaria esta obra en el espacio (colores, estilo, armonia). ' +
+      '2. Si el tamano del catalogo es ideal o recomiendas uno diferente (da medidas en cm). ' +
+      '3. Donde exactamente colocarla (altura, pared sugerida). ' +
+      '4. Una frase final motivadora. ' +
+      'Maximo 150 palabras, tono elegante.';
+
+    // DEMO MODE - simulate AI response
+        const demoR1 = 'La obra elegida complementa tu espacio perfectamente. Los tonos y la composicion crean una armonia visual con los elementos existentes.' +
+      '<br><br><strong>Tamano recomendado:</strong> El tamano del catalogo es ideal. Si la pared es amplia, considera 90x120cm para el impacto visual correcto.' +
+      '<br><br><strong>Ubicacion sugerida:</strong> Colocala a 150-160cm del suelo sobre el mueble principal, dejando al menos 20cm entre el mueble y el marco.' +
+      '<br><br>Este cuadro transformara tu espacio en un lugar con identidad y caracter unico.';
+    const demoR2 = 'Tu espacio tiene una iluminacion y paleta de colores que haran resaltar esta obra de manera espectacular.' +
+      '<br><br><strong>Tamano recomendado:</strong> Para las proporciones de tu espacio, recomendamos 80x100cm, que equilibra perfectamente sin saturar.' +
+      '<br><br><strong>Ubicacion sugerida:</strong> La pared principal detras del sofa es ideal. Centra la obra y colocala a 160cm del piso.' +
+      '<br><br>Esta combinacion elevara el ambiente de tu hogar a un nivel de elegancia que sorprendera a cada visita.';
+    const demoResponses = [demoR1, demoR2];
+    const respuesta = demoResponses[Math.floor(Math.random() * demoResponses.length)];
+
+    // Show result
+    const resultDiv = document.getElementById('decora-resultado');
+    const resultText = document.getElementById('decora-resultado-text');
+    resultText.innerHTML = respuesta;
+    resultDiv.style.display = 'block';
+
+    // WhatsApp notification to admin
+    const cfg = JSON.parse(localStorage.getItem('eta_wa_cache') || '{}');
+    const waNumber = cfg.whatsapp || '';
+    const waMsg = encodeURIComponent(
+      'Nuevo cliente interesado - Entre Tu Arte. ' +
+      'Obra elegida: ' + (obraSeleccionada.titulo || 'Sin titulo') + '. ' +
+      (medidas ? 'Datos del espacio: ' + medidas + '. ' : '') +
+      'El cliente esta viendo el catalogo ahora.'
+    );
+    if(waNumber) {
+      const notifLink = 'https://wa.me/' + waNumber.split('').filter(c=>'0123456789'.includes(c)).join('') + '?text=' + waMsg;
+      fetch(notifLink, {mode:'no-cors'}).catch(()=>{});
+    }
+
+    // Client WA button
+    const clientMsg = encodeURIComponent(
+      'Hola! Vi la herramienta de Entre Tu Arte y me encanto la obra ' + (obraSeleccionada.titulo || 'seleccionada') + '. ' +
+      'Me gustaria saber mas sobre ella y como adquirirla.'
+    );
+    const clientWa = waNumber ? 'https://wa.me/' + waNumber.split('').filter(c=>'0123456789'.includes(c)).join('') + '?text=' + clientMsg : '#';
+    document.getElementById('decora-wa-btn').href = clientWa;
+
+    registrarEvento('decora_analisis', 'decora', obraSeleccionada.id, obraSeleccionada.titulo);
+
+  } catch(e) {
+    alert('Error al analizar. Intenta de nuevo.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Analizar mi espacio';
+  }
+}
+
+function resetDecora() {
+  obraSeleccionada = null;
+  fotoEspacioFile = null;
+  document.getElementById('foto-espacio-preview').style.display = 'none';
+  document.getElementById('foto-espacio').value = '';
+  document.getElementById('decora-resultado').style.display = 'none';
+  document.getElementById('decora-obra-sel').textContent = '';
+  document.querySelectorAll('#decora-obras > div').forEach(d => d.style.borderColor = 'transparent');
 }
 
 // ── Analytics ────────────────────────────────
