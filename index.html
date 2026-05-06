@@ -435,7 +435,7 @@ footer {
     <a href="#nosotros" onclick="closeMenu()">Nosotros</a>
     <a href="#catalogo" onclick="closeMenu()">Catálogo</a>
     <a href="#blog" onclick="closeMenu()">Blog</a>
-    <a href="#decora" onclick="closeMenu()">Decora tu espacio</a>
+    
     <a href="#contacto" onclick="closeMenu()">Contacto</a>
     <button class="btn-admin-nav" id="toggle-admin" onclick="toggleAdmin()">⚙ Admin</button>
   </div>
@@ -639,7 +639,7 @@ footer {
   <a href="#nosotros" onclick="closeMenu()">Nosotros</a>
   <a href="#catalogo" onclick="closeMenu()">Catálogo</a>
   <a href="#blog" onclick="closeMenu()">Blog</a>
-  <a href="#decora" onclick="closeMenu()">Decora tu espacio</a>
+  
   <a href="#contacto" onclick="closeMenu()">Contacto</a>
   <button id="mobile-menu-admin" onclick="closeMenu(); toggleAdmin()">⚙ Admin</button>
 </div>
@@ -654,7 +654,7 @@ footer {
     <a href="#catalogo" class="btn-primary">Ver Catálogo</a>
     <a href="#nosotros" class="btn-outline">Nuestra Historia</a>
     <a href="#blog" class="btn-outline">Blog</a>
-    <a href="#decora" class="btn-outline">✨ Decora tu espacio</a>
+
   </div>
   <div class="scroll-hint">
     <div class="scroll-line"></div>
@@ -741,7 +741,7 @@ footer {
 </div>
 
 <!-- DECORA TU ESPACIO -->
-<section id="decora" style="background:var(--dark);padding:100px 60px;scroll-margin-top:80px;">
+<section id="decora" style="display:none;background:var(--dark);padding:100px 60px;scroll-margin-top:80px;">
   <div style="max-width:800px;margin:0 auto;text-align:center;">
     <p class="section-label" style="color:var(--red);">Herramienta exclusiva</p>
     <h2 class="section-title" style="color:var(--cream);margin-bottom:16px;">Decora tu espacio</h2>
@@ -821,8 +821,11 @@ footer {
           </button>
         </div>
         <div id="montaje-confirmacion" style="display:none;margin-top:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);padding:20px;text-align:center;">
-          <p style="color:#25D366;font-size:1rem;margin-bottom:8px;">✓ Solicitud enviada</p>
-          <p style="color:#aaa;font-size:0.82rem;line-height:1.7;">Recibirás el montaje de tu espacio en menos de 24 horas por WhatsApp. Nuestro equipo lo preparará especialmente para ti.</p>
+          <p style="color:#25D366;font-size:1rem;margin-bottom:12px;">✓ Foto lista. Toca el botón para enviar:</p>
+          <a id="montaje-wa-link" href="" target="_blank" style="display:inline-flex;align-items:center;gap:10px;background:#25D366;color:white;padding:14px 28px;text-decoration:none;font-family:'Jost',sans-serif;font-size:0.85rem;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;">
+            💬 Enviar solicitud por WhatsApp
+          </a>
+          <p style="color:#666;font-size:0.75rem;line-height:1.7;">Recibirás tu montaje en menos de 24 horas.</p>
         </div>
       </div>
 
@@ -1939,10 +1942,9 @@ async function solicitarMontaje() {
       ? 'https://wa.me/' + waNumber.split('').filter(c => '0123456789'.includes(c)).join('') + '?text=' + msg
       : 'https://wa.me/?text=' + msg;
 
-    window.open(waLink, '_blank');
-
-    // Show confirmation
+    // Show send button instead of auto-opening
     document.getElementById('montaje-confirmacion').style.display = 'block';
+    document.getElementById('montaje-wa-link').href = waLink;
     btn.style.display = 'none';
 
     registrarEvento('solicitud_montaje', 'decora', obraSeleccionada.id, obraName);
