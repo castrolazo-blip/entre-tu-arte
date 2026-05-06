@@ -1928,12 +1928,11 @@ async function solicitarMontaje() {
     ].filter(Boolean).join(' | ');
 
     const msg = encodeURIComponent(
-      'Solicitud de montaje - Entre Tu Arte. ' +
-      'Obra elegida: ' + obraName + '. ' +
-      'Imagen obra: ' + obraImg + '. ' +
-      (fotoUrl ? 'Foto del espacio: ' + fotoUrl + '. ' : '') +
-      (medidas ? 'Medidas: ' + medidas + '. ' : '') +
-      'Por favor enviarme el montaje en 24 horas. Gracias!'
+      'MONTAJE SOLICITADO' +
+      ' | Obra: ' + obraName +
+      (fotoUrl ? ' | Foto sala: ' + fotoUrl : '') +
+      ' | Obra img: ' + obraImg +
+      (medidas ? ' | ' + medidas : '')
     );
 
     const waLink = waNumber
