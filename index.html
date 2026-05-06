@@ -813,9 +813,16 @@ footer {
           <a id="decora-wa-btn" href="" target="_blank" style="display:flex;align-items:center;gap:8px;background:#25D366;color:white;padding:12px 24px;text-decoration:none;font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;">
             💬 Quiero esta obra
           </a>
+          <button id="btn-montaje" onclick="solicitarMontaje()" style="display:flex;align-items:center;gap:8px;background:var(--red);color:white;border:none;padding:12px 24px;font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">
+            🖼 Ver cómo quedaría en mi espacio
+          </button>
           <button onclick="resetDecora()" style="background:none;border:1px solid rgba(255,255,255,0.2);color:#aaa;padding:12px 24px;font-family:'Jost',sans-serif;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">
             Probar otra obra
           </button>
+        </div>
+        <div id="montaje-confirmacion" style="display:none;margin-top:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);padding:20px;text-align:center;">
+          <p style="color:#25D366;font-size:1rem;margin-bottom:8px;">✓ Solicitud enviada</p>
+          <p style="color:#aaa;font-size:0.82rem;line-height:1.7;">Recibirás el montaje de tu espacio en menos de 24 horas por WhatsApp. Nuestro equipo lo preparará especialmente para ti.</p>
         </div>
       </div>
 
@@ -1875,6 +1882,79 @@ async function analizarEspacio() {
   }
 }
 
+async function solicitarMontaje() {
+  if(!fotoEspacioFile || !obraSeleccionada) return;
+
+  const btn = document.getElementById('btn-montaje');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try {
+    // Convert foto to base64 to include link
+    const cfg = JSON.parse(localStorage.getItem('eta_wa_cache') || '{}');
+    const waNumber = cfg.whatsapp || '';
+
+    const obraName = obraSeleccionada.titulo || 'Sin titulo';
+    const obraImg = obraSeleccionada.imagen_url || '';
+
+    // Upload client photo to Supabase storage
+    const ext = fotoEspacioFile.name.split('.').pop() || 'jpg';
+    const fileName = 'montaje_' + Date.now() + '.' + ext;
+    const uploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/' + BUCKET + '/' + fileName, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': fotoEspacioFile.type || 'image/jpeg',
+        'x-upsert': 'true'
+      },
+      body: fotoEspacioFile
+    });
+
+    let fotoUrl = '';
+    if(uploadRes.ok) {
+      fotoUrl = SUPABASE_URL + '/storage/v1/object/public/' + BUCKET + '/' + fileName;
+    }
+
+    const paredAncho = document.getElementById('med-pared-ancho').value;
+    const paredAlto = document.getElementById('med-pared-alto').value;
+    const mueble = document.getElementById('med-mueble').value;
+    const estilo = document.getElementById('med-estilo').value;
+
+    const medidas = [
+      paredAncho ? 'Pared: ' + paredAncho + 'x' + (paredAlto||'?') + 'cm' : '',
+      mueble ? 'Mueble: ' + mueble + 'cm' : '',
+      estilo ? 'Estilo: ' + estilo : ''
+    ].filter(Boolean).join(' | ');
+
+    const msg = encodeURIComponent(
+      'Solicitud de montaje - Entre Tu Arte. ' +
+      'Obra elegida: ' + obraName + '. ' +
+      'Imagen obra: ' + obraImg + '. ' +
+      (fotoUrl ? 'Foto del espacio: ' + fotoUrl + '. ' : '') +
+      (medidas ? 'Medidas: ' + medidas + '. ' : '') +
+      'Por favor enviarme el montaje en 24 horas. Gracias!'
+    );
+
+    const waLink = waNumber
+      ? 'https://wa.me/' + waNumber.split('').filter(c => '0123456789'.includes(c)).join('') + '?text=' + msg
+      : 'https://wa.me/?text=' + msg;
+
+    window.open(waLink, '_blank');
+
+    // Show confirmation
+    document.getElementById('montaje-confirmacion').style.display = 'block';
+    btn.style.display = 'none';
+
+    registrarEvento('solicitud_montaje', 'decora', obraSeleccionada.id, obraName);
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Ver como quedaria en mi espacio';
+    alert('Error al enviar. Intenta de nuevo.');
+  }
+}
+
 function resetDecora() {
   obraSeleccionada = null;
   fotoEspacioFile = null;
@@ -1883,6 +1963,10 @@ function resetDecora() {
   document.getElementById('decora-resultado').style.display = 'none';
   document.getElementById('decora-obra-sel').textContent = '';
   document.querySelectorAll('#decora-obras > div').forEach(d => d.style.borderColor = 'transparent');
+  const conf = document.getElementById('montaje-confirmacion');
+  if(conf) conf.style.display = 'none';
+  const btnM = document.getElementById('btn-montaje');
+  if(btnM) { btnM.style.display = ''; btnM.disabled = false; btnM.textContent = 'Ver como quedaria en mi espacio'; }
 }
 
 // ── Analytics ────────────────────────────────
