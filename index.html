@@ -1603,7 +1603,19 @@ async function guardarBlog() {
     }
     st.textContent = '✓ Artículo guardado'; st.style.color='#2e7d32';
     setTimeout(()=>{ cancelarFormBlog(); cargarBlogAdmin(); cargarBlog();
-cargarObrasDecora(); }, 1500);
+cargarObrasDecora();
+
+// Reload obras decora when section is visible
+const decoraObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting) {
+      const cont = document.getElementById('decora-obras');
+      if(cont && cont.children.length === 0) cargarObrasDecora();
+    }
+  });
+}, {threshold: 0.1});
+const decoraSection = document.getElementById('decora');
+if(decoraSection) decoraObserver.observe(decoraSection); }, 1500);
   } catch(e) {
     st.textContent = 'Error: '+e.message; st.style.color='var(--red)';
   }
