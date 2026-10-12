@@ -1,6 +1,7 @@
-// Recibe hasta 3 fotos de una obra de Entre Tu Arte y devuelve nombre, descripción para la web
-// y texto para redes sociales. Vive en el proyecto de Supabase "sport-car-system" porque ahí ya
-// está guardada la clave ANTHROPIC_API_KEY; así la clave nunca queda en el código de la página.
+// Recibe hasta 3 fotos de una obra de Entre Tu Arte y devuelve nombre, descripción, estilo y
+// técnica para la ficha, y el texto para redes sociales. Vive en el proyecto de Supabase
+// "sport-car-system" porque ahí ya está guardada la clave ANTHROPIC_API_KEY; así la clave nunca
+// queda en el código de la página.
 //
 // La página de Entre Tu Arte pertenece a otro proyecto de Supabase, así que no puede mandar un
 // JWT válido de este proyecto (verify_jwt va desactivado). La protección la da la clave privada
@@ -19,20 +20,27 @@ const INSTRUCCIONES = `Eres el director creativo de "Entre Tu Arte", marca salva
 contemporáneo y cuadros personalizados para interiores. Su estética: Japandi, minimalismo cálido,
 diseño contemporáneo; piezas modernas, elegantes y emocionalmente conectadas con los espacios.
 
-Te paso fotos de UNA obra (pueden ser vistas generales, detalles de textura o del cuadro colgado).
-Obsérvalas con atención: paleta, técnica aparente, texturas, composición, sensación que transmite.
+Te paso fotos de UNA obra: normalmente la vista principal, la obra en un ambiente y un detalle de
+textura. Obsérvalas con atención: paleta, técnica aparente, texturas, composición, sensación.
 
 Devuelve:
-- nombre: título evocador y breve para la obra (2 a 4 palabras, en español, sin comillas). Que suene
-  a galería, no genérico (evita "Abstracto 1", "Arte moderno").
-- descripcion: 2 a 3 frases para la ficha de la web. Describe lo que se ve (colores, texturas,
-  ritmo) y la emoción o atmósfera que aporta a un espacio. Tono sobrio y elegante.
+- nombre: título evocador de 2 o 3 palabras, en español, sin comillas. La última palabra se
+  imprime grande en la ficha, así que debe ser la más potente (ej. "Límite Silente",
+  "Raíz Dorada"). Que suene a galería, nunca genérico ("Abstracto 1", "Arte moderno").
+- descripcion: 2 frases, 30 a 45 palabras, para la ficha impresa. Tono poético y sobrio, en
+  tercera persona, que hable de lo que la obra evoca. Ejemplo del tono buscado:
+  "Una línea sutil divide lo visible de lo profundo. La obra transmite equilibrio, textura y
+  contención, evocando ese punto donde todo parece quieto, pero guarda una historia debajo de
+  la superficie."
+- estilo: 2 o 3 palabras (ej. "Abstracto contemporáneo", "Minimalismo cálido").
+- tecnica: técnica aparente en pocas palabras (ej. "Acrílico sobre lienzo"); si el artista la
+  dio en sus datos, repítela tal cual.
 - espacios: 2 a 4 espacios del hogar u oficina donde luce mejor (ej. "Sala", "Comedor",
   "Recámara", "Oficina", "Recibidor").
 - publicacion: texto listo para Instagram/Facebook. Primera línea con el nombre de la obra y
-  1 emoji sobrio. Luego 2 a 4 frases que conecten la obra con el hogar y las emociones. Cierra
-  con una invitación a escribir por mensaje directo o WhatsApp para pedirla o personalizarla.
-  Texto plano, sin markdown.
+  1 emoji sobrio. Luego 2 a 4 frases que conecten la obra con el hogar y las emociones. Si hay
+  datos del artista (nombre, medidas), menciónalos. Cierra con una invitación a escribir por
+  mensaje directo o WhatsApp. Texto plano, sin markdown.
 - hashtags: 6 a 10 hashtags en español e inglés, sin espacios, incluyendo #EntreTuArte.
 
 Reglas: español neutro centroamericano, cálido y profesional. No inventes medidas, precios ni
@@ -43,11 +51,13 @@ const ESQUEMA = {
   properties: {
     nombre: { type: "string" },
     descripcion: { type: "string" },
+    estilo: { type: "string" },
+    tecnica: { type: "string" },
     espacios: { type: "array", items: { type: "string" } },
     publicacion: { type: "string" },
     hashtags: { type: "array", items: { type: "string" } },
   },
-  required: ["nombre", "descripcion", "espacios", "publicacion", "hashtags"],
+  required: ["nombre", "descripcion", "estilo", "tecnica", "espacios", "publicacion", "hashtags"],
   additionalProperties: false,
 };
 
