@@ -5,7 +5,8 @@
 //
 // La página de Entre Tu Arte pertenece a otro proyecto de Supabase, así que no puede mandar un
 // JWT válido de este proyecto (verify_jwt va desactivado). La protección la da la clave privada
-// ETA_CLAVE: solo quien la escriba en el panel admin puede usar la función y gastar créditos.
+// de acceso (secreto ETA_CLAVE o tabla eta_config): solo quien la escriba en el panel admin puede
+// usar la función y gastar créditos.
 //
 // Trabaja en segundo plano: el POST registra el trabajo en la tabla eta_trabajos, responde de
 // inmediato con su id y sigue generando aunque la persona cierre la página. La página consulta
@@ -128,12 +129,21 @@ async function procesar(id: string, apiKey: string, urls: string[], notas: unkno
   await db.from("eta_trabajos").delete().lt("creado", hace7dias);
 }
 
+// La clave de acceso sale del secreto ETA_CLAVE si existe; si no, de la tabla eta_config
+// (así se puede configurar sin entrar al panel de Supabase).
+async function claveAcceso(): Promise<string> {
+  const delSecreto = Deno.env.get("ETA_CLAVE");
+  if (delSecreto) return delSecreto;
+  const { data } = await db.from("eta_config").select("valor").eq("clave", "clave_acceso").maybeSingle();
+  return data?.valor || "";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
-  const claveEsperada = Deno.env.get("ETA_CLAVE");
+  const claveEsperada = await claveAcceso();
   if (!claveEsperada) {
-    return responder({ error: "Falta configurar el secreto ETA_CLAVE en Supabase." }, 500);
+    return responder({ error: "Falta configurar la clave de acceso (ETA_CLAVE o tabla eta_config)." }, 500);
   }
   if (req.headers.get("x-eta-clave") !== claveEsperada) {
     return responder({ error: "Clave de acceso incorrecta." }, 401);
