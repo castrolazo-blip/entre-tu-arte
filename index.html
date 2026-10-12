@@ -671,6 +671,7 @@ footer {
           <button class="btn-save-content" onclick="pubDescargar()">⬇ Descargar imagen</button>
           <button class="btn-save-content" onclick="pubCopiarTexto()">📋 Copiar texto</button>
           <button class="btn-save-content" id="pub-btn-guardar" onclick="pubGuardarCatalogo()">Guardar en catálogo</button>
+          <button class="btn-save-content" style="background:none;color:var(--gray);border:1px solid var(--border);" onclick="pubNuevaObra()">+ Nueva obra</button>
         </div>
         <div id="pub-espacios" style="margin-top:10px;font-size:0.75rem;color:var(--gray);"></div>
       </div>
@@ -2296,6 +2297,7 @@ function pubLineas(ctx, texto, ancho) {
 function pubTexto(id) { return document.getElementById(id).value.trim(); }
 
 function pubDibujar() {
+  if(typeof pubProgramarGuardado === 'function') pubProgramarGuardado();
   const res = document.getElementById('pub-resultado');
   if(!pubFotos.length) { res.style.display = 'none'; return; }
   res.style.display = 'block';
@@ -2396,13 +2398,150 @@ function pubLeerClave() {
   return clave;
 }
 
+// ── Generación en segundo plano ──
+// El borrador (fotos + campos + id del trabajo) se guarda en este dispositivo (IndexedDB) para que
+// la persona pueda salir de la página mientras la IA trabaja y encontrarlo todo al volver.
+const PUB_CAMPOS = ['pub-artista','pub-anio','pub-tecnica','pub-soporte','pub-medidas','pub-precio',
+  'pub-notas','pub-nombre','pub-estilo','pub-descripcion','pub-publicacion'];
+let pubTrabajo = null;       // {id, estado} del trabajo en curso
+let pubGuardadoTimer = null;
+let pubEsperando = false;
+
+function pubDB() {
+  return new Promise((ok, falla) => {
+    const req = indexedDB.open('eta-publicar', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('borrador');
+    req.onsuccess = () => ok(req.result);
+    req.onerror = () => falla(req.error);
+  });
+}
+
+async function pubBorrador(op, valor) {
+  try {
+    const db = await pubDB();
+    return await new Promise((ok, falla) => {
+      const tx = db.transaction('borrador', op === 'leer' ? 'readonly' : 'readwrite');
+      const st = tx.objectStore('borrador');
+      const req = op === 'leer' ? st.get('actual') : op === 'borrar' ? st.delete('actual') : st.put(valor, 'actual');
+      req.onsuccess = () => ok(req.result);
+      req.onerror = () => falla(req.error);
+    });
+  } catch { return null; }   // sin IndexedDB (modo privado): la página sigue funcionando, solo no recuerda
+}
+
+function pubGuardarBorrador() {
+  if(!pubFotos.length) return Promise.resolve();
+  const campos = {};
+  PUB_CAMPOS.forEach(id => campos[id] = document.getElementById(id).value);
+  return pubBorrador('guardar', {
+    trabajo: pubTrabajo, espacios: pubEspaciosIA, campos,
+    fotos: pubFotos.map(f => ({ tipo: f.tipo, datos: f.datos })),
+  });
+}
+
+function pubProgramarGuardado() {
+  clearTimeout(pubGuardadoTimer);
+  pubGuardadoTimer = setTimeout(pubGuardarBorrador, 800);
+}
+
+async function pubRetomar() {
+  const b = await pubBorrador('leer');
+  if(!b || !b.fotos || !b.fotos.length || pubFotos.length) return;
+  pubFotos = await Promise.all(b.fotos.map(async f => ({ ...f, img: await pubCargarImagen('data:'+f.tipo+';base64,'+f.datos) })));
+  Object.entries(b.campos || {}).forEach(([id, v]) => { const el = document.getElementById(id); if(el) el.value = v; });
+  pubEspaciosIA = b.espacios || [];
+  pubTrabajo = b.trabajo || null;
+  pubMostrarEspacios();
+  pubRenderThumbs();
+  pubDibujar();
+  if(pubTrabajo && pubTrabajo.estado === 'pendiente') {
+    pubSetStatus('⏳ La IA sigue trabajando en tu obra…', '');
+    pubEsperar();
+  }
+}
+
+function pubMostrarEspacios() {
+  document.getElementById('pub-espacios').textContent = pubEspaciosIA.length ? 'Espacios sugeridos: ' + pubEspaciosIA.join(', ') : '';
+}
+
+function pubAplicarResultado(data) {
+  document.getElementById('pub-nombre').value = data.nombre || '';
+  document.getElementById('pub-descripcion').value = data.descripcion || '';
+  if(!pubTexto('pub-estilo')) document.getElementById('pub-estilo').value = data.estilo || '';
+  if(!pubTexto('pub-tecnica')) document.getElementById('pub-tecnica').value = data.tecnica || '';
+  const tags = (data.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
+  document.getElementById('pub-publicacion').value = (data.publicacion || '') + (tags ? '\n\n' + tags : '');
+  pubEspaciosIA = data.espacios || [];
+  pubMostrarEspacios();
+  pubDibujar();
+}
+
+// Aviso cuando la ficha queda lista: notificación del sistema si la página está en segundo plano,
+// y un mensaje flotante en la página si el panel admin está cerrado.
+function pubAvisarListo() {
+  const nombre = pubTexto('pub-nombre');
+  try {
+    if(document.hidden && 'Notification' in window && Notification.permission === 'granted')
+      new Notification('Entre Tu Arte', { body: '✨ Tu ficha' + (nombre ? ' «' + nombre + '»' : '') + ' está lista.' });
+  } catch {}
+  if(document.getElementById('admin-panel').classList.contains('visible')) return;
+  const t = document.createElement('div');
+  t.textContent = '✨ Tu ficha' + (nombre ? ' «' + nombre + '»' : '') + ' está lista. Abre ⚙ Admin › Publicar.';
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:300;background:#1c1c1c;color:#f7f3ee;padding:14px 22px;font-family:Jost,sans-serif;font-size:0.85rem;letter-spacing:0.04em;box-shadow:0 8px 24px rgba(0,0,0,0.25);cursor:pointer;max-width:calc(100% - 32px);';
+  t.onclick = () => t.remove();
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 15000);
+}
+
+async function pubEsperar() {
+  if(pubEsperando || !pubTrabajo) return;
+  pubEsperando = true;
+  const btn = document.getElementById('pub-btn-ia');
+  btn.disabled = true;
+  let clave = '';
+  try { clave = localStorage.getItem('eta_clave_ia') || ''; } catch {}
+  try {
+    while(pubTrabajo && pubTrabajo.estado === 'pendiente') {
+      await new Promise(r => setTimeout(r, 5000));
+      let data;
+      try {
+        const res = await fetch(PUB_FUNCION_URL + '?id=' + encodeURIComponent(pubTrabajo.id), { headers: { 'x-eta-clave': clave } });
+        data = await res.json().catch(() => ({}));
+        if(!res.ok) throw new Error(data.error || ('Error ' + res.status));
+      } catch(err) {
+        // Falla de red (sin internet, celular dormido): el trabajo sigue en el servidor, se reintenta
+        if(err instanceof TypeError) continue;
+        throw err;
+      }
+      if(data.estado === 'pendiente' && Date.now() - new Date(data.creado).getTime() > 10 * 60 * 1000)
+        throw new Error('La IA tardó demasiado. Vuelve a intentarlo.');
+      if(data.estado === 'error') throw new Error(data.error || 'La IA no pudo generar la ficha.');
+      if(data.estado === 'listo') {
+        pubTrabajo = { id: pubTrabajo.id, estado: 'listo' };
+        pubAplicarResultado(data.resultado || {});
+        await pubGuardarBorrador();
+        pubSetStatus('¡Listo! Revisa y ajusta los textos antes de publicar.', 'success');
+        pubAvisarListo();
+      }
+    }
+  } catch(err) {
+    pubTrabajo = null;
+    pubGuardarBorrador();
+    pubSetStatus('Error: ' + err.message, 'error');
+  } finally {
+    pubEsperando = false;
+    btn.disabled = false;
+  }
+}
+
 async function pubGenerarTextos() {
   if(!pubFotos.length) { pubSetStatus('Primero sube al menos una foto de la obra.', 'error'); return; }
   const clave = pubLeerClave();
   if(!clave) { pubSetStatus('Se necesita la clave de acceso para usar la IA.', 'error'); return; }
+  try { if('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch {}
   const btn = document.getElementById('pub-btn-ia');
   btn.disabled = true;
-  pubSetStatus('Analizando la obra… (puede tardar unos 20–40 segundos)', '');
+  pubSetStatus('Enviando las fotos…', '');
   try {
     const datos = ['artista','tecnica','soporte','medidas'].map(c => pubTexto('pub-'+c) ? c+': '+pubTexto('pub-'+c) : '').filter(Boolean);
     const notas = [pubTexto('pub-notas'), ...datos].filter(Boolean).join('\n');
@@ -2414,23 +2553,28 @@ async function pubGenerarTextos() {
     const data = await res.json().catch(() => ({}));
     if(res.status === 401) { try { localStorage.removeItem('eta_clave_ia'); } catch {} }
     if(!res.ok) throw new Error(data.error || ('Error ' + res.status));
-    document.getElementById('pub-nombre').value = data.nombre || '';
-    document.getElementById('pub-descripcion').value = data.descripcion || '';
-    if(!pubTexto('pub-estilo')) document.getElementById('pub-estilo').value = data.estilo || '';
-    if(!pubTexto('pub-tecnica')) document.getElementById('pub-tecnica').value = data.tecnica || '';
-    const tags = (data.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
-    document.getElementById('pub-publicacion').value = (data.publicacion || '') + (tags ? '\n\n' + tags : '');
-    pubEspaciosIA = data.espacios || [];
-    document.getElementById('pub-espacios').textContent = pubEspaciosIA.length ? 'Espacios sugeridos: ' + pubEspaciosIA.join(', ') : '';
     PUB_RECORDAR.forEach(id => { try { localStorage.setItem('eta_' + id, pubTexto(id)); } catch {} });
-    pubDibujar();
-    pubSetStatus('¡Listo! Revisa y ajusta los textos antes de publicar.', 'success');
+    pubTrabajo = { id: data.id, estado: 'pendiente' };
+    await pubGuardarBorrador();
+    pubSetStatus('⏳ Generando en segundo plano. Puedes salir de esta página y volver después: aquí estará tu ficha.', '');
+    btn.disabled = false;
+    pubEsperar();
   } catch(err) {
     pubSetStatus('Error: ' + err.message, 'error');
-  } finally {
     btn.disabled = false;
   }
 }
+
+function pubNuevaObra() {
+  if(pubEsperando && !confirm('La IA todavía está trabajando en esta obra. ¿Empezar otra de todas formas?')) return;
+  pubTrabajo = null; pubFotos = []; pubEspaciosIA = [];
+  PUB_CAMPOS.filter(id => !PUB_RECORDAR.includes(id) && id !== 'pub-anio').forEach(id => document.getElementById(id).value = '');
+  pubBorrador('borrar');
+  pubMostrarEspacios(); pubRenderThumbs(); pubDibujar();
+  pubSetStatus('', '');
+}
+
+pubRetomar();
 
 function pubNombreArchivo() {
   const n = pubTexto('pub-nombre').toLowerCase()
@@ -2485,6 +2629,8 @@ async function pubGuardarCatalogo() {
     });
     if(!db.ok) throw new Error('Error al guardar en base de datos');
     pubSetStatus('¡Obra agregada al catálogo!', 'success');
+    pubTrabajo = null;
+    pubBorrador('borrar');
     cargarCatalogo();
   } catch(err) {
     pubSetStatus('Error: ' + err.message, 'error');
