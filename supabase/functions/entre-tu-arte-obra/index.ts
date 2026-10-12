@@ -6,12 +6,20 @@
 // La página de Entre Tu Arte pertenece a otro proyecto de Supabase, así que no puede mandar un
 // JWT válido de este proyecto (verify_jwt va desactivado). La protección la da la clave privada
 // ETA_CLAVE: solo quien la escriba en el panel admin puede usar la función y gastar créditos.
+//
+// Trabaja en segundo plano: el POST registra el trabajo en la tabla eta_trabajos, responde de
+// inmediato con su id y sigue generando aunque la persona cierre la página. La página consulta
+// el resultado con GET ?id=... cuando vuelve.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-eta-clave",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp"];
@@ -68,6 +76,54 @@ function responder(cuerpo: unknown, status = 200) {
   });
 }
 
+// Llama a Claude con las fotos y devuelve el JSON de la ficha; lanza Error con un mensaje
+// legible para guardarlo en el trabajo si algo falla.
+async function generar(apiKey: string, imagenes: { tipo: string; datos: string }[], notas: unknown) {
+  const contenido: Anthropic.Beta.BetaContentBlockParam[] = imagenes.map((img) => ({
+    type: "image",
+    source: { type: "base64", media_type: img.tipo as "image/jpeg", data: img.datos },
+  }));
+  let texto = INSTRUCCIONES;
+  if (typeof notas === "string" && notas.trim()) {
+    texto += `\n\nDatos que aporta el artista (úsalos tal cual, tienen prioridad):\n${notas.trim().slice(0, 600)}`;
+  }
+  contenido.push({ type: "text", text: texto });
+
+  const client = new Anthropic({ apiKey });
+  let resp;
+  try {
+    resp = await client.beta.messages.create({
+      model: "claude-opus-5-5",
+      max_tokens: 16000,
+      betas: ["server-side-fallback-2026-07-01"],
+      // @ts-ignore: parámetro de la beta de fallback; si una política rechaza la solicitud, la
+      // API la reintenta en otro modelo dentro de la misma llamada.
+      fallbacks: "default",
+      output_config: { effort: "medium", format: { type: "json_schema", schema: ESQUEMA } },
+      messages: [{ role: "user", content: contenido }],
+    });
+  } catch (err) {
+    if (err instanceof Anthropic.APIError) throw new Error(`El servicio de IA respondió con error (${err.status}).`);
+    throw err;
+  }
+  if (resp.stop_reason === "refusal") throw new Error("La IA no pudo procesar estas fotos. Prueba con otras imágenes.");
+  const bloque = resp.content.find((b) => b.type === "text");
+  if (!bloque || bloque.type !== "text") throw new Error("La IA no devolvió texto. Intenta de nuevo.");
+  return JSON.parse(bloque.text);
+}
+
+async function procesar(id: string, apiKey: string, imagenes: { tipo: string; datos: string }[], notas: unknown) {
+  try {
+    const resultado = await generar(apiKey, imagenes, notas);
+    await db.from("eta_trabajos").update({ estado: "listo", resultado, actualizado: new Date().toISOString() }).eq("id", id);
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    await db.from("eta_trabajos").update({ estado: "error", error, actualizado: new Date().toISOString() }).eq("id", id);
+  }
+  const hace7dias = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  await db.from("eta_trabajos").delete().lt("creado", hace7dias);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -77,6 +133,14 @@ Deno.serve(async (req) => {
   }
   if (req.headers.get("x-eta-clave") !== claveEsperada) {
     return responder({ error: "Clave de acceso incorrecta." }, 401);
+  }
+
+  if (req.method === "GET") {
+    const id = new URL(req.url).searchParams.get("id") || "";
+    const { data, error } = await db.from("eta_trabajos").select("estado, resultado, error, creado").eq("id", id).maybeSingle();
+    if (error) return responder({ error: "No se pudo consultar el trabajo." }, 500);
+    if (!data) return responder({ error: "El trabajo ya no existe." }, 404);
+    return responder(data);
   }
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -95,40 +159,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    const contenido: Anthropic.Beta.BetaContentBlockParam[] = imagenes.map((img) => ({
-      type: "image",
-      source: { type: "base64", media_type: img.tipo, data: img.datos },
-    }));
-    let texto = INSTRUCCIONES;
-    if (typeof notas === "string" && notas.trim()) {
-      texto += `\n\nDatos que aporta el artista (úsalos tal cual, tienen prioridad):\n${notas.trim().slice(0, 600)}`;
-    }
-    contenido.push({ type: "text", text: texto });
-
-    const client = new Anthropic({ apiKey });
-    const resp = await client.beta.messages.create({
-      model: "claude-opus-5-5",
-      max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      // @ts-ignore: parámetro de la beta de fallback; si una política rechaza la solicitud, la
-      // API la reintenta en otro modelo dentro de la misma llamada.
-      fallbacks: "default",
-      output_config: { effort: "medium", format: { type: "json_schema", schema: ESQUEMA } },
-      messages: [{ role: "user", content: contenido }],
-    });
-
-    if (resp.stop_reason === "refusal") {
-      return responder({ error: "La IA no pudo procesar estas fotos. Prueba con otras imágenes." }, 422);
-    }
-    const bloque = resp.content.find((b) => b.type === "text");
-    if (!bloque || bloque.type !== "text") {
-      return responder({ error: "La IA no devolvió texto. Intenta de nuevo." }, 502);
-    }
-    return responder(JSON.parse(bloque.text));
+    const { data, error } = await db.from("eta_trabajos").insert({}).select("id").single();
+    if (error || !data) return responder({ error: "No se pudo registrar el trabajo." }, 500);
+    EdgeRuntime.waitUntil(procesar(data.id, apiKey, imagenes, notas));
+    return responder({ id: data.id, estado: "pendiente" }, 202);
   } catch (err) {
-    if (err instanceof Anthropic.APIError) {
-      return responder({ error: `El servicio de IA respondió con error (${err.status}).` }, 502);
-    }
     return responder({ error: String(err) }, 500);
   }
 });
