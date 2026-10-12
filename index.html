@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entre Tu Arte</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
   --cream: #f7f3ee;
@@ -457,6 +457,7 @@ footer {
       <button class="admin-tab" onclick="switchTab('cats',this)">Espacios</button>
       <button class="admin-tab" onclick="switchTab('blog',this)">Blog</button>
       <button class="admin-tab" onclick="switchTab('dashboard',this)">📊 Stats</button>
+      <button class="admin-tab" onclick="switchTab('publicar',this)">✨ Publicar</button>
     </div>
 
     <!-- TAB: UPLOAD -->
@@ -620,6 +621,58 @@ footer {
           <button onclick="cancelarFormBlog()" style="background:none;border:1px solid var(--border);padding:11px 20px;font-family:'Jost',sans-serif;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;color:var(--gray);">Cancelar</button>
         </div>
         <div id="blog-save-status" style="margin-top:10px;font-size:0.78rem;"></div>
+      </div>
+    </div>
+
+    <!-- TAB: PUBLICAR (ficha de la obra + textos con IA) -->
+    <div id="tab-publicar" class="content-editor">
+      <p style="font-size:0.75rem;color:var(--gray);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;">Sube 3 fotos en este orden: principal · ambiente · detalle de textura</p>
+      <div class="upload-area">
+        <input type="file" id="pub-files" accept="image/jpeg,image/png,image/webp" multiple onchange="pubAgregarFotos(event)">
+        <div class="icon">📷</div>
+        <p>Haz clic para elegir las fotos de la obra</p>
+        <p style="margin-top:4px;font-size:0.7rem;">Usa ◀ para cambiar el orden. Con 1 sola foto, el detalle se toma de un acercamiento.</p>
+      </div>
+      <div id="pub-thumbs" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;"></div>
+      <div class="form-row">
+        <input type="text" id="pub-artista" placeholder="Artista" oninput="pubDibujar()">
+        <input type="text" id="pub-anio" placeholder="Año" oninput="pubDibujar()">
+      </div>
+      <div class="form-row">
+        <input type="text" id="pub-tecnica" placeholder="Técnica (ej: Acrílico sobre lienzo)" oninput="pubDibujar()">
+        <input type="text" id="pub-soporte" placeholder="Soporte (ej: Bastidor)" oninput="pubDibujar()">
+      </div>
+      <div class="form-row">
+        <input type="text" id="pub-medidas" placeholder="Medidas (ej: 100 x 100 cm)" oninput="pubDibujar()">
+        <input type="text" id="pub-precio" placeholder="Precio (ej: 185.00)" oninput="pubDibujar()">
+      </div>
+      <div class="editor-field">
+        <label>Notas para la IA — opcional</label>
+        <textarea id="pub-notas" rows="2" style="min-height:60px;" placeholder="Ej: inspirada en el atardecer de El Tunco, tonos tierra"></textarea>
+      </div>
+      <button class="btn-upload" id="pub-btn-ia" onclick="pubGenerarTextos()">✨ Generar nombre, estilo y descripción</button>
+      <div id="pub-status" style="margin-top:10px;font-size:0.78rem;color:var(--gray);text-align:center;"></div>
+
+      <div id="pub-resultado" style="display:none;margin-top:24px;">
+        <canvas id="pub-canvas" width="1080" height="1350" style="width:100%;max-width:440px;display:block;margin:0 auto 20px;border:1px solid var(--border);"></canvas>
+        <div class="form-row">
+          <input type="text" id="pub-nombre" placeholder="Nombre de la obra" oninput="pubDibujar()">
+          <input type="text" id="pub-estilo" placeholder="Estilo (ej: Abstracto contemporáneo)" oninput="pubDibujar()">
+        </div>
+        <div class="editor-field">
+          <label>Descripción (va en la ficha)</label>
+          <textarea id="pub-descripcion" rows="4" oninput="pubDibujar()"></textarea>
+        </div>
+        <div class="editor-field">
+          <label>Texto para Instagram / Facebook</label>
+          <textarea id="pub-publicacion" rows="7"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-save-content" onclick="pubDescargar()">⬇ Descargar imagen</button>
+          <button class="btn-save-content" onclick="pubCopiarTexto()">📋 Copiar texto</button>
+          <button class="btn-save-content" id="pub-btn-guardar" onclick="pubGuardarCatalogo()">Guardar en catálogo</button>
+        </div>
+        <div id="pub-espacios" style="margin-top:10px;font-size:0.75rem;color:var(--gray);"></div>
       </div>
     </div>
 
@@ -1089,6 +1142,8 @@ function switchTab(name, btn) {
   const tabDash = document.getElementById('tab-dashboard');
   if(tabDash) tabDash.classList.toggle('visible', name==='dashboard');
   if(name==='dashboard') cargarDashboard();
+  const tabPub = document.getElementById('tab-publicar');
+  if(tabPub) tabPub.classList.toggle('visible', name==='publicar');
   if(name==='upload') renderCatCheckboxes();
   if(name==='obras') renderAdminObras();
 }
@@ -2114,6 +2169,329 @@ loadConfig();
 cargarCategorias();
 cargarCatalogo();
 cargarBlog();
+
+// ── Publicar: ficha de la obra + nombre y descripción con IA ──────────
+// La IA corre en una función de Supabase del proyecto sport-car-system (ahí vive la clave de
+// Claude). La página solo manda las fotos y una clave de acceso que se escribe una vez.
+// El montaje sigue la plantilla de fichas de Entre Tu Arte: foto principal arriba a la derecha,
+// foto de ambiente a la izquierda y franja de detalle de textura abajo.
+const PUB_FUNCION_URL = 'https://ivvjbuhppuwpgefwqpuz.supabase.co/functions/v1/entre-tu-arte-obra';
+const PUB_ROLES = ['Principal', 'Ambiente', 'Detalle'];
+const PUB_RECORDAR = ['pub-artista', 'pub-soporte'];   // datos que casi no cambian entre obras
+let pubFotos = [];          // [{img, tipo, datos}] — datos en base64 ya reducidos
+let pubEspaciosIA = [];
+
+function pubSetStatus(msg, tipo) {
+  const el = document.getElementById('pub-status');
+  el.textContent = msg;
+  el.style.color = tipo==='error' ? 'var(--red)' : tipo==='success' ? '#2e7d32' : 'var(--gray)';
+}
+
+function pubCargarImagen(src) {
+  return new Promise((ok, falla) => {
+    const img = new Image();
+    img.onload = () => ok(img);
+    img.onerror = falla;
+    img.src = src;
+  });
+}
+
+// Reduce cada foto a 1600px de lado mayor: suficiente para la IA y la ficha, y mucho más liviano.
+async function pubReducir(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const original = await pubCargarImagen(url);
+    const escala = Math.min(1, 1600 / Math.max(original.width, original.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(original.width * escala);
+    c.height = Math.round(original.height * escala);
+    c.getContext('2d').drawImage(original, 0, 0, c.width, c.height);
+    const dataUrl = c.toDataURL('image/jpeg', 0.88);
+    return { img: await pubCargarImagen(dataUrl), tipo: 'image/jpeg', datos: dataUrl.split(',')[1] };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function pubIniciarCampos() {
+  const anio = document.getElementById('pub-anio');
+  if(!anio.value) anio.value = new Date().getFullYear();
+  PUB_RECORDAR.forEach(id => {
+    const el = document.getElementById(id);
+    try { if(!el.value) el.value = localStorage.getItem('eta_' + id) || ''; } catch {}
+  });
+}
+
+async function pubAgregarFotos(e) {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if(!files.length) return;
+  pubIniciarCampos();
+  const libres = 3 - pubFotos.length;
+  if(libres <= 0) { pubSetStatus('Ya tienes 3 fotos. Quita una para agregar otra.', 'error'); return; }
+  if(files.length > libres) pubSetStatus('Solo se usarán '+libres+' foto(s) más (máximo 3).', 'error');
+  else pubSetStatus('', '');
+  for(const f of files.slice(0, libres)) {
+    try { pubFotos.push(await pubReducir(f)); }
+    catch { pubSetStatus('No se pudo leer una de las fotos.', 'error'); }
+  }
+  pubRenderThumbs();
+  pubDibujar();
+}
+
+function pubRenderThumbs() {
+  const cont = document.getElementById('pub-thumbs');
+  cont.innerHTML = '';
+  const boton = 'position:absolute;top:2px;background:rgba(28,28,28,0.8);color:#fff;border:none;width:22px;height:22px;cursor:pointer;font-size:0.7rem;';
+  pubFotos.forEach((f, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;width:90px;height:90px;border:1px solid var(--border);';
+    const im = document.createElement('img');
+    im.src = f.img.src;
+    im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    wrap.appendChild(im);
+    const quitar = document.createElement('button');
+    quitar.textContent = '✕';
+    quitar.style.cssText = boton + 'right:2px;';
+    quitar.onclick = () => { pubFotos.splice(i, 1); pubRenderThumbs(); pubDibujar(); };
+    wrap.appendChild(quitar);
+    if(i > 0) {
+      const mover = document.createElement('button');
+      mover.textContent = '◀';
+      mover.title = 'Mover antes';
+      mover.style.cssText = boton + 'left:2px;';
+      mover.onclick = () => { [pubFotos[i-1], pubFotos[i]] = [pubFotos[i], pubFotos[i-1]]; pubRenderThumbs(); pubDibujar(); };
+      wrap.appendChild(mover);
+    }
+    const tag = document.createElement('span');
+    tag.textContent = PUB_ROLES[i].toUpperCase();
+    tag.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:var(--dark);color:var(--cream);font-size:0.55rem;letter-spacing:0.15em;text-align:center;padding:2px 0;';
+    wrap.appendChild(tag);
+    cont.appendChild(wrap);
+  });
+}
+
+// Dibuja la foto llenando el recuadro (recorte centrado). zoom > 1 acerca hacia el centro,
+// útil para sacar un "detalle" cuando no hay foto de textura.
+function pubFoto(ctx, img, x, y, w, h, zoom = 1) {
+  const r = w / h;
+  let sw = img.width, sh = img.height;
+  if(sw / sh > r) sw = sh * r; else sh = sw / r;
+  sw /= zoom; sh /= zoom;
+  ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
+}
+
+function pubLineas(ctx, texto, ancho) {
+  const lineas = [];
+  let actual = '';
+  texto.split(/\s+/).filter(Boolean).forEach(p => {
+    const prueba = actual ? actual + ' ' + p : p;
+    if(ctx.measureText(prueba).width > ancho && actual) { lineas.push(actual); actual = p; }
+    else actual = prueba;
+  });
+  if(actual) lineas.push(actual);
+  return lineas;
+}
+
+function pubTexto(id) { return document.getElementById(id).value.trim(); }
+
+function pubDibujar() {
+  const res = document.getElementById('pub-resultado');
+  if(!pubFotos.length) { res.style.display = 'none'; return; }
+  res.style.display = 'block';
+  const ctx = document.getElementById('pub-canvas').getContext('2d');
+  const W = 1080, H = 1350, M = 44;
+  const ORO = '#a8885a', TINTA = '#1c1c1c', GRIS = '#4a4a4a';
+
+  ctx.fillStyle = '#f4f2ee'; ctx.fillRect(0, 0, W, H);
+
+  // Fotos: principal (arriba derecha), ambiente (izquierda), detalle (franja inferior)
+  const principal = pubFotos[0].img;
+  const ambiente = (pubFotos[1] || pubFotos[0]).img;
+  pubFoto(ctx, principal, 525, 0, W - 525, 666);
+  pubFoto(ctx, ambiente, M, 437, 452, 578, pubFotos[1] ? 1 : 1.35);
+  if(pubFotos[2]) pubFoto(ctx, pubFotos[2].img, 0, 1037, W, H - 1037);
+  else pubFoto(ctx, principal, 0, 1037, W, H - 1037, 1.8);
+
+  // Título: la última palabra va grande y en negrita; el resto, fino y espaciado encima
+  const palabras = (pubTexto('pub-nombre') || 'Nombre de la obra').toUpperCase().split(/\s+/);
+  const grande = palabras.pop();
+  const pequeno = palabras.join(' ');
+  ctx.fillStyle = TINTA; ctx.textBaseline = 'alphabetic';
+  if(pequeno) {
+    ctx.font = '300 34px Jost, sans-serif';
+    ctx.letterSpacing = '12px';
+    ctx.fillText(pequeno, M, 78, 460);
+  }
+  let tam = 112;
+  ctx.letterSpacing = '-2px';
+  do { ctx.font = '600 ' + tam + 'px Jost, sans-serif'; tam -= 4; }
+  while(ctx.measureText(grande).width > 460 && tam > 40);
+  ctx.fillText(grande, M - 3, pequeno ? 186 : 160);
+  ctx.letterSpacing = '0px';
+
+  ctx.fillStyle = ORO; ctx.fillRect(M, 214, 78, 2);
+
+  // Ficha técnica
+  const filas = [
+    ['ARTISTA', pubTexto('pub-artista')], ['TÉCNICA', pubTexto('pub-tecnica')],
+    ['SOPORTE', pubTexto('pub-soporte')], ['AÑO', pubTexto('pub-anio')],
+    ['MEDIDAS', pubTexto('pub-medidas')], ['ESTILO', pubTexto('pub-estilo')],
+  ].filter(f => f[1]);
+  filas.forEach(([etiqueta, valor], i) => {
+    const y = 264 + i * 27;
+    ctx.fillStyle = GRIS; ctx.font = '400 14px Jost, sans-serif'; ctx.letterSpacing = '4px';
+    ctx.fillText(etiqueta + ':', M, y);
+    ctx.fillStyle = TINTA; ctx.font = '300 18px Jost, sans-serif'; ctx.letterSpacing = '0.3px';
+    ctx.fillText(valor, 193, y, 300);
+  });
+  ctx.letterSpacing = '0px';
+  if(filas.length) { ctx.fillStyle = '#9a9a9a'; ctx.fillRect(166, 246, 1, filas.length * 27); }
+
+  // Descripción: se reduce la letra si no cabe sobre el recuadro de precio
+  ctx.fillStyle = ORO; ctx.fillRect(535, 697, 106, 2);
+  const precio = pubTexto('pub-precio');
+  const limite = precio ? 920 : 1010;
+  const desc = pubTexto('pub-descripcion');
+  let fs = 24, lineas;
+  do {
+    ctx.font = '300 ' + fs + 'px Jost, sans-serif'; ctx.letterSpacing = '0.6px';
+    lineas = pubLineas(ctx, desc, 415);
+    fs -= 1;
+  } while(735 + lineas.length * fs * 1.4 > limite && fs > 14);
+  fs += 1;
+  ctx.fillStyle = TINTA;
+  lineas.forEach((l, i) => ctx.fillText(l, 535, 752 + i * fs * 1.36));
+  ctx.letterSpacing = '0px';
+
+  if(precio) {
+    ctx.strokeStyle = ORO; ctx.lineWidth = 1.5;
+    ctx.strokeRect(535, 936, 326, 77);
+    ctx.fillStyle = TINTA; ctx.font = '400 16px Jost, sans-serif'; ctx.letterSpacing = '5px';
+    ctx.fillText('PRECIO:', 563, 982);
+    ctx.letterSpacing = '0px';
+    ctx.font = '600 36px Jost, sans-serif';
+    const p = /^\d/.test(precio) ? '$' + precio : precio;
+    ctx.fillText(p, 680, 987, 165);
+  }
+
+  // Marca roja del logo (parte superior del logo del sitio)
+  const logo = document.querySelector('.nav-logo img');
+  if(logo && logo.complete && logo.naturalWidth) {
+    const lw = logo.naturalWidth, lh = logo.naturalHeight;
+    ctx.globalCompositeOperation = 'multiply';   // el logo es JPG con fondo blanco
+    ctx.drawImage(logo, lw*0.36, lh*0.05, lw*0.30, lh*0.32, 955, 892, 100, 107);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+if(document.fonts) document.fonts.ready.then(pubDibujar);
+
+function pubLeerClave() {
+  let clave = '';
+  try { clave = localStorage.getItem('eta_clave_ia') || ''; } catch {}
+  if(!clave) {
+    clave = (prompt('Escribe la clave de acceso de la IA (solo se pide una vez en este dispositivo):') || '').trim();
+    if(clave) { try { localStorage.setItem('eta_clave_ia', clave); } catch {} }
+  }
+  return clave;
+}
+
+async function pubGenerarTextos() {
+  if(!pubFotos.length) { pubSetStatus('Primero sube al menos una foto de la obra.', 'error'); return; }
+  const clave = pubLeerClave();
+  if(!clave) { pubSetStatus('Se necesita la clave de acceso para usar la IA.', 'error'); return; }
+  const btn = document.getElementById('pub-btn-ia');
+  btn.disabled = true;
+  pubSetStatus('Analizando la obra… (puede tardar unos 20–40 segundos)', '');
+  try {
+    const datos = ['artista','tecnica','soporte','medidas'].map(c => pubTexto('pub-'+c) ? c+': '+pubTexto('pub-'+c) : '').filter(Boolean);
+    const notas = [pubTexto('pub-notas'), ...datos].filter(Boolean).join('\n');
+    const res = await fetch(PUB_FUNCION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-eta-clave': clave },
+      body: JSON.stringify({ imagenes: pubFotos.map(f => ({ tipo: f.tipo, datos: f.datos })), notas }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if(res.status === 401) { try { localStorage.removeItem('eta_clave_ia'); } catch {} }
+    if(!res.ok) throw new Error(data.error || ('Error ' + res.status));
+    document.getElementById('pub-nombre').value = data.nombre || '';
+    document.getElementById('pub-descripcion').value = data.descripcion || '';
+    if(!pubTexto('pub-estilo')) document.getElementById('pub-estilo').value = data.estilo || '';
+    if(!pubTexto('pub-tecnica')) document.getElementById('pub-tecnica').value = data.tecnica || '';
+    const tags = (data.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
+    document.getElementById('pub-publicacion').value = (data.publicacion || '') + (tags ? '\n\n' + tags : '');
+    pubEspaciosIA = data.espacios || [];
+    document.getElementById('pub-espacios').textContent = pubEspaciosIA.length ? 'Espacios sugeridos: ' + pubEspaciosIA.join(', ') : '';
+    PUB_RECORDAR.forEach(id => { try { localStorage.setItem('eta_' + id, pubTexto(id)); } catch {} });
+    pubDibujar();
+    pubSetStatus('¡Listo! Revisa y ajusta los textos antes de publicar.', 'success');
+  } catch(err) {
+    pubSetStatus('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function pubNombreArchivo() {
+  const n = pubTexto('pub-nombre').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return 'entre-tu-arte-' + (n || 'obra');
+}
+
+function pubDescargar() {
+  pubDibujar();
+  const a = document.createElement('a');
+  a.download = pubNombreArchivo() + '.jpg';
+  a.href = document.getElementById('pub-canvas').toDataURL('image/jpeg', 0.92);
+  a.click();
+}
+
+async function pubCopiarTexto() {
+  const texto = document.getElementById('pub-publicacion').value;
+  try {
+    await navigator.clipboard.writeText(texto);
+    pubSetStatus('Texto copiado. Pégalo en Instagram o Facebook.', 'success');
+  } catch {
+    document.getElementById('pub-publicacion').select();
+    pubSetStatus('Selecciona y copia el texto manualmente.', 'error');
+  }
+}
+
+async function pubGuardarCatalogo() {
+  const btn = document.getElementById('pub-btn-guardar');
+  btn.disabled = true;
+  pubSetStatus('Guardando en el catálogo…', '');
+  try {
+    pubDibujar();
+    const blob = await new Promise(ok => document.getElementById('pub-canvas').toBlob(ok, 'image/jpeg', 0.92));
+    const fileName = 'ficha_' + Date.now() + '.jpg';
+    const up = await fetch(SUPABASE_URL+'/storage/v1/object/'+BUCKET+'/'+fileName, {
+      method: 'POST',
+      headers: { 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':'image/jpeg', 'x-upsert':'true' },
+      body: blob,
+    });
+    if(!up.ok) throw new Error('Storage: ' + await up.text());
+    // Solo se asignan los espacios sugeridos que ya existen en "Espacios"
+    const sugeridos = pubEspaciosIA.map(e => e.toLowerCase());
+    const cats = allCategorias.map(c => c.nombre).filter(n => sugeridos.includes(n.toLowerCase()));
+    const db = await fetch(SUPABASE_URL+'/rest/v1/fichas', {
+      method: 'POST',
+      headers: { ...hdrs(), 'Prefer':'return=representation' },
+      body: JSON.stringify({
+        titulo: pubTexto('pub-nombre') || null,
+        imagen_url: SUPABASE_URL+'/storage/v1/object/public/'+BUCKET+'/'+fileName,
+        categorias: cats,
+      }),
+    });
+    if(!db.ok) throw new Error('Error al guardar en base de datos');
+    pubSetStatus('¡Obra agregada al catálogo!', 'success');
+    cargarCatalogo();
+  } catch(err) {
+    pubSetStatus('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>
