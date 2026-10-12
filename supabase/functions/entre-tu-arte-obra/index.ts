@@ -49,11 +49,18 @@ Devuelve:
   dio en sus datos, repítela tal cual.
 - espacios: 2 a 4 espacios del hogar u oficina donde luce mejor (ej. "Sala", "Comedor",
   "Recámara", "Oficina", "Recibidor").
-- publicacion: texto listo para Instagram/Facebook. Primera línea con el nombre de la obra y
-  1 emoji sobrio. Luego 2 a 4 frases que conecten la obra con el hogar y las emociones. Si hay
-  datos del artista (nombre, medidas), menciónalos. Cierra con una invitación a escribir por
-  mensaje directo o WhatsApp. Texto plano, sin markdown.
-- hashtags: 6 a 10 hashtags en español e inglés, sin espacios, incluyendo #EntreTuArte.
+- publicacion: caption CORTO para Instagram/Facebook, máximo 220 caracteres en total, en 3
+  líneas separadas por salto de línea:
+  1) el nombre de la obra con 1 emoji sobrio;
+  2) UNA frase breve (máximo 20 palabras) que conecte la obra con el espacio o la emoción; no
+     repitas la descripción de la ficha ni enumeres técnica, medidas o colores;
+  3) una invitación breve, ej. "Disponible. Escríbenos por DM o WhatsApp ✨".
+  Ejemplo:
+  "Umbral Ígneo 🔥
+  Calidez y carácter para el corazón de tu hogar.
+  Disponible. Escríbenos por DM o WhatsApp ✨"
+  Texto plano, sin markdown.
+- hashtags: 5 o 6 hashtags, sin espacios, incluyendo #EntreTuArte.
 
 Reglas: español neutro centroamericano, cálido y profesional. No inventes medidas, precios ni
 materiales que no se puedan ver; si la técnica no es clara, descríbela por su apariencia.`;
