@@ -9,7 +9,8 @@
 //
 // Trabaja en segundo plano: el POST registra el trabajo en la tabla eta_trabajos, responde de
 // inmediato con su id y sigue generando aunque la persona cierre la página. La página consulta
-// el resultado con GET ?id=... cuando vuelve.
+// el resultado con GET ?id=... cuando vuelve. Las fotos llegan como enlaces públicos del
+// almacenamiento de Entre Tu Arte, no dentro de la petición.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -22,7 +23,9 @@ const CORS = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const TIPOS_IMAGEN = ["image/jpeg", "image/png", "image/webp"];
+// Solo se aceptan fotos subidas al almacenamiento de Entre Tu Arte (la página las sube antes de
+// pedir la ficha; mandar las fotos dentro de la petición se colgaba desde el celular).
+const PREFIJO_FOTOS = "https://titmjfkpvlsuazqsfniw.supabase.co/storage/v1/object/public/catalogos/";
 
 const INSTRUCCIONES = `Eres el director creativo de "Entre Tu Arte", marca salvadoreña de arte decorativo
 contemporáneo y cuadros personalizados para interiores. Su estética: Japandi, minimalismo cálido,
@@ -78,10 +81,10 @@ function responder(cuerpo: unknown, status = 200) {
 
 // Llama a Claude con las fotos y devuelve el JSON de la ficha; lanza Error con un mensaje
 // legible para guardarlo en el trabajo si algo falla.
-async function generar(apiKey: string, imagenes: { tipo: string; datos: string }[], notas: unknown) {
-  const contenido: Anthropic.Beta.BetaContentBlockParam[] = imagenes.map((img) => ({
+async function generar(apiKey: string, urls: string[], notas: unknown) {
+  const contenido: Anthropic.Beta.BetaContentBlockParam[] = urls.map((url) => ({
     type: "image",
-    source: { type: "base64", media_type: img.tipo as "image/jpeg", data: img.datos },
+    source: { type: "url", url },
   }));
   let texto = INSTRUCCIONES;
   if (typeof notas === "string" && notas.trim()) {
@@ -112,12 +115,13 @@ async function generar(apiKey: string, imagenes: { tipo: string; datos: string }
   return JSON.parse(bloque.text);
 }
 
-async function procesar(id: string, apiKey: string, imagenes: { tipo: string; datos: string }[], notas: unknown) {
+async function procesar(id: string, apiKey: string, urls: string[], notas: unknown) {
   try {
-    const resultado = await generar(apiKey, imagenes, notas);
+    const resultado = await generar(apiKey, urls, notas);
     await db.from("eta_trabajos").update({ estado: "listo", resultado, actualizado: new Date().toISOString() }).eq("id", id);
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
+    console.error("trabajo", id, "falló:", error);
     await db.from("eta_trabajos").update({ estado: "error", error, actualizado: new Date().toISOString() }).eq("id", id);
   }
   const hace7dias = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
@@ -149,19 +153,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { imagenes, notas } = await req.json();
-    if (!Array.isArray(imagenes) || imagenes.length < 1 || imagenes.length > 3) {
+    console.log("POST recibido, leyendo datos…");
+    const { urls, notas } = await req.json();
+    if (!Array.isArray(urls) || urls.length < 1 || urls.length > 3) {
       return responder({ error: "Envía entre 1 y 3 fotos de la obra." }, 400);
     }
-    for (const img of imagenes) {
-      if (!img || !TIPOS_IMAGEN.includes(img.tipo) || typeof img.datos !== "string") {
-        return responder({ error: "Formato de imagen no válido (usa JPG, PNG o WEBP)." }, 400);
-      }
+    if (!urls.every((u) => typeof u === "string" && u.startsWith(PREFIJO_FOTOS))) {
+      return responder({ error: "Las fotos deben estar subidas al almacenamiento de Entre Tu Arte." }, 400);
     }
 
     const { data, error } = await db.from("eta_trabajos").insert({}).select("id").single();
-    if (error || !data) return responder({ error: "No se pudo registrar el trabajo." }, 500);
-    EdgeRuntime.waitUntil(procesar(data.id, apiKey, imagenes, notas));
+    if (error || !data) {
+      console.error("no se pudo registrar el trabajo:", error?.message);
+      return responder({ error: "No se pudo registrar el trabajo." }, 500);
+    }
+    console.log("trabajo", data.id, "registrado con", urls.length, "foto(s)");
+    EdgeRuntime.waitUntil(procesar(data.id, apiKey, urls, notas));
     return responder({ id: data.id, estado: "pendiente" }, 202);
   } catch (err) {
     return responder({ error: String(err) }, 500);
