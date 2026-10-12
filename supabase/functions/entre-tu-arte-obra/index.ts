@@ -49,16 +49,16 @@ Devuelve:
   dio en sus datos, repítela tal cual.
 - espacios: 2 a 4 espacios del hogar u oficina donde luce mejor (ej. "Sala", "Comedor",
   "Recámara", "Oficina", "Recibidor").
-- publicacion: caption CORTO para Instagram/Facebook, máximo 220 caracteres en total, en 3
+- publicacion: caption CORTO para Instagram/Facebook, máximo 240 caracteres en total, en 3
   líneas separadas por salto de línea:
   1) el nombre de la obra con 1 emoji sobrio;
   2) UNA frase breve (máximo 20 palabras) que conecte la obra con el espacio o la emoción; no
      repitas la descripción de la ficha ni enumeres técnica, medidas o colores;
-  3) una invitación breve, ej. "Disponible. Escríbenos por DM o WhatsApp ✨".
+  3) exactamente esta línea: "Disponible. Escríbenos al WhatsApp (503) 7797-9504 ✨".
   Ejemplo:
   "Umbral Ígneo 🔥
   Calidez y carácter para el corazón de tu hogar.
-  Disponible. Escríbenos por DM o WhatsApp ✨"
+  Disponible. Escríbenos al WhatsApp (503) 7797-9504 ✨"
   Texto plano, sin markdown.
 - hashtags: 5 o 6 hashtags, sin espacios, incluyendo #EntreTuArte.
 
