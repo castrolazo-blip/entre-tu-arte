@@ -2197,12 +2197,12 @@ function pubCargarImagen(src) {
   });
 }
 
-// Reduce cada foto a 1600px de lado mayor: suficiente para la IA y la ficha, y mucho más liviano.
+// Reduce cada foto a 1400px de lado mayor: suficiente para la IA y la ficha, y mucho más liviano.
 async function pubReducir(file) {
   const url = URL.createObjectURL(file);
   try {
     const original = await pubCargarImagen(url);
-    const escala = Math.min(1, 1600 / Math.max(original.width, original.height));
+    const escala = Math.min(1, 1400 / Math.max(original.width, original.height));
     const c = document.createElement('canvas');
     c.width = Math.round(original.width * escala);
     c.height = Math.round(original.height * escala);
@@ -2435,7 +2435,7 @@ function pubGuardarBorrador() {
   PUB_CAMPOS.forEach(id => campos[id] = document.getElementById(id).value);
   return pubBorrador('guardar', {
     trabajo: pubTrabajo, espacios: pubEspaciosIA, campos,
-    fotos: pubFotos.map(f => ({ tipo: f.tipo, datos: f.datos })),
+    fotos: pubFotos.map(f => ({ tipo: f.tipo, datos: f.datos, url: f.url })),
   });
 }
 
@@ -2534,6 +2534,20 @@ async function pubEsperar() {
   }
 }
 
+async function pubSubirFoto(f) {
+  const bin = atob(f.datos);
+  const bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const fileName = 'ia/obra_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
+  const up = await fetch(SUPABASE_URL+'/storage/v1/object/'+BUCKET+'/'+fileName, {
+    method: 'POST',
+    headers: { 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Content-Type':f.tipo, 'x-upsert':'true' },
+    body: new Blob([bytes], { type: f.tipo }),
+  });
+  if(!up.ok) throw new Error('No se pudo subir la foto: ' + await up.text());
+  return SUPABASE_URL+'/storage/v1/object/public/'+BUCKET+'/'+fileName;
+}
+
 async function pubGenerarTextos() {
   if(!pubFotos.length) { pubSetStatus('Primero sube al menos una foto de la obra.', 'error'); return; }
   const clave = pubLeerClave();
@@ -2543,12 +2557,20 @@ async function pubGenerarTextos() {
   btn.disabled = true;
   pubSetStatus('Enviando las fotos…', '');
   try {
+    // Las fotos se suben primero al almacenamiento y a la IA solo van los enlaces: mandar las
+    // fotos dentro de la petición se colgaba desde el celular.
+    for(let i = 0; i < pubFotos.length; i++) {
+      if(pubFotos[i].url) continue;
+      pubSetStatus('Subiendo foto ' + (i+1) + ' de ' + pubFotos.length + '…', '');
+      pubFotos[i].url = await pubSubirFoto(pubFotos[i]);
+    }
+    pubSetStatus('Enviando a la IA…', '');
     const datos = ['artista','tecnica','soporte','medidas'].map(c => pubTexto('pub-'+c) ? c+': '+pubTexto('pub-'+c) : '').filter(Boolean);
     const notas = [pubTexto('pub-notas'), ...datos].filter(Boolean).join('\n');
     const res = await fetch(PUB_FUNCION_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-eta-clave': clave },
-      body: JSON.stringify({ imagenes: pubFotos.map(f => ({ tipo: f.tipo, datos: f.datos })), notas }),
+      body: JSON.stringify({ urls: pubFotos.map(f => f.url), notas }),
     });
     const data = await res.json().catch(() => ({}));
     if(res.status === 401) { try { localStorage.removeItem('eta_clave_ia'); } catch {} }
