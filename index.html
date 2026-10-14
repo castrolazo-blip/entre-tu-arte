@@ -294,6 +294,39 @@ body.admin-mode .btn-estado { display:block !important; }
 #upload-status.success { color:#2e7d32; }
 #upload-status.error { color:var(--red); }
 
+/* Publicar: campos con listas */
+.pub-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+.pub-campo { min-width:0; }
+.pub-campo.completo { grid-column:1 / -1; }
+.pub-campo label {
+  display:block; font-size:0.65rem; letter-spacing:0.15em;
+  text-transform:uppercase; color:var(--gray); margin-bottom:5px;
+}
+.pub-campo select, .pub-campo input {
+  width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:0;
+  background-color:var(--cream); font-family:'Jost',sans-serif; font-size:0.85rem;
+  color:var(--dark); outline:none; -webkit-appearance:none; appearance:none;
+}
+.pub-campo select {
+  padding-right:32px; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237a7a7a' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center;
+}
+.pub-campo select:focus, .pub-campo input:focus { border-color:var(--dark); }
+.pub-nuevo { display:none; gap:6px; margin-top:6px; }
+.pub-nuevo button {
+  flex-shrink:0; padding:0 16px; background:var(--dark); color:var(--cream); border:none;
+  font-family:'Jost',sans-serif; font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer;
+}
+.pub-con-unidad { position:relative; }
+.pub-con-unidad span {
+  position:absolute; top:50%; transform:translateY(-50%); font-size:0.8rem; color:var(--gray); pointer-events:none;
+}
+.pub-con-unidad .izq { left:12px; }
+.pub-con-unidad .der { right:12px; }
+.pub-con-unidad input.con-izq { padding-left:26px; }
+.pub-con-unidad input.con-der { padding-right:40px; }
+
 /* Content editor tab */
 .content-editor { display:none; }
 .content-editor.visible { display:block; }
@@ -634,17 +667,55 @@ footer {
         <p style="margin-top:4px;font-size:0.7rem;">Usa ◀ para cambiar el orden. Con 1 sola foto, el detalle se toma de un acercamiento.</p>
       </div>
       <div id="pub-thumbs" style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;"></div>
-      <div class="form-row">
-        <input type="text" id="pub-artista" placeholder="Artista" oninput="pubDibujar()">
-        <input type="text" id="pub-anio" placeholder="Año" oninput="pubDibujar()">
-      </div>
-      <div class="form-row">
-        <input type="text" id="pub-tecnica" placeholder="Técnica (ej: Acrílico sobre lienzo)" oninput="pubDibujar()">
-        <input type="text" id="pub-soporte" placeholder="Soporte (ej: Bastidor)" oninput="pubDibujar()">
-      </div>
-      <div class="form-row">
-        <input type="text" id="pub-medidas" placeholder="Medidas (ej: 100 x 100 cm)" oninput="pubDibujar()">
-        <input type="text" id="pub-precio" placeholder="Precio (ej: 185.00)" oninput="pubDibujar()">
+      <div class="pub-grid">
+        <div class="pub-campo completo">
+          <label for="pub-artista-sel">Artista</label>
+          <select id="pub-artista-sel" onchange="pubComboCambio('artista')"></select>
+          <div class="pub-nuevo" id="pub-artista-nuevo">
+            <input type="text" id="pub-artista-nuevo-input" placeholder="Nombre del nuevo artista" onkeydown="if(event.key==='Enter')pubComboAgregar('artista')">
+            <button onclick="pubComboAgregar('artista')">Agregar</button>
+          </div>
+          <input type="hidden" id="pub-artista">
+        </div>
+        <div class="pub-campo completo">
+          <label for="pub-tecnica-sel">Técnica</label>
+          <select id="pub-tecnica-sel" onchange="pubComboCambio('tecnica')"></select>
+          <div class="pub-nuevo" id="pub-tecnica-nuevo">
+            <input type="text" id="pub-tecnica-nuevo-input" placeholder="Escribe la técnica" onkeydown="if(event.key==='Enter')pubComboAgregar('tecnica')">
+            <button onclick="pubComboAgregar('tecnica')">Agregar</button>
+          </div>
+          <input type="hidden" id="pub-tecnica">
+        </div>
+        <div class="pub-campo completo">
+          <label for="pub-soporte-sel">Soporte</label>
+          <select id="pub-soporte-sel" onchange="pubComboCambio('soporte')"></select>
+          <div class="pub-nuevo" id="pub-soporte-nuevo">
+            <input type="text" id="pub-soporte-nuevo-input" placeholder="Escribe el soporte" onkeydown="if(event.key==='Enter')pubComboAgregar('soporte')">
+            <button onclick="pubComboAgregar('soporte')">Agregar</button>
+          </div>
+          <input type="hidden" id="pub-soporte">
+        </div>
+        <div class="pub-campo pub-rect">
+          <label for="pub-alto">Alto</label>
+          <div class="pub-con-unidad"><input type="text" inputmode="decimal" id="pub-alto" class="con-der" placeholder="100" oninput="pubActualizarMedidas()"><span class="der">cm</span></div>
+        </div>
+        <div class="pub-campo pub-rect">
+          <label for="pub-ancho">Ancho</label>
+          <div class="pub-con-unidad"><input type="text" inputmode="decimal" id="pub-ancho" class="con-der" placeholder="100" oninput="pubActualizarMedidas()"><span class="der">cm</span></div>
+        </div>
+        <div class="pub-campo completo pub-circ" style="display:none;">
+          <label for="pub-diametro">Diámetro</label>
+          <div class="pub-con-unidad"><input type="text" inputmode="decimal" id="pub-diametro" class="con-der" placeholder="85" oninput="pubActualizarMedidas()"><span class="der">cm</span></div>
+        </div>
+        <input type="hidden" id="pub-medidas">
+        <div class="pub-campo">
+          <label for="pub-precio">Precio</label>
+          <div class="pub-con-unidad"><span class="izq">$</span><input type="text" inputmode="decimal" id="pub-precio" class="con-izq" placeholder="185.00" oninput="pubDibujar()"></div>
+        </div>
+        <div class="pub-campo">
+          <label for="pub-anio">Año</label>
+          <input type="text" inputmode="numeric" id="pub-anio" placeholder="2026" oninput="pubDibujar()">
+        </div>
       </div>
       <div class="editor-field">
         <label>Notas para la IA — opcional</label>
@@ -2221,6 +2292,7 @@ function pubIniciarCampos() {
     const el = document.getElementById(id);
     try { if(!el.value) el.value = localStorage.getItem('eta_' + id) || ''; } catch {}
   });
+  if(typeof pubRefrescarCampos === 'function') pubRefrescarCampos();
 }
 
 async function pubAgregarFotos(e) {
@@ -2373,7 +2445,7 @@ function pubDibujar() {
     ctx.fillText('PRECIO:', 563, 982);
     ctx.letterSpacing = '0px';
     ctx.font = '600 36px Jost, sans-serif';
-    const p = /^\d/.test(precio) ? '$' + precio : precio;
+    const p = pubFormatoPrecio(precio);
     ctx.fillText(p, 680, 987, 165);
   }
 
@@ -2402,6 +2474,7 @@ function pubLeerClave() {
 // El borrador (fotos + campos + id del trabajo) se guarda en este dispositivo (IndexedDB) para que
 // la persona pueda salir de la página mientras la IA trabaja y encontrarlo todo al volver.
 const PUB_CAMPOS = ['pub-artista','pub-anio','pub-tecnica','pub-soporte','pub-medidas','pub-precio',
+  'pub-alto','pub-ancho','pub-diametro',
   'pub-notas','pub-nombre','pub-estilo','pub-descripcion','pub-publicacion'];
 let pubTrabajo = null;       // {id, estado} del trabajo en curso
 let pubGuardadoTimer = null;
@@ -2451,6 +2524,7 @@ async function pubRetomar() {
   Object.entries(b.campos || {}).forEach(([id, v]) => { const el = document.getElementById(id); if(el) el.value = v; });
   pubEspaciosIA = b.espacios || [];
   pubTrabajo = b.trabajo || null;
+  pubRefrescarCampos();
   pubMostrarEspacios();
   pubRenderThumbs();
   pubDibujar();
@@ -2469,6 +2543,7 @@ function pubAplicarResultado(data) {
   document.getElementById('pub-descripcion').value = data.descripcion || '';
   if(!pubTexto('pub-estilo')) document.getElementById('pub-estilo').value = data.estilo || '';
   if(!pubTexto('pub-tecnica')) document.getElementById('pub-tecnica').value = data.tecnica || '';
+  pubComboRender('tecnica');
   const tags = (data.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
   document.getElementById('pub-publicacion').value = (data.publicacion || '') + (tags ? '\n\n' + tags : '');
   pubEspaciosIA = data.espacios || [];
@@ -2592,11 +2667,151 @@ function pubNuevaObra() {
   pubTrabajo = null; pubFotos = []; pubEspaciosIA = [];
   PUB_CAMPOS.filter(id => !PUB_RECORDAR.includes(id) && id !== 'pub-anio').forEach(id => document.getElementById(id).value = '');
   pubBorrador('borrar');
+  pubRefrescarCampos();
   pubMostrarEspacios(); pubRenderThumbs(); pubDibujar();
   pubSetStatus('', '');
 }
 
-pubRetomar();
+// ── Listas de artistas, técnicas y soportes ──
+// Se guardan en la tabla configuracion de Entre Tu Arte (claves pub_artistas, pub_tecnicas y
+// pub_soportes) para que las opciones nuevas aparezcan en cualquier dispositivo.
+const PUB_LISTAS = {
+  artista: { clave: 'pub_artistas', elegir: 'Elegir artista…', nuevo: '＋ Nuevo artista…',
+    base: ['Alfredo Alegría'] },
+  tecnica: { clave: 'pub_tecnicas', elegir: 'Elegir técnica…', nuevo: '＋ Otra técnica…',
+    base: ['Acrílico sobre lienzo', 'Óleo sobre lienzo', 'Acrílico sobre lienzo (manta)',
+      'Acrílico con texturas sobre lienzo', 'Técnica mixta sobre lienzo'] },
+  soporte: { clave: 'pub_soportes', elegir: 'Elegir soporte…', nuevo: '＋ Otro soporte…',
+    base: ['Bastidor de pino', 'Bastidor circular de pino', 'Bastidor geométrico de pino'] },
+};
+const pubListas = {};
+Object.keys(PUB_LISTAS).forEach(t => pubListas[t] = [...PUB_LISTAS[t].base]);
+
+async function pubCargarListas() {
+  try {
+    const claves = Object.values(PUB_LISTAS).map(l => l.clave).join(',');
+    const res = await fetch(SUPABASE_URL+'/rest/v1/configuracion?select=clave,valor&clave=in.('+claves+')', { headers: hdrs() });
+    const filas = res.ok ? await res.json() : [];
+    Object.entries(PUB_LISTAS).forEach(([tipo, cfg]) => {
+      const fila = filas.find(f => f.clave === cfg.clave);
+      let guardadas = [];
+      try { guardadas = JSON.parse(fila ? fila.valor : '[]'); } catch {}
+      if(Array.isArray(guardadas)) guardadas.forEach(v => { if(v && !pubListas[tipo].includes(v)) pubListas[tipo].push(v); });
+    });
+  } catch {}   // sin conexión: quedan las opciones base
+}
+
+async function pubGuardarLista(tipo) {
+  const clave = PUB_LISTAS[tipo].clave;
+  const cuerpo = { valor: JSON.stringify(pubListas[tipo]), updated_at: new Date().toISOString() };
+  try {
+    // PATCH no falla si la fila no existe (solo no cambia nada), así que se revisa si actualizó algo
+    const res = await fetch(SUPABASE_URL+'/rest/v1/configuracion?clave=eq.'+clave, {
+      method: 'PATCH', headers: { ...hdrs(), 'Prefer': 'return=representation' }, body: JSON.stringify(cuerpo),
+    });
+    const filas = res.ok ? await res.json() : [];
+    if(!filas.length) {
+      await fetch(SUPABASE_URL+'/rest/v1/configuracion', {
+        method: 'POST', headers: { ...hdrs(), 'Prefer': 'return=minimal' }, body: JSON.stringify({ clave, ...cuerpo }),
+      });
+    }
+  } catch {
+    pubSetStatus('No se pudo guardar la nueva opción en la lista (se usará solo en esta obra).', 'error');
+  }
+}
+
+function pubComboRender(tipo) {
+  const cfg = PUB_LISTAS[tipo];
+  const sel = document.getElementById('pub-'+tipo+'-sel');
+  const actual = document.getElementById('pub-'+tipo).value.trim();
+  const opciones = [...pubListas[tipo]];
+  if(actual && !opciones.includes(actual)) opciones.push(actual);
+  sel.innerHTML = '';
+  const add = (valor, texto) => { const o = document.createElement('option'); o.value = valor; o.textContent = texto; sel.appendChild(o); };
+  add('', cfg.elegir);
+  opciones.forEach(v => add(v, v));
+  add('__nuevo', cfg.nuevo);
+  sel.value = actual;
+}
+
+function pubComboCambio(tipo) {
+  const sel = document.getElementById('pub-'+tipo+'-sel');
+  const caja = document.getElementById('pub-'+tipo+'-nuevo');
+  if(sel.value === '__nuevo') {
+    caja.style.display = 'flex';
+    document.getElementById('pub-'+tipo+'-nuevo-input').focus();
+    return;
+  }
+  caja.style.display = 'none';
+  document.getElementById('pub-'+tipo).value = sel.value;
+  if(tipo === 'soporte') pubMedidasModo();
+  pubDibujar();
+}
+
+function pubComboAgregar(tipo) {
+  const input = document.getElementById('pub-'+tipo+'-nuevo-input');
+  const valor = input.value.trim().replace(/\s+/g, ' ');
+  if(!valor) { input.focus(); return; }
+  if(!pubListas[tipo].includes(valor)) { pubListas[tipo].push(valor); pubGuardarLista(tipo); }
+  document.getElementById('pub-'+tipo).value = valor;
+  input.value = '';
+  document.getElementById('pub-'+tipo+'-nuevo').style.display = 'none';
+  pubComboRender(tipo);
+  if(tipo === 'soporte') pubMedidasModo();
+  pubDibujar();
+}
+
+// Un bastidor circular se mide por diámetro; los demás por alto × ancho.
+function pubEsCircular() { return /circular|redond/i.test(document.getElementById('pub-soporte').value); }
+
+function pubMedidasModo() {
+  const circ = pubEsCircular();
+  document.querySelectorAll('.pub-rect').forEach(el => el.style.display = circ ? 'none' : '');
+  document.querySelector('.pub-circ').style.display = circ ? '' : 'none';
+  pubActualizarMedidas();
+}
+
+function pubNumero(id) {
+  const n = parseFloat(document.getElementById(id).value.replace(',', '.'));
+  return n > 0 ? String(Math.round(n * 10) / 10) : '';
+}
+
+function pubActualizarMedidas() {
+  let texto = '';
+  if(pubEsCircular()) {
+    const d = pubNumero('pub-diametro');
+    if(d) texto = d + ' cm de diámetro';
+  } else {
+    const alto = pubNumero('pub-alto'), ancho = pubNumero('pub-ancho');
+    if(alto && ancho) texto = alto + ' x ' + ancho + ' cm';
+    else if(alto || ancho) texto = (alto || ancho) + ' cm';
+  }
+  document.getElementById('pub-medidas').value = texto;
+  pubDibujar();
+}
+
+function pubFormatoPrecio(texto) {
+  const n = parseFloat(texto.replace(/[$\s,]/g, ''));
+  if(!(n >= 0)) return texto;
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function pubRefrescarCampos() {
+  Object.keys(PUB_LISTAS).forEach(t => {
+    pubComboRender(t);
+    document.getElementById('pub-'+t+'-nuevo').style.display = 'none';
+  });
+  pubMedidasModo();
+}
+
+async function pubInit() {
+  pubIniciarCampos();
+  pubRefrescarCampos();
+  await pubCargarListas();
+  pubRefrescarCampos();
+  await pubRetomar();
+}
+pubInit();
 
 function pubNombreArchivo() {
   const n = pubTexto('pub-nombre').toLowerCase()

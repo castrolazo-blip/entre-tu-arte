@@ -5,7 +5,8 @@
 //
 // La página de Entre Tu Arte pertenece a otro proyecto de Supabase, así que no puede mandar un
 // JWT válido de este proyecto (verify_jwt va desactivado). La protección la da la clave privada
-// ETA_CLAVE: solo quien la escriba en el panel admin puede usar la función y gastar créditos.
+// de acceso (secreto ETA_CLAVE o tabla eta_config): solo quien la escriba en el panel admin puede
+// usar la función y gastar créditos.
 //
 // Trabaja en segundo plano: el POST registra el trabajo en la tabla eta_trabajos, responde de
 // inmediato con su id y sigue generando aunque la persona cierre la página. La página consulta
@@ -48,11 +49,22 @@ Devuelve:
   dio en sus datos, repítela tal cual.
 - espacios: 2 a 4 espacios del hogar u oficina donde luce mejor (ej. "Sala", "Comedor",
   "Recámara", "Oficina", "Recibidor").
-- publicacion: texto listo para Instagram/Facebook. Primera línea con el nombre de la obra y
-  1 emoji sobrio. Luego 2 a 4 frases que conecten la obra con el hogar y las emociones. Si hay
-  datos del artista (nombre, medidas), menciónalos. Cierra con una invitación a escribir por
-  mensaje directo o WhatsApp. Texto plano, sin markdown.
-- hashtags: 6 a 10 hashtags en español e inglés, sin espacios, incluyendo #EntreTuArte.
+- publicacion: caption breve pero con alma para Instagram/Facebook (entre 220 y 380 caracteres
+  en total), en 3 bloques separados por una línea en blanco:
+  1) el nombre de la obra con 1 emoji sobrio;
+  2) 2 o 3 frases cortas (25 a 45 palabras en total) que despierten deseo: un detalle sensorial
+     de la obra (un color, una textura, un gesto) y lo que provoca en el espacio o en quien la
+     vive. Cálido y evocador, sin listar datos técnicos ni repetir la descripción de la ficha;
+  3) exactamente esta línea: "Disponible. Escríbenos al WhatsApp (503) 7797-9504 ✨".
+  Ejemplo:
+  "Umbral Ígneo 🔥
+
+  Rojos que arden junto a azules profundos, como una conversación entre fuego y calma. Una pieza
+  que convierte cualquier pared en el punto donde todo se reúne.
+
+  Disponible. Escríbenos al WhatsApp (503) 7797-9504 ✨"
+  Texto plano, sin markdown.
+- hashtags: 5 o 6 hashtags, sin espacios, incluyendo #EntreTuArte.
 
 Reglas: español neutro centroamericano, cálido y profesional. No inventes medidas, precios ni
 materiales que no se puedan ver; si la técnica no es clara, descríbela por su apariencia.`;
@@ -128,12 +140,21 @@ async function procesar(id: string, apiKey: string, urls: string[], notas: unkno
   await db.from("eta_trabajos").delete().lt("creado", hace7dias);
 }
 
+// La clave de acceso sale del secreto ETA_CLAVE si existe; si no, de la tabla eta_config
+// (así se puede configurar sin entrar al panel de Supabase).
+async function claveAcceso(): Promise<string> {
+  const delSecreto = Deno.env.get("ETA_CLAVE");
+  if (delSecreto) return delSecreto;
+  const { data } = await db.from("eta_config").select("valor").eq("clave", "clave_acceso").maybeSingle();
+  return data?.valor || "";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
-  const claveEsperada = Deno.env.get("ETA_CLAVE");
+  const claveEsperada = await claveAcceso();
   if (!claveEsperada) {
-    return responder({ error: "Falta configurar el secreto ETA_CLAVE en Supabase." }, 500);
+    return responder({ error: "Falta configurar la clave de acceso (ETA_CLAVE o tabla eta_config)." }, 500);
   }
   if (req.headers.get("x-eta-clave") !== claveEsperada) {
     return responder({ error: "Clave de acceso incorrecta." }, 401);
