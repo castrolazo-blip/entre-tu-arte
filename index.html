@@ -3043,12 +3043,42 @@ function pubNombreArchivo() {
   return 'entre-tu-arte-' + (n || 'obra');
 }
 
+// En iPhone/iPad un enlace de descarga manda la imagen a la app Archivos (o no hace nada), así que
+// ahí se abre el menú de compartir del sistema, donde "Guardar imagen" la deja en Fotos. En
+// computadora se descarga como archivo JPG. La imagen se arma de forma síncrona para no perder el
+// "toque" del usuario, que Safari exige para abrir el menú de compartir.
 function pubDescargar() {
+  pubSeleccionarHueco(null);
   pubDibujar();
+  const dataUrl = document.getElementById('pub-canvas').toDataURL('image/jpeg', 0.92);
+  const bin = atob(dataUrl.split(',')[1]);
+  const bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const nombre = pubNombreArchivo() + '.jpg';
+  const blob = new Blob([bytes], { type: 'image/jpeg' });
+  const archivo = new File([blob], nombre, { type: 'image/jpeg' });
+  const esMovil = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  if(esMovil && navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    navigator.share({ files: [archivo] })
+      .then(() => pubSetStatus('Imagen lista. Si elegiste "Guardar imagen", está en tus Fotos.', 'success'))
+      .catch(err => { if(err.name !== 'AbortError') pubDescargarArchivo(blob, nombre); });
+    return;
+  }
+  pubDescargarArchivo(blob, nombre);
+}
+
+function pubDescargarArchivo(blob, nombre) {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.download = pubNombreArchivo() + '.jpg';
-  a.href = document.getElementById('pub-canvas').toDataURL('image/jpeg', 0.92);
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
   a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  pubSetStatus('Imagen descargada: ' + nombre, 'success');
 }
 
 async function pubCopiarTexto() {
