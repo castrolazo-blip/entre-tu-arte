@@ -65,6 +65,13 @@ Devuelve:
   Disponible. Escríbenos al WhatsApp (503) 7797-9504 ✨"
   Texto plano, sin markdown.
 - hashtags: 5 o 6 hashtags, sin espacios, incluyendo #EntreTuArte.
+- encuadres: uno por cada foto, en el mismo orden en que te las paso (foto 1, 2, 3). Sirven para
+  encuadrar cada foto en la ficha sin cortar la obra. Para cada foto da el rectángulo, en
+  fracciones de 0 a 1 del ancho y alto de ESA foto (x, y = esquina superior izquierda), que
+  contiene la obra COMPLETA incluido su bastidor o marco, bien ajustado a sus bordes. Si la obra
+  se ve en perspectiva, el rectángulo debe abarcar todas sus esquinas. Si la foto es un
+  acercamiento de textura donde la obra no se ve completa, da la zona de textura más atractiva,
+  nítida y con más relieve.
 
 Reglas: español neutro centroamericano, cálido y profesional. No inventes medidas, precios ni
 materiales que no se puedan ver; si la técnica no es clara, descríbela por su apariencia.`;
@@ -79,8 +86,23 @@ const ESQUEMA = {
     espacios: { type: "array", items: { type: "string" } },
     publicacion: { type: "string" },
     hashtags: { type: "array", items: { type: "string" } },
+    encuadres: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          foto: { type: "integer" },
+          x: { type: "number" },
+          y: { type: "number" },
+          ancho: { type: "number" },
+          alto: { type: "number" },
+        },
+        required: ["foto", "x", "y", "ancho", "alto"],
+        additionalProperties: false,
+      },
+    },
   },
-  required: ["nombre", "descripcion", "estilo", "tecnica", "espacios", "publicacion", "hashtags"],
+  required: ["nombre", "descripcion", "estilo", "tecnica", "espacios", "publicacion", "hashtags", "encuadres"],
   additionalProperties: false,
 };
 

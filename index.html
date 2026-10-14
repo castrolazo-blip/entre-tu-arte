@@ -2365,12 +2365,67 @@ function pubRenderThumbs() {
 
 // Dibuja la foto llenando el recuadro (recorte centrado). zoom > 1 acerca hacia el centro,
 // útil para sacar un "detalle" cuando no hay foto de textura.
-function pubFoto(ctx, img, x, y, w, h, zoom = 1) {
-  const r = w / h;
+// Encuadre inteligente: "caja" es el rectángulo (fracciones 0–1) donde la IA ubicó la obra en la
+// foto. Se busca el recorte más pequeño con la proporción del espacio que contenga la caja más un
+// margen, centrado en la obra. Si la foto no alcanza para llenar el espacio sin cortar la obra,
+// el sobrante se rellena con un fondo difuminado de la misma foto (modo "contener"); en modo
+// "cubrir" (franja de detalle) el recorte se ajusta a la foto y se centra en la caja.
+function pubEncuadrar(ctx, img, x, y, w, h, caja, margen, cubrir) {
+  const W = img.width, H = img.height, a = w / h;
+  let bx = 0, by = 0, bw = W, bh = H;
+  if(caja) { bx = caja.x * W; by = caja.y * H; bw = caja.w * W; bh = caja.h * H; }
+  const m = margen * Math.max(bw, bh);
+  bx -= m; by -= m; bw += 2 * m; bh += 2 * m;
+  const cx = bx + bw / 2, cy = by + bh / 2;
+  let cw = Math.max(bw, bh * a), ch = cw / a;
+  const centrar = (ini, tam, total) => tam <= total ? Math.min(Math.max(ini, 0), total - tam) : (total - tam) / 2;
+
+  if(cubrir || (cw <= W && ch <= H)) {
+    let rw = cw, rh = ch;
+    if(rw > W) { rw = W; rh = rw / a; }
+    if(rh > H) { rh = H; rw = rh * a; }
+    const sx = centrar(cx - rw / 2, rw, W), sy = centrar(cy - rh / 2, rh, H);
+    // "auto": cubre el espacio con contexto, salvo que eso corte la obra; entonces la contiene
+    const cortaObra = caja && (sx > caja.x * W + 1 || sy > caja.y * H + 1 ||
+      sx + rw < (caja.x + caja.w) * W - 1 || sy + rh < (caja.y + caja.h) * H - 1);
+    if(cubrir !== 'auto' || !cortaObra) {
+      ctx.drawImage(img, sx, sy, rw, rh, x, y, w, h);
+      return;
+    }
+    return pubEncuadrar(ctx, img, x, y, w, h, caja, 0.04, false);
+  }
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  pubFondoDifuso(ctx, img, x, y, w, h);
+  const s = w / cw;
+  const sx = centrar(cx - cw / 2, cw, W), sy = centrar(cy - ch / 2, ch, H);
+  const ix0 = Math.max(0, sx), iy0 = Math.max(0, sy);
+  const ix1 = Math.min(W, sx + cw), iy1 = Math.min(H, sy + ch);
+  ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 24;
+  ctx.drawImage(img, ix0, iy0, ix1 - ix0, iy1 - iy0, x + (ix0 - sx) * s, y + (iy0 - sy) * s, (ix1 - ix0) * s, (iy1 - iy0) * s);
+  ctx.restore();
+}
+
+// Fondo difuminado: la foto reducida a unos pocos píxeles y vuelta a ampliar (funciona también en
+// Safari, que no soporta ctx.filter), con un velo cálido encima.
+function pubFondoDifuso(ctx, img, x, y, w, h) {
+  const t = document.createElement('canvas');
+  t.width = 24; t.height = Math.max(1, Math.round(24 * h / w));
+  const tc = t.getContext('2d');
+  const r = t.width / t.height;
   let sw = img.width, sh = img.height;
   if(sw / sh > r) sw = sh * r; else sh = sw / r;
-  sw /= zoom; sh /= zoom;
-  ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
+  tc.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, t.width, t.height);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(t, x, y, w, h);
+  ctx.fillStyle = 'rgba(244,242,238,0.35)'; ctx.fillRect(x, y, w, h);
+}
+
+// Parte central de una caja (para sacar un "detalle" de la foto principal cuando no hay foto de textura).
+function pubCentroCaja(caja, f) {
+  const c = caja || { x: 0, y: 0, w: 1, h: 1 };
+  return { x: c.x + c.w * (1 - f) / 2, y: c.y + c.h * (1 - f) / 2, w: c.w * f, h: c.h * f };
 }
 
 function pubLineas(ctx, texto, ancho) {
@@ -2401,10 +2456,12 @@ function pubDibujar() {
   // Fotos: principal (arriba derecha), ambiente (izquierda), detalle (franja inferior)
   const principal = pubFotos[0].img;
   const ambiente = (pubFotos[1] || pubFotos[0]).img;
-  pubFoto(ctx, principal, 525, 0, W - 525, 666);
-  pubFoto(ctx, ambiente, M, 437, 452, 578, pubFotos[1] ? 1 : 1.35);
-  if(pubFotos[2]) pubFoto(ctx, pubFotos[2].img, 0, 1037, W, H - 1037);
-  else pubFoto(ctx, principal, 0, 1037, W, H - 1037, 1.8);
+  const cajaP = pubFotos[0].encuadre;
+  pubEncuadrar(ctx, principal, 525, 0, W - 525, 666, cajaP, 0.06, false);
+  if(pubFotos[1]) pubEncuadrar(ctx, ambiente, M, 437, 452, 578, pubFotos[1].encuadre, 0.4, pubFotos[1].encuadre ? 'auto' : false);
+  else pubEncuadrar(ctx, principal, M, 437, 452, 578, pubCentroCaja(cajaP, 0.7), 0, true);
+  if(pubFotos[2]) pubEncuadrar(ctx, pubFotos[2].img, 0, 1037, W, H - 1037, pubFotos[2].encuadre, 0, true);
+  else pubEncuadrar(ctx, principal, 0, 1037, W, H - 1037, pubCentroCaja(cajaP, 0.35), 0, true);
 
   // Título: la última palabra va grande y en negrita; el resto, fino y espaciado encima
   const palabras = (pubTexto('pub-nombre') || 'Nombre de la obra').toUpperCase().split(/\s+/);
@@ -2527,7 +2584,7 @@ function pubGuardarBorrador() {
   PUB_CAMPOS.forEach(id => campos[id] = document.getElementById(id).value);
   return pubBorrador('guardar', {
     trabajo: pubTrabajo, espacios: pubEspaciosIA, campos,
-    fotos: pubFotos.map(f => ({ tipo: f.tipo, datos: f.datos, url: f.url })),
+    fotos: pubFotos.map(f => ({ tipo: f.tipo, datos: f.datos, url: f.url, encuadre: f.encuadre })),
   });
 }
 
@@ -2566,6 +2623,14 @@ function pubAplicarResultado(data) {
   const tags = (data.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');
   document.getElementById('pub-publicacion').value = (data.publicacion || '') + (tags ? '\n\n' + tags : '');
   pubEspaciosIA = data.espacios || [];
+  (data.encuadres || []).forEach(e => {
+    const f = pubFotos[(e.foto || 0) - 1];
+    const n = v => Math.min(1, Math.max(0, Number(v) || 0));
+    if(!f) return;
+    const caja = { x: n(e.x), y: n(e.y), w: n(e.ancho), h: n(e.alto) };
+    caja.w = Math.min(caja.w, 1 - caja.x); caja.h = Math.min(caja.h, 1 - caja.y);
+    if(caja.w > 0.05 && caja.h > 0.05) f.encuadre = caja;
+  });
   pubMostrarEspacios();
   pubDibujar();
 }
