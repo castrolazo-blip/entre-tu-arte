@@ -2299,18 +2299,37 @@ async function pubAgregarFotos(e) {
   const files = Array.from(e.target.files || []);
   e.target.value = '';
   if(!files.length) return;
-  pubIniciarCampos();
+  // Si ya hay 3 fotos (por ejemplo, de la obra anterior guardada en el borrador), las nuevas
+  // fotos empiezan una obra nueva en lugar de bloquear la carga.
+  if(pubFotos.length >= 3) {
+    if(!confirm('Ya hay 3 fotos cargadas de otra obra. ¿Empezar una obra nueva con estas fotos?')) return;
+    pubNuevaObra();
+  }
+  try { pubIniciarCampos(); } catch(err) { console.error(err); }
   const libres = 3 - pubFotos.length;
-  if(libres <= 0) { pubSetStatus('Ya tienes 3 fotos. Quita una para agregar otra.', 'error'); return; }
-  if(files.length > libres) pubSetStatus('Solo se usarán '+libres+' foto(s) más (máximo 3).', 'error');
-  else pubSetStatus('', '');
+  if(files.length > libres) pubSetStatus('Solo se usarán '+libres+' foto(s) (máximo 3).', 'error');
+  else pubSetStatus('Cargando fotos…', '');
+  let fallas = 0;
   for(const f of files.slice(0, libres)) {
     try { pubFotos.push(await pubReducir(f)); }
-    catch { pubSetStatus('No se pudo leer una de las fotos.', 'error'); }
+    catch(err) { fallas++; console.error(err); }
   }
+  if(fallas) pubSetStatus('No se pudo leer ' + fallas + ' foto(s). Prueba eligiéndolas otra vez.', 'error');
+  else if(files.length <= libres) pubSetStatus('', '');
   pubRenderThumbs();
   pubDibujar();
 }
+
+// Cualquier error inesperado en la pestaña Publicar se muestra en pantalla para poder
+// diagnosticarlo desde el celular.
+window.addEventListener('error', ev => {
+  const tab = document.getElementById('tab-publicar');
+  if(tab && tab.classList.contains('visible')) pubSetStatus('Error: ' + ev.message, 'error');
+});
+window.addEventListener('unhandledrejection', ev => {
+  const tab = document.getElementById('tab-publicar');
+  if(tab && tab.classList.contains('visible')) pubSetStatus('Error: ' + (ev.reason && ev.reason.message || ev.reason), 'error');
+});
 
 function pubRenderThumbs() {
   const cont = document.getElementById('pub-thumbs');
