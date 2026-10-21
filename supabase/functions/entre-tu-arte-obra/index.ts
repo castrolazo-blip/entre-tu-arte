@@ -178,7 +178,9 @@ Deno.serve(async (req) => {
   if (!claveEsperada) {
     return responder({ error: "Falta configurar la clave de acceso (ETA_CLAVE o tabla eta_config)." }, 500);
   }
-  if (req.headers.get("x-eta-clave") !== claveEsperada) {
+  // Sin distinguir mayúsculas ni espacios: el iPhone pone mayúscula automática al escribir la clave
+  const normalizar = (v: string | null) => (v || "").trim().toLowerCase();
+  if (normalizar(req.headers.get("x-eta-clave")) !== normalizar(claveEsperada)) {
     return responder({ error: "Clave de acceso incorrecta." }, 401);
   }
 
