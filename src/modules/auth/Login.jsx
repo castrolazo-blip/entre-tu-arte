@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from './AuthContext.jsx'
+import { useNoIndexar } from './RutaAdmin.jsx'
 import Logo from '../../components/Logo.jsx'
 
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
   const [enviando, setEnviando] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  useNoIndexar()
 
   if (usuario && esAdmin) return <Navigate to={location.state?.desde || '/admin'} replace />
 
