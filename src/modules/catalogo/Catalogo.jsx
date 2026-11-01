@@ -19,6 +19,7 @@ export default function Catalogo() {
   const orden = params.get('orden') || 'recientes'
   const q = params.get('q') || ''
   const formato = params.get('formato') || ''
+  const tipo = params.get('tipo') || ''
   const [texto, setTexto] = useState(q)
   const [obras, setObras] = useState(null)
   const [categorias, setCategorias] = useState([])
@@ -32,7 +33,7 @@ export default function Catalogo() {
       .then(setObras).catch(() => setObras([]))
   }, [coleccion, orden, q])
 
-  const lista = (obras || []).filter(o => !formato || orientacionPorMedidas(o) === formato)
+  const lista = (obras || []).filter(o => (!formato || orientacionPorMedidas(o) === formato) && (!tipo || o.tipo_obra === tipo))
 
   function cambiar(clave, valor) {
     const p = new URLSearchParams(params)
@@ -61,6 +62,11 @@ export default function Catalogo() {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-3 text-sm font-semibold">Tipo
+          <select value={tipo} onChange={e => cambiar('tipo', e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
+            <option value="">Todas</option><option value="original">Originales</option><option value="interpretacion">Interpretaciones</option>
+          </select>
+        </label>
         <label className="flex items-center gap-3 text-sm font-semibold">Formato
           <select value={formato} onChange={e => cambiar('formato', e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
             <option value="">Todos</option>

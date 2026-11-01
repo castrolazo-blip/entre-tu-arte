@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, ShieldCheck, Frame, Maximize2 } from 'lucide-react'
-import { obtenerObra, listarObras, etiquetaExistencias } from './obrasService.js'
+import { obtenerObra, listarObras, etiquetaExistencias, textoTipo } from './obrasService.js'
 import { precio } from '../../lib/formato.js'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
 import { registrarEvento } from '../../lib/analytics.js'
@@ -31,7 +31,7 @@ export default function ObraDetalle() {
       const cat = (o.categorias || [])[0]
       listarObras({ estado: 'en_venta', categoria: cat, limite: 5 }).then(l => setSimilares(l.filter(x => x.id !== o.id).slice(0, 4))).catch(() => {})
     }).catch(() => setObra(null))
-    return () => { document.title = 'Entre tu Arte · Arte original que transforma espacios' }
+    return () => { document.title = 'Entre tu Arte · Arte que transforma espacios' }
   }, [id])
 
   if (obra === undefined) return <div className="pt-28"><CargandoModulo /></div>
@@ -47,6 +47,7 @@ export default function ObraDetalle() {
   const reservada = obra.estadoEfectivo === 'reservada'
   const actual = obra.fotos[foto] || obra.fotos[0]
   const ficha = [
+    ['Tipo', textoTipo(obra)], ['Certificado', obra.certificado ? 'Incluye certificado de autenticidad' : ''],
     ['Medidas', obra.medidasTexto], ['Formato', ORIENTACIONES[orientacionPorMedidas(obra)]], ['Técnica', obra.tecnica], ['Soporte', obra.soporte],
     ['Estilo', obra.estilo], ['Año', obra.anio], ['Existencias', vendida ? 'Vendida' : etiquetaExistencias(obra)],
   ].filter(f => f[1])
@@ -124,7 +125,7 @@ export default function ObraDetalle() {
           )}
           <div className="mt-4 flex gap-3.5 rounded-[22px] bg-mostaza-fondo p-5 text-sm leading-relaxed">
             <ShieldCheck size={22} className="shrink-0" />
-            <p><strong>Compra protegida.</strong> Pagas a Entre tu Arte y la obra llega con su certificado de autenticidad firmado. Coordinamos el envío y la instalación.</p>
+            <p><strong>Compra protegida.</strong> Pagas a Entre tu Arte{obra.certificado ? ' y la obra llega con su certificado de autenticidad' : ''}. Coordinamos el envío y la instalación.</p>
           </div>
         </div>
       </section>

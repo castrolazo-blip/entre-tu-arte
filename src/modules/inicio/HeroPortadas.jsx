@@ -40,7 +40,7 @@ export default function HeroPortadas({ portadas }) {
           </h1>
           <span aria-hidden="true" className="mt-7 block h-[5px] w-20 rounded-full bg-mostaza" />
           <p className="mt-6 max-w-md text-lg leading-relaxed text-white/90 md:text-xl">
-            {p.subtitulo || 'Obras originales para hogares, oficinas y proyectos especiales.'}
+            {p.subtitulo || 'Obras hechas a mano por artistas salvadoreños para hogares, oficinas y proyectos especiales.'}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             {externo

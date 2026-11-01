@@ -92,7 +92,8 @@ export default function AdminObras() {
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3.5">
                         {o.foto ? <img src={o.foto} alt="" className="h-12 w-16 shrink-0 rounded-xl object-cover" /> : <span className="h-12 w-16 shrink-0 rounded-xl bg-crema" />}
-                        <div className="min-w-0"><p className="truncate font-semibold">{o.titulo}</p><p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos (obra del sitio anterior)'}</p></div>
+                        <div className="min-w-0"><p className="truncate font-semibold">{o.titulo}</p><p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos (obra del sitio anterior)'}</p>
+                          <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Original${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p></div>
                       </div>
                     </td>
                     <td className="px-3">

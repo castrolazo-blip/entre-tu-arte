@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
 import { subirArchivo, reducirImagen } from '../adminService.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
+import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes } from '../../../components/admin/SelectorTipoObra.jsx'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../../lib/orientacion.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
@@ -18,6 +19,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     tecnica: obra.tecnica || '', soporte: obra.soporte || '', alto: obra.alto_cm ?? '', ancho: obra.ancho_cm ?? '', diametro: obra.diametro_cm ?? '',
     precio: obra.precio ?? '', anio: obra.anio ?? '', existencias: obra.existencias ?? 1, edicion_total: obra.edicion_total ?? '',
     artista_id: obra.artista_id || '', categorias: obra.categorias || [], publicacion: obra.publicacion || '',
+    tipo_obra: obra.tipo_obra || '', inspirada_en: obra.inspirada_en || '', certificado: !!obra.certificado,
   })
   const [fotos, setFotos] = useState(obra.fotos || [])
   const [artistas, setArtistas] = useState([])
@@ -38,7 +40,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     setIa({ estado: 'trabajando', error: '' })
     try {
       const artista = artistas.find(a => a.id === f.artista_id)
-      const notas = [artista && `artista: ${artista.nombre}`, f.tecnica && `tecnica: ${f.tecnica}`].filter(Boolean).join('\n')
+      const notas = [artista && `artista: ${artista.nombre}`, f.tecnica && `tecnica: ${f.tecnica}`, notaTipoParaIA(f.tipo_obra, f.inspirada_en)].filter(Boolean).join('\n')
       const id = await iniciarTrabajoIA({ urls, notas, clave })
       const r = await esperarTrabajoIA(id, clave)
       if (!r) return
@@ -89,11 +91,12 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
       categorias: f.categorias, publicacion: f.publicacion || null,
       fotos: fotos.map((x, i) => ({ url: x.url, rol: ROLES[i] || x.rol })),
     }
+    if (f.tipo_obra) Object.assign(cambios, { tipo_obra: f.tipo_obra, inspirada_en: f.tipo_obra === 'interpretacion' ? (f.inspirada_en.trim() || null) : null, certificado: !!f.certificado })
     cambios.medidas = medidasTexto({ alto_cm: cambios.alto_cm, ancho_cm: cambios.ancho_cm, diametro_cm: cambios.diametro_cm }) || null
     if (fotos[0]) cambios.imagen_url = fotos[0].url
     const { error } = await supabase.from('fichas').update(cambios).eq('id', obra.id)
     setGuardando(false)
-    if (error) { toast.error('No se pudo guardar: ' + error.message); return }
+    if (error) { toast.error('No se pudo guardar: ' + mensajeColumnasFaltantes(error), { duration: 8000 }); return }
     toast.success('Obra actualizada')
     onGuardado()
   }
@@ -136,6 +139,10 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
         </section>
 
         <section className="mt-4 grid gap-3.5 rounded-[24px] bg-white p-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <p className="etiqueta mb-2">Tipo de obra{!f.tipo_obra && <span className="ml-1.5 font-normal text-red-700">· sin indicar</span>}</p>
+            <SelectorTipoObra tipo={f.tipo_obra} inspiradaEn={f.inspirada_en} certificado={f.certificado} onChange={c => setF(v => ({ ...v, ...c }))} />
+          </div>
           <label className="etiqueta sm:col-span-2">Nombre<input value={f.titulo} onChange={c('titulo')} className="campo mt-1.5" /></label>
           <label className="etiqueta">Artista
             <select value={f.artista_id} onChange={c('artista_id')} className="campo mt-1.5"><option value="">Sin artista</option>{artistas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select>

@@ -12,6 +12,18 @@ export const ESTADOS = {
   borrador:   { etiqueta: 'Borrador', clase: 'bg-crema-borde text-tinta' },
 }
 
+export const TIPOS_OBRA = {
+  original: 'Obra original',
+  interpretacion: 'Interpretación',
+}
+
+// Texto para la ficha: "Obra original" o "Interpretación de «La noche estrellada» (Van Gogh)"
+export function textoTipo(f) {
+  if (f.tipo_obra === 'interpretacion') return f.inspirada_en ? `Interpretación de ${f.inspirada_en}` : 'Interpretación de otra obra'
+  if (f.tipo_obra === 'original') return 'Obra original'
+  return ''
+}
+
 export function estadoEfectivo(f) {
   // Una reserva vencida vuelve a estar disponible sin esperar a que el admin la libere
   if (f.estado === 'reservada' && f.reservada_hasta && new Date(f.reservada_hasta) < new Date()) return 'disponible'

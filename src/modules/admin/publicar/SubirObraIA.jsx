@@ -12,6 +12,7 @@ import { recortarObra, mejorarImagen, aBlob } from './imagenObra.js'
 import { AMBIENTES, dibujarAmbiente } from './ambientes.js'
 import { FORMATOS, dibujarPublicacion, cargarFuentes } from './publicaciones.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
+import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes } from '../../../components/admin/SelectorTipoObra.jsx'
 import { ORIENTACIONES, orientacionPorProporcion } from '../../../lib/orientacion.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 
@@ -26,6 +27,7 @@ const CAMPOS_INICIALES = {
   artista_id: '', tecnica: '', soporte: '', anio: String(new Date().getFullYear()),
   precio: '', alto: '', ancho: '', diametro: '', tipoExistencias: 'unica', edicion_total: '', existencias: '1',
   categorias: [], destacada: false, usarPortada: false, mejorar: true, ambienteId: 'sala',
+  tipo_obra: 'original', inspirada_en: '', certificado: true,
 }
 
 const aURL = canvas => canvas ? canvas.toDataURL('image/jpeg', 0.82) : ''
@@ -56,7 +58,8 @@ export default function SubirObraIA() {
   const cm = { alto: circular ? numero(campos.diametro) : numero(campos.alto), ancho: circular ? numero(campos.diametro) : numero(campos.ancho) }
   const medidas = medidasTexto({ alto_cm: circular ? null : cm.alto, ancho_cm: circular ? null : cm.ancho, diametro_cm: circular ? cm.ancho : null })
   const edicion = campos.tipoExistencias === 'edicion'
-  const textoExistencias = edicion ? `Edición de ${campos.edicion_total || '—'}` : 'Pieza única'
+  const textoExistencias = campos.tipo_obra === 'interpretacion' ? 'Interpretación'
+    : campos.certificado ? 'Original certificada' : edicion ? `Edición de ${campos.edicion_total || '—'}` : 'Pieza única'
 
   // ── IA ──
   const aplicarResultado = useCallback((r, orden) => {
@@ -193,7 +196,7 @@ export default function SubirObraIA() {
     setPaso(2); setErrorIA('')
     try {
       const orden = RANURAS.map(r => r.id).filter(id => fotos[id])
-      const notas = [campos.notas, artista && `artista: ${artista.nombre}`].filter(Boolean).join('\n')
+      const notas = [campos.notas, artista && `artista: ${artista.nombre}`, notaTipoParaIA(campos.tipo_obra, campos.inspirada_en)].filter(Boolean).join('\n')
       const id = await iniciarTrabajoIA({ urls: orden.map(id => fotos[id].url), notas, clave })
       const t = { id, estado: 'pendiente', orden }
       setTrabajo(t)
@@ -249,6 +252,7 @@ export default function SubirObraIA() {
         fotos: lista, imagen_url: urlObra, ficha_url: urlFicha,
         publicacion: campos.publicacion || null, espacios: campos.espacios || [], categorias: campos.categorias,
         estado, destacada: estado === 'disponible' && campos.destacada,
+        tipo_obra: campos.tipo_obra || null, inspirada_en: campos.tipo_obra === 'interpretacion' ? (campos.inspirada_en.trim() || null) : null, certificado: !!campos.certificado,
       }
       const { data, error } = await supabase.from('fichas').insert(registro).select('id').single()
       if (error) throw error
@@ -265,7 +269,7 @@ export default function SubirObraIA() {
       toast.success(estado === 'disponible' ? '¡Obra publicada!' : 'Guardada como borrador')
       navigate('/admin/obras')
     } catch (err) {
-      toast.error('No se pudo guardar: ' + (err.message || err))
+      toast.error('No se pudo guardar: ' + mensajeColumnasFaltantes(err), { duration: 8000 })
     } finally { setGuardando(false) }
   }
 
@@ -328,6 +332,11 @@ export default function SubirObraIA() {
                 </> : subiendo === r.id ? 'Subiendo…' : <><ImagePlus size={18} />{r.etiqueta}</>}
               </BotonArchivo>
             ))}
+          </div>
+          <div className="mt-5 rounded-[18px] bg-white p-4">
+            <p className="mb-3 text-[13px] font-bold">¿Qué tipo de obra es?</p>
+            <SelectorTipoObra tipo={campos.tipo_obra} inspiradaEn={campos.inspirada_en} certificado={campos.certificado}
+              onChange={cambios => setCampos(f => ({ ...f, ...cambios }))} />
           </div>
           <details className="mt-4 rounded-[18px] bg-white px-4 py-3">
             <summary className="cursor-pointer text-[13px] font-bold">Notas para la IA (opcional)</summary>
@@ -452,6 +461,11 @@ export default function SubirObraIA() {
               <label className="etiqueta">Disponibles<input inputMode="numeric" value={campos.existencias} onChange={e => cambiar('existencias', e.target.value)} className="campo mt-1.5" /></label>
             </div>
           )}
+          <div className="rounded-[22px] bg-white p-4">
+            <p className="mb-3 text-[13px] font-bold">Tipo de obra</p>
+            <SelectorTipoObra tipo={campos.tipo_obra} inspiradaEn={campos.inspirada_en} certificado={campos.certificado}
+              onChange={cambios => setCampos(f => ({ ...f, ...cambios }))} />
+          </div>
           <div className="space-y-4 rounded-[22px] bg-white p-4">
             <SelectorOpciones etiqueta="Técnica" tipo="tecnicas" valor={campos.tecnica} onChange={v => cambiar('tecnica', v)} />
             <SelectorOpciones etiqueta="Soporte" tipo="soportes" valor={campos.soporte} onChange={v => cambiar('soporte', v)} />
