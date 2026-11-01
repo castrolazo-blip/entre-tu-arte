@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { X, ImagePlus, Trash2 } from 'lucide-react'
+import { X, ImagePlus, Trash2, Sparkles, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
 import { subirArchivo, reducirImagen } from '../adminService.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
+import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
 
 const ROLES = ['principal', 'ambiente', 'detalle']
 
@@ -20,6 +21,40 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
   const [artistas, setArtistas] = useState([])
   const [categorias, setCategorias] = useState([])
   const [guardando, setGuardando] = useState(false)
+  const [ia, setIa] = useState({ estado: '', error: '' })
+
+  // Completa con IA los textos de una obra que ya existe, a partir de sus fotos.
+  async function completarConIA() {
+    const urls = fotos.map(x => x.url).filter(Boolean).slice(0, 3)
+    if (!urls.length) { toast.error('La obra necesita al menos una foto'); return }
+    let clave = leerClaveIA()
+    if (!clave) {
+      clave = (window.prompt('Escribe la clave de acceso de la IA (solo se pide una vez en este dispositivo):') || '').trim()
+      if (!clave) return
+      guardarClaveIA(clave)
+    }
+    setIa({ estado: 'trabajando', error: '' })
+    try {
+      const artista = artistas.find(a => a.id === f.artista_id)
+      const notas = [artista && `artista: ${artista.nombre}`, f.tecnica && `tecnica: ${f.tecnica}`].filter(Boolean).join('\n')
+      const id = await iniciarTrabajoIA({ urls, notas, clave })
+      const r = await esperarTrabajoIA(id, clave)
+      if (!r) return
+      const tags = (r.hashtags || []).map(x => x.startsWith('#') ? x : '#' + x).join(' ')
+      setF(v => ({
+        ...v,
+        titulo: r.nombre || v.titulo,
+        descripcion: r.descripcion || v.descripcion,
+        estilo: v.estilo || r.estilo || '',
+        tecnica: v.tecnica || r.tecnica || '',
+        publicacion: (r.publicacion || '') + (tags ? '\n\n' + tags : ''),
+      }))
+      setIa({ estado: 'listo', error: '' })
+      toast.success('Listo. Revisa los textos y guarda los cambios.')
+    } catch (err) {
+      setIa({ estado: '', error: err.message || 'La IA no pudo terminar' })
+    }
+  }
   const [subiendo, setSubiendo] = useState(false)
 
   useEffect(() => {
@@ -87,6 +122,14 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
             )}
           </div>
           {obra.ficha_url && <a href={obra.ficha_url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Ver ficha para redes</a>}
+        </section>
+
+        <section className="mt-4 rounded-[24px] border-2 border-mostaza bg-white p-5">
+          <button type="button" onClick={completarConIA} disabled={ia.estado === 'trabajando' || !fotos.length} className="btn-oscuro h-14 w-full text-[15px]">
+            {ia.estado === 'trabajando' ? <><Loader2 size={19} className="animate-spin" />La IA está trabajando… (1 a 2 min)</> : <><Sparkles size={19} className="text-mostaza" />{ia.estado === 'listo' ? 'Volver a generar con IA' : 'Completar con IA: nombre, descripción y texto'}</>}
+          </button>
+          <p className="mt-2 text-center text-xs text-gris">Usa las fotos de la obra. Después revisa y toca "Guardar cambios".</p>
+          {ia.error && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">{ia.error}</p>}
         </section>
 
         <section className="mt-4 grid gap-3.5 rounded-[24px] bg-white p-5 sm:grid-cols-2">
