@@ -295,8 +295,8 @@ export default function SubirObraIA() {
           {fotos.principal ? (
             <div className="relative mt-5 overflow-hidden rounded-[28px] bg-white">
               <img src={fotos.principal.img.src} alt="Foto de la obra" className="max-h-[420px] w-full object-contain" />
-              <label className="btn-contorno btn-chico absolute bottom-3 right-3 cursor-pointer bg-white">Cambiar
-                <input type="file" accept="image/*" onChange={e => elegirFoto('principal', e)} className="sr-only" />
+              <label className="relative btn-contorno btn-chico absolute bottom-3 right-3 cursor-pointer bg-white">Cambiar
+                <input type="file" accept="image/*" onChange={e => elegirFoto('principal', e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
               </label>
             </div>
           ) : (
@@ -304,12 +304,12 @@ export default function SubirObraIA() {
               <span aria-hidden="true" className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-mostaza-clara">
                 {subiendo === 'principal' ? <Loader2 size={32} className="animate-spin" /> : <Camera size={34} />}
               </span>
-              <label className="btn-primario h-[58px] w-full cursor-pointer text-[17px]">
+              <label className="relative btn-primario h-[58px] w-full cursor-pointer text-[17px]">
                 {subiendo === 'principal' ? 'Subiendo…' : 'Tomar foto'}
-                <input type="file" accept="image/*" capture="environment" disabled={!!subiendo} onChange={e => elegirFoto('principal', e)} className="sr-only" />
+                <input type="file" accept="image/*" capture="environment" disabled={!!subiendo} onChange={e => elegirFoto('principal', e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
               </label>
-              <label className="btn-contorno h-[52px] w-full cursor-pointer text-[15px]">Elegir de la galería
-                <input type="file" accept="image/*" disabled={!!subiendo} onChange={e => elegirFoto('principal', e)} className="sr-only" />
+              <label className="relative btn-contorno h-[52px] w-full cursor-pointer text-[15px]">Elegir de la galería
+                <input type="file" accept="image/*" disabled={!!subiendo} onChange={e => elegirFoto('principal', e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
               </label>
             </div>
           )}
@@ -324,7 +324,7 @@ export default function SubirObraIA() {
                   <img src={fotos[r.id].img.src} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   <span className="relative rounded-full bg-white/95 px-3 py-1 text-tinta">{r.etiqueta} ✓</span>
                 </> : subiendo === r.id ? 'Subiendo…' : <><ImagePlus size={18} />{r.etiqueta}</>}
-                <input type="file" accept="image/*" disabled={!!subiendo} onChange={e => elegirFoto(r.id, e)} className="sr-only" />
+                <input type="file" accept="image/*" disabled={!!subiendo} onChange={e => elegirFoto(r.id, e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
               </label>
             ))}
           </div>

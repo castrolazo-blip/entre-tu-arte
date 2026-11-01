@@ -131,7 +131,7 @@ export default function AdminPortadas() {
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setEligiendo(true)} className="btn-contorno btn-chico"><Images size={16} />De una obra</button>
-            <label className="btn-contorno btn-chico cursor-pointer"><ImagePlus size={16} />{subiendo ? 'Subiendo…' : 'Subir imagen'}<input type="file" accept="image/*" onChange={e => subir('imagen_url', e)} className="sr-only" /></label>
+            <label className="relative btn-contorno btn-chico cursor-pointer"><ImagePlus size={16} />{subiendo ? 'Subiendo…' : 'Subir imagen'}<input type="file" accept="image/*" onChange={e => subir('imagen_url', e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" /></label>
           </div>
           <div className="mt-4 space-y-3">
             <label className="etiqueta">Titular (la última palabra sale en amarillo)<input value={form.titular} onChange={c('titular')} className="campo mt-1.5" /></label>

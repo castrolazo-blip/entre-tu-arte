@@ -42,7 +42,7 @@ export default function AdminBlog() {
   const Imagen = ({ campo, etiqueta }) => (
     <div className="flex items-center gap-3">
       {form[campo] ? <img src={form[campo]} alt="" className="h-14 w-20 rounded-xl object-cover" /> : <span className="h-14 w-20 rounded-xl bg-crema" />}
-      <label className="btn-contorno btn-chico cursor-pointer"><ImagePlus size={15} />{subiendo === campo ? 'Subiendo…' : etiqueta}<input type="file" accept="image/*" onChange={e => subir(campo, e)} className="sr-only" /></label>
+      <label className="relative btn-contorno btn-chico cursor-pointer"><ImagePlus size={15} />{subiendo === campo ? 'Subiendo…' : etiqueta}<input type="file" accept="image/*" onChange={e => subir(campo, e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" /></label>
       {form[campo] && <button type="button" onClick={() => setForm(f => ({ ...f, [campo]: '' }))} className="text-sm text-gris underline">Quitar</button>}
     </div>
   )

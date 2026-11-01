@@ -101,10 +101,10 @@ export default function Asesoria() {
           ) : (
             <form onSubmit={enviar} className="space-y-4 rounded-[30px] bg-white p-6 md:p-9">
               {!soloContacto && (
-                <label className="flex cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-[24px] border-2 border-dashed border-crema-borde bg-crema-clara p-6 text-center">
+                <label className="relative flex cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-[24px] border-2 border-dashed border-crema-borde bg-crema-clara p-6 text-center">
                   {vista ? <img src={vista} alt="Foto de tu pared" className="max-h-60 rounded-2xl object-contain" /> : <Camera size={34} />}
                   <span className="font-semibold">{vista ? 'Cambiar foto' : 'Subir o tomar foto de mi pared'}</span>
-                  <input type="file" accept="image/*" onChange={elegirFoto} className="sr-only" />
+                  <input type="file" accept="image/*" onChange={elegirFoto} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
                 </label>
               )}
               {!soloContacto && (

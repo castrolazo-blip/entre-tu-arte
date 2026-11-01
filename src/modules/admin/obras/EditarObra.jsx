@@ -115,9 +115,9 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
               </div>
             ))}
             {fotos.length < 3 && (
-              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-crema-borde text-xs font-semibold text-gris">
+              <label className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-crema-borde text-xs font-semibold text-gris">
                 <ImagePlus size={22} />{subiendo ? 'Subiendo…' : 'Agregar'}
-                <input type="file" accept="image/*" onChange={agregarFoto} className="sr-only" />
+                <input type="file" accept="image/*" onChange={agregarFoto} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
               </label>
             )}
           </div>

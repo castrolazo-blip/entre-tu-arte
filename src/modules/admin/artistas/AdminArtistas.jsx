@@ -71,7 +71,7 @@ export default function AdminArtistas() {
             <div className="flex items-center justify-between"><h2 className="text-xl font-bold">{form.id ? 'Editar artista' : 'Nuevo artista'}</h2><button type="button" onClick={() => setForm(null)} aria-label="Cerrar" className="flex h-10 w-10 items-center justify-center rounded-full bg-crema"><X size={18} /></button></div>
             <div className="flex items-center gap-4">
               {form.foto_url ? <img src={form.foto_url} alt="" className="h-20 w-20 rounded-full object-cover" /> : <span className="h-20 w-20 rounded-full bg-crema" />}
-              <label className="btn-contorno btn-chico cursor-pointer">Foto de perfil<input type="file" accept="image/*" onChange={subirFoto} className="sr-only" /></label>
+              <label className="relative btn-contorno btn-chico cursor-pointer">Foto de perfil<input type="file" accept="image/*" onChange={subirFoto} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" /></label>
             </div>
             <label className="etiqueta">Nombre<input required value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className="campo mt-1.5" /></label>
             <label className="etiqueta">Ciudad<input value={form.ciudad || ''} onChange={e => setForm(f => ({ ...f, ciudad: e.target.value }))} className="campo mt-1.5" /></label>
