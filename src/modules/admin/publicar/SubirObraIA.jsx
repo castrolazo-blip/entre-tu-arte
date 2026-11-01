@@ -11,6 +11,7 @@ import { encuadresDesdeIA } from './fichaCanvas.js'
 import { recortarObra, mejorarImagen, aBlob } from './imagenObra.js'
 import { AMBIENTES, dibujarAmbiente } from './ambientes.js'
 import { FORMATOS, dibujarPublicacion, cargarFuentes } from './publicaciones.js'
+import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 
 const RANURAS = [
@@ -160,9 +161,7 @@ export default function SubirObraIA() {
   }, [obraFinal, paso, campos.nombre, campos.tecnica, campos.precio, campos.ambienteId, campos.alto, campos.ancho, campos.diametro, campos.soporte, campos.tipoExistencias, campos.edicion_total, artista?.nombre, fotos.ambiente]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fotos ──
-  async function elegirFoto(ranura, e) {
-    const archivo = e.target.files?.[0]
-    e.target.value = ''
+  async function elegirFoto(ranura, archivo) {
     if (!archivo) return
     setSubiendo(ranura); setErrorFoto('')
     try {
@@ -296,22 +295,17 @@ export default function SubirObraIA() {
           {fotos.principal ? (
             <div className="relative mt-5 overflow-hidden rounded-[28px] bg-white">
               <img src={fotos.principal.img.src} alt="Foto de la obra" className="max-h-[420px] w-full object-contain" />
-              <label className="relative btn-contorno btn-chico absolute bottom-3 right-3 cursor-pointer bg-white">Cambiar
-                <input type="file" accept="image/*" onChange={e => elegirFoto('principal', e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
-              </label>
+              <BotonArchivo onArchivos={([f]) => elegirFoto('principal', f)} className="btn-contorno btn-chico absolute bottom-3 right-3 bg-white">Cambiar</BotonArchivo>
             </div>
           ) : (
             <div className="mt-5 flex flex-col items-center gap-3.5 rounded-[28px] border-2 border-dashed border-[#d9d2c5] bg-white p-6">
               <span aria-hidden="true" className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-mostaza-clara">
                 {subiendo === 'principal' ? <Loader2 size={32} className="animate-spin" /> : <Camera size={34} />}
               </span>
-              <label className="relative btn-primario h-[58px] w-full cursor-pointer text-[17px]">
+              <BotonArchivo camara disabled={!!subiendo} onArchivos={([f]) => elegirFoto('principal', f)} className="btn-primario h-[58px] w-full text-[17px]">
                 {subiendo === 'principal' ? 'Subiendo…' : 'Tomar foto'}
-                <input type="file" accept="image/*" capture="environment" disabled={!!subiendo} onChange={e => elegirFoto('principal', e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
-              </label>
-              <label className="relative btn-contorno h-[52px] w-full cursor-pointer text-[15px]">Elegir de la galería
-                <input type="file" accept="image/*" disabled={!!subiendo} onChange={e => elegirFoto('principal', e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
-              </label>
+              </BotonArchivo>
+              <BotonArchivo disabled={!!subiendo} onArchivos={([f]) => elegirFoto('principal', f)} className="btn-contorno h-[52px] w-full text-[15px]">Elegir de la galería</BotonArchivo>
             </div>
           )}
           {errorFoto && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">No se pudo subir la foto. {errorFoto}</p>}
@@ -321,13 +315,12 @@ export default function SubirObraIA() {
           <p className="mb-2 mt-5 text-[13px] font-bold">Opcional: más fotos</p>
           <div className="grid grid-cols-2 gap-2.5">
             {RANURAS.slice(1).map(r => (
-              <label key={r.id} className="relative flex h-20 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-[18px] border-[1.5px] border-dashed border-[#d9d2c5] text-[13px] font-semibold text-gris">
+              <BotonArchivo key={r.id} disabled={!!subiendo} onArchivos={([f]) => elegirFoto(r.id, f)} className="relative flex h-20 w-full items-center justify-center gap-2 overflow-hidden rounded-[18px] border-[1.5px] border-dashed border-[#d9d2c5] text-[13px] font-semibold text-gris">
                 {fotos[r.id] ? <>
                   <img src={fotos[r.id].img.src} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   <span className="relative rounded-full bg-white/95 px-3 py-1 text-tinta">{r.etiqueta} ✓</span>
                 </> : subiendo === r.id ? 'Subiendo…' : <><ImagePlus size={18} />{r.etiqueta}</>}
-                <input type="file" accept="image/*" disabled={!!subiendo} onChange={e => elegirFoto(r.id, e)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
-              </label>
+              </BotonArchivo>
             ))}
           </div>
           <details className="mt-4 rounded-[18px] bg-white px-4 py-3">

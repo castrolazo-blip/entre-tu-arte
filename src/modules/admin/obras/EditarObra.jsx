@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
 import { subirArchivo, reducirImagen } from '../adminService.js'
+import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
 
@@ -64,8 +65,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
   }, [])
   const c = k => e => setF(v => ({ ...v, [k]: e.target.value }))
 
-  async function agregarFoto(e) {
-    const a = e.target.files?.[0]; e.target.value = ''
+  async function agregarFoto(a) {
     if (!a) return
     setSubiendo(true); setErrorFoto('')
     try {
@@ -116,10 +116,10 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
               </div>
             ))}
             {fotos.length < 3 && (
-              <label className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-crema-borde text-xs font-semibold text-gris">
+              <BotonArchivo onArchivos={([a]) => agregarFoto(a)} disabled={subiendo}
+                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-crema-borde text-xs font-semibold text-gris">
                 <ImagePlus size={22} />{subiendo ? 'Subiendo…' : 'Agregar'}
-                <input type="file" accept="image/*" onChange={agregarFoto} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
-              </label>
+              </BotonArchivo>
             )}
           </div>
           {errorFoto && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">No se pudo subir la foto. {errorFoto}</p>}
