@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-crema text-tinta font-sans antialiased; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-mostaza; }
+}
+
+@layer components {
+  /* Botones en forma de píldora */
+  .btn-primario   { @apply inline-flex items-center justify-center gap-3 h-14 px-7 rounded-full bg-mostaza text-tinta font-semibold transition hover:brightness-95 disabled:opacity-60; }
+  .btn-oscuro     { @apply inline-flex items-center justify-center gap-3 h-14 px-7 rounded-full bg-tinta text-white font-semibold transition hover:bg-tinta-suave disabled:opacity-60; }
+  .btn-contorno   { @apply inline-flex items-center justify-center gap-3 h-14 px-7 rounded-full border-[1.5px] border-tinta font-semibold transition hover:bg-tinta hover:text-white disabled:opacity-60; }
+  .btn-claro      { @apply inline-flex items-center justify-center gap-3 h-14 px-7 rounded-full border border-white/40 text-white font-medium transition hover:bg-white/10; }
+  .btn-chico      { @apply h-11 px-5 text-sm; }
+
+  /* Campos de formulario */
+  .campo  { @apply w-full h-12 rounded-2xl border border-crema-borde bg-crema-clara px-4 text-[15px] outline-none transition focus:border-tinta focus:bg-white; }
+  textarea.campo { @apply h-auto py-3 leading-relaxed; }
+  .etiqueta { @apply block text-[13px] font-semibold; }
+
+  /* Tarjetas y chips */
+  .tarjeta { @apply rounded-[28px] bg-white shadow-[0_20px_40px_-30px_rgba(23,22,20,0.6)]; }
+  .chip    { @apply inline-flex h-11 shrink-0 items-center rounded-full border px-5 text-sm font-semibold transition; }
+  .chip-on { @apply border-tinta bg-tinta text-white; }
+  .chip-off{ @apply border-crema-borde bg-white text-tinta hover:border-tinta; }
+
+  /* Línea amarilla bajo los títulos */
+  .acento { @apply block h-[5px] w-16 rounded-full bg-mostaza; }
+  .contenedor { @apply mx-auto w-full max-w-[1360px] px-5 md:px-10; }
+}
+
+.sin-scroll::-webkit-scrollbar { display: none; }
+.sin-scroll { scrollbar-width: none; }
