@@ -1,95 +1,62 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, ImagePlus, X, ChevronLeft, Download, Copy, RotateCcw, Check } from 'lucide-react'
+import { Camera, ImagePlus, X, ChevronLeft, Check, Sparkles, Download, Copy, Loader2, Share2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
 import { subirArchivo, reducirImagen, cargarImagen } from '../adminService.js'
-import { dibujarFicha, HUECOS, ANCHO, ALTO, huecoEn, encuadresDesdeIA } from './fichaCanvas.js'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from './iaService.js'
 import { leerBorrador, guardarBorrador, borrarBorrador } from './borrador.js'
-import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
+import { encuadresDesdeIA } from './fichaCanvas.js'
+import { recortarObra, mejorarImagen, aBlob } from './imagenObra.js'
+import { AMBIENTES, dibujarAmbiente } from './ambientes.js'
+import { FORMATOS, dibujarPublicacion, cargarFuentes } from './publicaciones.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 
-const ROLES = ['principal', 'ambiente', 'detalle']
-const ROL_ETIQUETA = { principal: 'Principal', ambiente: 'En ambiente', detalle: 'Detalle' }
+const RANURAS = [
+  { id: 'principal', etiqueta: 'La obra de frente' },
+  { id: 'ambiente', etiqueta: 'En su ambiente' },
+  { id: 'detalle', etiqueta: 'Detalle de textura' },
+]
 
 const CAMPOS_INICIALES = {
-  artista_id: '', tecnica: '', soporte: '', alto: '', ancho: '', diametro: '', precio: '',
-  anio: String(new Date().getFullYear()), tipoExistencias: 'unica', edicion_total: '', existencias: '1',
-  categorias: [], notas: '', nombre: '', estilo: '', descripcion: '', publicacion: '', espacios: [],
-  destacada: false, usarPortada: false,
+  notas: '', nombre: '', descripcion: '', estilo: '', publicacion: '', espacios: [],
+  artista_id: '', tecnica: '', soporte: '', anio: String(new Date().getFullYear()),
+  precio: '', alto: '', ancho: '', diametro: '', tipoExistencias: 'unica', edicion_total: '', existencias: '1',
+  categorias: [], destacada: false, usarPortada: false, mejorar: true, ambienteId: 'sala',
 }
+
+const aURL = canvas => canvas ? canvas.toDataURL('image/jpeg', 0.82) : ''
 
 export default function SubirObraIA() {
   const navigate = useNavigate()
-  const [fotos, setFotos] = useState([])            // [{url, img, encuadre}]
+  const [paso, setPaso] = useState(1)
+  const [fotos, setFotos] = useState({})            // { principal: {url, img}, ambiente, detalle }
+  const [subiendo, setSubiendo] = useState('')
   const [campos, setCampos] = useState(CAMPOS_INICIALES)
-  const [ajustes, setAjustes] = useState({})
-  const [trabajo, setTrabajo] = useState(null)       // {id, estado}
-  const [estado, setEstado] = useState({ texto: '', tipo: '' })
-  const [subiendo, setSubiendo] = useState(false)
-  const [guardando, setGuardando] = useState(false)
-  const [hueco, setHueco] = useState(null)
+  const [caja, setCaja] = useState(null)             // encuadre de la obra en la foto principal
+  const [trabajo, setTrabajo] = useState(null)       // { id, estado, orden }
+  const [errorIA, setErrorIA] = useState('')
   const [artistas, setArtistas] = useState([])
   const [categorias, setCategorias] = useState([])
-  const [logo, setLogo] = useState(null)
-  const [restaurado, setRestaurado] = useState(false)
-  const canvasRef = useRef(null)
+  const [vistaMejorada, setVistaMejorada] = useState(true)
+  const [previas, setPrevias] = useState({ ambientes: {}, posts: {} })
+  const [guardando, setGuardando] = useState(false)
+  const [listo, setListo] = useState(false)
   const esperando = useRef(false)
   const montado = useRef(true)
+  const lienzos = useRef({ obra: null, ambientes: {}, posts: {} })
 
-  const aviso = (texto, tipo = '') => setEstado({ texto, tipo })
   const cambiar = (c, v) => setCampos(f => ({ ...f, [c]: v }))
   const artista = artistas.find(a => a.id === campos.artista_id)
   const circular = /circular|redond/i.test(campos.soporte)
-  const medidas = medidasTexto({ alto_cm: circular ? null : numero(campos.alto), ancho_cm: circular ? null : numero(campos.ancho), diametro_cm: circular ? numero(campos.diametro) : null })
-  const datosFicha = useMemo(() => ({
-    nombre: campos.nombre, artista: artista?.nombre, tecnica: campos.tecnica, soporte: campos.soporte,
-    anio: campos.anio, medidas, estilo: campos.estilo, descripcion: campos.descripcion, precio: campos.precio,
-  }), [campos, artista, medidas])
-
-  // ── Carga inicial: artistas, colecciones, logo y borrador ──
-  useEffect(() => {
-    montado.current = true
-    supabase.from('artistas').select('id, nombre').order('nombre').then(({ data }) => setArtistas(data || []))
-    supabase.from('categorias').select('*').order('nombre').then(({ data }) => setCategorias(data || []))
-    cargarImagen(`${import.meta.env.BASE_URL}logo-entre-tu-arte.jpg`).then(setLogo).catch(() => {})
-    leerBorrador().then(async b => {
-      if (b?.fotos?.length) {
-        const recuperadas = await Promise.all(b.fotos.map(async f => ({ ...f, img: await cargarImagen(f.url).catch(() => null) })))
-        setFotos(recuperadas.filter(f => f.img))
-        setCampos({ ...CAMPOS_INICIALES, ...(b.campos || {}) })
-        setAjustes(b.ajustes || {})
-        setTrabajo(b.trabajo || null)
-        aviso('Retomamos la obra que estabas preparando.')
-      } else {
-        try { setCampos(f => ({ ...f, artista_id: localStorage.getItem('eta_ultimo_artista') || '', soporte: localStorage.getItem('eta_ultimo_soporte') || '' })) } catch { /* modo privado */ }
-      }
-      setRestaurado(true)
-    })
-    return () => { montado.current = false }
-  }, [])
-
-  // Guardar borrador al cambiar algo
-  useEffect(() => {
-    if (!restaurado) return
-    const t = setTimeout(() => {
-      if (!fotos.length) return
-      guardarBorrador({ fotos: fotos.map(f => ({ url: f.url, encuadre: f.encuadre })), campos, ajustes, trabajo })
-    }, 600)
-    return () => clearTimeout(t)
-  }, [fotos, campos, ajustes, trabajo, restaurado])
-
-  // Redibujar la ficha
-  const dibujar = useCallback(() => {
-    if (canvasRef.current && fotos.length) dibujarFicha(canvasRef.current, { fotos, ajustes, datos: datosFicha, logo })
-  }, [fotos, ajustes, datosFicha, logo])
-  useEffect(() => { dibujar() }, [dibujar])
-  useEffect(() => { document.fonts?.ready.then(dibujar) }, [dibujar])
+  const cm = { alto: circular ? numero(campos.diametro) : numero(campos.alto), ancho: circular ? numero(campos.diametro) : numero(campos.ancho) }
+  const medidas = medidasTexto({ alto_cm: circular ? null : cm.alto, ancho_cm: circular ? null : cm.ancho, diametro_cm: circular ? cm.ancho : null })
+  const edicion = campos.tipoExistencias === 'edicion'
+  const textoExistencias = edicion ? `Edición de ${campos.edicion_total || '—'}` : 'Pieza única'
 
   // ── IA ──
-  const aplicarResultado = useCallback((r) => {
+  const aplicarResultado = useCallback((r, orden) => {
     const tags = (r.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ')
     setCampos(f => ({
       ...f,
@@ -103,33 +70,113 @@ export default function SubirObraIA() {
         : categorias.map(c => c.nombre).filter(n => (r.espacios || []).some(e => e.toLowerCase() === n.toLowerCase())),
     }))
     const cajas = encuadresDesdeIA(r.encuadres)
-    if (Object.keys(cajas).length) {
-      setAjustes({})
-      setFotos(fs => fs.map((f, i) => cajas[i] ? { ...f, encuadre: cajas[i] } : f))
-    }
+    const i = (orden || ['principal']).indexOf('principal')
+    if (cajas[i]) setCaja(cajas[i])
   }, [categorias])
 
   const esperar = useCallback(async (t) => {
     if (esperando.current) return
     esperando.current = true
-    aviso('La IA está trabajando en segundo plano. Puedes salir de esta página y volver: aquí estará tu ficha.')
+    setErrorIA('')
     try {
-      const r = await esperarTrabajoIA(t.id, leerClaveIA(), { onAviso: aviso, cancelado: () => !montado.current })
+      const r = await esperarTrabajoIA(t.id, leerClaveIA(), { cancelado: () => !montado.current })
       if (!r || !montado.current) return
-      aplicarResultado(r)
-      setTrabajo({ id: t.id, estado: 'listo' })
-      aviso('¡Listo! Revisa y ajusta los textos antes de publicar.', 'ok')
-      try { if (document.hidden && Notification.permission === 'granted') new Notification('Entre tu Arte', { body: 'Tu ficha está lista.' }) } catch { /* sin notificaciones */ }
+      aplicarResultado(r, t.orden)
+      setTrabajo({ ...t, estado: 'listo' })
+      setPaso(3)
+      try { if (document.hidden && Notification.permission === 'granted') new Notification('Entre tu Arte', { body: 'Tu obra está lista para revisar.' }) } catch { /* sin notificaciones */ }
     } catch (err) {
       setTrabajo(null)
-      aviso('Error: ' + err.message, 'error')
+      setErrorIA(err.message || 'La IA no pudo terminar')
     } finally { esperando.current = false }
   }, [aplicarResultado])
 
-  useEffect(() => { if (restaurado && trabajo?.estado === 'pendiente') esperar(trabajo) }, [restaurado]) // eslint-disable-line react-hooks/exhaustive-deps
+  // ── Carga inicial y borrador ──
+  useEffect(() => {
+    montado.current = true
+    supabase.from('artistas').select('id, nombre').order('nombre').then(({ data }) => setArtistas(data || []))
+    supabase.from('categorias').select('*').order('nombre').then(({ data }) => setCategorias(data || []))
+    cargarFuentes()
+    leerBorrador().then(async b => {
+      if (b?.fotos && Object.keys(b.fotos).length) {
+        const restauradas = {}
+        for (const [k, f] of Object.entries(b.fotos)) {
+          const img = await cargarImagen(f.url).catch(() => null)
+          if (img) restauradas[k] = { url: f.url, img }
+        }
+        setFotos(restauradas)
+        setCampos({ ...CAMPOS_INICIALES, ...(b.campos || {}) })
+        setCaja(b.caja || null)
+        setTrabajo(b.trabajo || null)
+        setPaso(b.paso || 1)
+        toast('Retomamos la obra que estabas preparando')
+        if (b.trabajo?.estado === 'pendiente') esperar(b.trabajo)
+      } else {
+        try { setCampos(f => ({ ...f, artista_id: localStorage.getItem('eta_ultimo_artista') || '' })) } catch { /* modo privado */ }
+      }
+    })
+    return () => { montado.current = false }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function generar() {
-    if (!fotos.length) { aviso('Primero sube al menos una foto de la obra.', 'error'); return }
+  useEffect(() => {
+    if (listo) return
+    const t = setTimeout(() => {
+      if (!fotos.principal) return
+      const f = {}
+      Object.entries(fotos).forEach(([k, v]) => { if (v) f[k] = { url: v.url } })
+      guardarBorrador({ paso, fotos: f, campos, caja, trabajo })
+    }, 600)
+    return () => clearTimeout(t)
+  }, [paso, fotos, campos, caja, trabajo, listo])
+
+  // ── Imagen de la obra: recorte + mejora (se recalcula si cambia la foto o el encuadre) ──
+  const obraCanvas = useMemo(() => {
+    if (!fotos.principal?.img) return null
+    const recorte = recortarObra(fotos.principal.img, caja)
+    return { recorte, mejorada: mejorarImagen(recorte) }
+  }, [fotos.principal, caja])
+  const obraFinal = obraCanvas ? (campos.mejorar ? obraCanvas.mejorada : obraCanvas.recorte) : null
+  const obraFinalURL = useMemo(() => aURL(obraFinal), [obraFinal])
+
+  // ── Ambientes y publicaciones (vista previa) ──
+  useEffect(() => {
+    if (!obraFinal || paso < 3) return
+    const t = setTimeout(() => {
+      const amb = {}
+      AMBIENTES.forEach(a => { amb[a.id] = dibujarAmbiente(obraFinal, a, cm) })
+      const ambienteElegido = campos.ambienteId === 'propia' && fotos.ambiente?.img ? fotos.ambiente.img : amb[campos.ambienteId] || amb.sala
+      const datos = { nombre: campos.nombre, artista: artista?.nombre, tecnica: campos.tecnica, medidas, precio: campos.precio, existencias: textoExistencias }
+      const posts = {}
+      FORMATOS.forEach(f => { posts[f.id] = dibujarPublicacion(f.id, { datos, imagenes: { obra: obraFinal, ambiente: ambienteElegido } }) })
+      lienzos.current = { obra: obraFinal, ambientes: amb, posts }
+      const ambPrev = {}
+      Object.entries(amb).forEach(([k, c]) => { ambPrev[k] = aURL(c) })
+      const postPrev = {}
+      Object.entries(posts).forEach(([k, c]) => { postPrev[k] = aURL(c) })
+      setPrevias({ ambientes: ambPrev, posts: postPrev })
+    }, 250)
+    return () => clearTimeout(t)
+  }, [obraFinal, paso, campos.nombre, campos.tecnica, campos.precio, campos.ambienteId, campos.alto, campos.ancho, campos.diametro, campos.soporte, campos.tipoExistencias, campos.edicion_total, artista?.nombre, fotos.ambiente]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Fotos ──
+  async function elegirFoto(ranura, e) {
+    const archivo = e.target.files?.[0]
+    e.target.value = ''
+    if (!archivo) return
+    setSubiendo(ranura)
+    try {
+      const reducido = await reducirImagen(archivo, 2400, 0.9)
+      const url = await subirArchivo('obras', reducido)
+      const img = await cargarImagen(URL.createObjectURL(reducido))
+      setFotos(f => ({ ...f, [ranura]: { url, img } }))
+      if (ranura === 'principal') { setCaja(null); setTrabajo(null) }
+    } catch (err) {
+      toast.error('No se pudo subir la foto: ' + (err.message || err))
+    } finally { setSubiendo('') }
+  }
+
+  async function analizar() {
+    if (!fotos.principal) { toast.error('Primero sube la foto de la obra'); return }
     let clave = leerClaveIA()
     if (!clave) {
       clave = (window.prompt('Escribe la clave de acceso de la IA (solo se pide una vez en este dispositivo):') || '').trim()
@@ -137,335 +184,317 @@ export default function SubirObraIA() {
       guardarClaveIA(clave)
     }
     try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission() } catch { /* sin notificaciones */ }
-    aviso('Enviando a la IA…')
+    setPaso(2); setErrorIA('')
     try {
-      const datos = [['artista', artista?.nombre], ['tecnica', campos.tecnica], ['soporte', campos.soporte], ['medidas', medidas]]
-        .filter(d => d[1]).map(([k, v]) => `${k}: ${v}`)
-      const notas = [campos.notas, ...datos].filter(Boolean).join('\n')
-      const id = await iniciarTrabajoIA({ urls: fotos.map(f => f.url), notas, clave })
-      const t = { id, estado: 'pendiente' }
+      const orden = RANURAS.map(r => r.id).filter(id => fotos[id])
+      const notas = [campos.notas, artista && `artista: ${artista.nombre}`].filter(Boolean).join('\n')
+      const id = await iniciarTrabajoIA({ urls: orden.map(id => fotos[id].url), notas, clave })
+      const t = { id, estado: 'pendiente', orden }
       setTrabajo(t)
       esperar(t)
-    } catch (err) { aviso('Error: ' + err.message, 'error') }
+    } catch (err) { setErrorIA(err.message || 'No se pudo iniciar la IA') }
   }
 
-  // ── Fotos ──
-  async function agregarFotos(e) {
-    const archivos = Array.from(e.target.files || [])
-    e.target.value = ''
-    if (!archivos.length) return
-    const libres = 3 - fotos.length
-    if (libres <= 0) { aviso('Ya hay 3 fotos. Quita una para agregar otra.', 'error'); return }
-    setSubiendo(true)
-    try {
-      const nuevas = []
-      for (const [n, a] of archivos.slice(0, libres).entries()) {
-        aviso(`Subiendo foto ${n + 1} de ${Math.min(archivos.length, libres)}…`)
-        const reducido = await reducirImagen(a, 2000)
-        const url = await subirArchivo('obras', reducido)
-        const img = await cargarImagen(URL.createObjectURL(reducido))
-        nuevas.push({ url, img, encuadre: null })
-      }
-      setFotos(fs => [...fs, ...nuevas])
-      aviso(archivos.length > libres ? `Solo se usaron ${libres} foto(s): máximo 3.` : '')
-    } catch (err) {
-      aviso('No se pudo subir la foto: ' + (err.message || err), 'error')
-    } finally { setSubiendo(false) }
+  // ── Compartir / descargar ──
+  async function archivoDe(id) {
+    const blob = await aBlob(lienzos.current.posts[id], 0.92)
+    const base = (campos.nombre || 'obra').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')
+    return new File([blob], `entre-tu-arte-${base}-${id}.jpg`, { type: 'image/jpeg' })
   }
-
-  function quitarFoto(i) { setFotos(fs => fs.filter((_, n) => n !== i)); setAjustes({}) }
-  function moverAntes(i) { setFotos(fs => { const c = [...fs]; [c[i - 1], c[i]] = [c[i], c[i - 1]]; return c }); setAjustes({}) }
-
-  // ── Gestos sobre la ficha: tocar una foto para moverla (arrastrar) o acercarla (pellizcar) ──
-  const punteros = useRef(new Map())
-  const distancia = useRef(null)
-  const puntoLienzo = ev => {
-    const r = canvasRef.current.getBoundingClientRect()
-    return { x: (ev.clientX - r.left) * ANCHO / r.width, y: (ev.clientY - r.top) * ALTO / r.height }
-  }
-  function onPointerDown(ev) {
-    if (!fotos.length) return
-    const pt = puntoLienzo(ev)
-    const h = huecoEn(pt)
-    if (!hueco || (punteros.current.size === 0 && h !== hueco)) { setHueco(h); return }
-    canvasRef.current.setPointerCapture(ev.pointerId)
-    punteros.current.set(ev.pointerId, pt)
-    distancia.current = null
-    ev.preventDefault()
-  }
-  function onPointerMove(ev) {
-    if (!hueco || !punteros.current.has(ev.pointerId)) return
-    const pt = puntoLienzo(ev)
-    const previo = punteros.current.get(ev.pointerId)
-    punteros.current.set(ev.pointerId, pt)
-    const r = HUECOS[hueco]
-    setAjustes(a => {
-      const aj = { dx: 0, dy: 0, z: 1, ...a[hueco] }
-      if (punteros.current.size === 1) {
-        aj.dx += (pt.x - previo.x) / (r.w * aj.z)
-        aj.dy += (pt.y - previo.y) / (r.h * aj.z)
-      } else if (punteros.current.size === 2) {
-        const [p1, p2] = [...punteros.current.values()]
-        const d = Math.hypot(p1.x - p2.x, p1.y - p2.y)
-        if (distancia.current) aj.z = Math.min(3, Math.max(0.5, aj.z * d / distancia.current))
-        distancia.current = d
-      }
-      return { ...a, [hueco]: aj }
-    })
-    ev.preventDefault()
-  }
-  const onPointerUp = ev => { punteros.current.delete(ev.pointerId); distancia.current = null }
-
-  // ── Descargar ficha y copiar texto ──
-  function descargarFicha() {
-    setHueco(null)
-    dibujar()
-    canvasRef.current.toBlob(blob => {
-      const nombre = 'entre-tu-arte-' + (campos.nombre || 'obra').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-') + '.jpg'
-      const archivo = new File([blob], nombre, { type: 'image/jpeg' })
-      const movil = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-      if (movil && navigator.canShare?.({ files: [archivo] })) { navigator.share({ files: [archivo] }).catch(() => {}); return }
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a'); a.href = url; a.download = nombre; a.click()
+  async function compartir(ids) {
+    const archivos = await Promise.all(ids.map(archivoDe))
+    const movil = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    if (movil && navigator.canShare?.({ files: archivos })) {
+      try { await navigator.share({ files: archivos }); return } catch (e) { if (e.name === 'AbortError') return }
+    }
+    archivos.forEach(f => {
+      const url = URL.createObjectURL(f)
+      const a = document.createElement('a'); a.href = url; a.download = f.name; a.click()
       setTimeout(() => URL.revokeObjectURL(url), 60000)
-    }, 'image/jpeg', 0.92)
+    })
   }
   async function copiarTexto() {
-    try { await navigator.clipboard.writeText(campos.publicacion); toast.success('Texto copiado. Pégalo en Instagram o Facebook.') }
-    catch { toast.error('No se pudo copiar automáticamente') }
+    try { await navigator.clipboard.writeText(campos.publicacion); toast.success('Texto copiado') } catch { toast.error('No se pudo copiar') }
   }
 
-  // ── Guardar ──
-  async function guardar(estadoObra) {
-    if (!fotos.length) { aviso('Sube al menos una foto.', 'error'); return }
-    if (estadoObra === 'disponible' && !campos.nombre.trim()) { aviso('La obra necesita un nombre antes de publicarse.', 'error'); return }
+  // ── Publicar ──
+  async function guardar(estado) {
+    if (!obraFinal) return
+    if (estado === 'disponible' && !campos.nombre.trim()) { toast.error('Ponle nombre a la obra'); setPaso(3); return }
+    if (!lienzos.current.posts.catalogo) { toast.error('Espera un momento: se están preparando las publicaciones'); return }
     setGuardando(true)
     try {
-      setHueco(null); dibujar()
-      const blob = await new Promise(ok => canvasRef.current.toBlob(ok, 'image/jpeg', 0.92))
-      const fichaUrl = await subirArchivo('fichas', new File([blob], 'ficha.jpg', { type: 'image/jpeg' }))
-      const edicion = campos.tipoExistencias === 'edicion'
+      const subir = async (canvas, carpeta) => subirArchivo(carpeta, new File([await aBlob(canvas, 0.9)], 'foto.jpg', { type: 'image/jpeg' }))
+      const urlObra = await subir(obraFinal, 'obras')
+      const urlAmbiente = campos.ambienteId === 'propia' && fotos.ambiente ? fotos.ambiente.url
+        : await subir(lienzos.current.ambientes[campos.ambienteId] || lienzos.current.ambientes.sala, 'obras')
+      const urlFicha = await subir(lienzos.current.posts.catalogo, 'fichas')
+      const lista = [{ url: urlObra, rol: 'principal' }, { url: urlAmbiente, rol: 'ambiente' }]
+      if (fotos.detalle) lista.push({ url: fotos.detalle.url, rol: 'detalle' })
       const registro = {
         titulo: campos.nombre.trim() || null,
         descripcion: campos.descripcion.trim() || null,
-        estilo: campos.estilo.trim() || null,
-        tecnica: campos.tecnica.trim() || null,
-        soporte: campos.soporte.trim() || null,
-        alto_cm: circular ? null : numero(campos.alto),
-        ancho_cm: circular ? null : numero(campos.ancho),
-        diametro_cm: circular ? numero(campos.diametro) : null,
-        medidas: medidas || null,
-        precio: numero(campos.precio),
-        anio: parseInt(campos.anio, 10) || null,
+        estilo: campos.estilo || null, tecnica: campos.tecnica || null, soporte: campos.soporte || null,
+        alto_cm: circular ? null : cm.alto, ancho_cm: circular ? null : cm.ancho, diametro_cm: circular ? cm.ancho : null,
+        medidas: medidas || null, precio: numero(campos.precio), anio: parseInt(campos.anio, 10) || null,
         existencias: edicion ? Math.max(0, parseInt(campos.existencias, 10) || 0) : 1,
         edicion_total: edicion ? (parseInt(campos.edicion_total, 10) || null) : null,
-        artista_id: campos.artista_id || null,
-        artista_nombre: artista?.nombre || null,
-        fotos: fotos.map((f, i) => ({ url: f.url, rol: ROLES[i] })),
-        imagen_url: fotos[0].url,
-        ficha_url: fichaUrl,
-        publicacion: campos.publicacion || null,
-        espacios: campos.espacios || [],
-        categorias: campos.categorias,
-        estado: estadoObra,
-        destacada: estadoObra === 'disponible' && campos.destacada,
+        artista_id: campos.artista_id || null, artista_nombre: artista?.nombre || null,
+        fotos: lista, imagen_url: urlObra, ficha_url: urlFicha,
+        publicacion: campos.publicacion || null, espacios: campos.espacios || [], categorias: campos.categorias,
+        estado, destacada: estado === 'disponible' && campos.destacada,
       }
       const { data, error } = await supabase.from('fichas').insert(registro).select('id').single()
       if (error) throw error
-      if (campos.usarPortada && estadoObra === 'disponible') {
+      if (campos.usarPortada && estado === 'disponible') {
         await supabase.from('portadas').insert({
-          imagen_url: (fotos[1] || fotos[0]).url, imagen_movil_url: fotos[0].url,
-          titular: campos.nombre.trim(), subtitulo: [artista?.nombre, medidas].filter(Boolean).join(' · ') || null,
+          imagen_url: urlAmbiente, imagen_movil_url: urlAmbiente, titular: campos.nombre.trim(),
+          subtitulo: [artista?.nombre, medidas].filter(Boolean).join(' · ') || null,
           boton_texto: 'Ver la obra', boton_enlace: `/obra/${data.id}`, ficha_id: String(data.id), orden: 0, activa: true,
         })
       }
-      try { localStorage.setItem('eta_ultimo_artista', campos.artista_id); localStorage.setItem('eta_ultimo_soporte', campos.soporte) } catch { /* modo privado */ }
+      try { localStorage.setItem('eta_ultimo_artista', campos.artista_id) } catch { /* modo privado */ }
       await borrarBorrador()
-      toast.success(estadoObra === 'disponible' ? '¡Obra publicada!' : 'Guardada como borrador')
+      setListo(true)
+      toast.success(estado === 'disponible' ? '¡Obra publicada!' : 'Guardada como borrador')
       navigate('/admin/obras')
     } catch (err) {
-      aviso('Error al guardar: ' + (err.message || err), 'error')
+      toast.error('No se pudo guardar: ' + (err.message || err))
     } finally { setGuardando(false) }
   }
 
-  async function empezarOtra() {
-    if (fotos.length && !window.confirm('¿Descartar esta obra y empezar otra?')) return
+  async function descartar() {
+    if (fotos.principal && !window.confirm('¿Descartar esta obra?')) return
     await borrarBorrador()
-    setFotos([]); setAjustes({}); setTrabajo(null); setHueco(null)
-    setCampos(f => ({ ...CAMPOS_INICIALES, artista_id: f.artista_id, soporte: f.soporte }))
-    aviso('')
+    setFotos({}); setCaja(null); setTrabajo(null); setPaso(1); setErrorIA('')
+    setCampos(f => ({ ...CAMPOS_INICIALES, artista_id: f.artista_id }))
   }
 
-  const generado = trabajo?.estado === 'listo' || !!campos.descripcion
-  const pendiente = trabajo?.estado === 'pendiente'
-  const pasoCss = on => on ? 'bg-tinta text-white' : 'bg-white text-gris'
+  // ── Interfaz ──
+  const titulos = { 1: <>Sube la foto de tu <em className="font-bold text-mostaza">obra</em></>, 2: 'La IA está trabajando…', 3: 'Así quedó tu obra', 4: 'Precio y publicación' }
+  const puedeVolver = paso === 3 || paso === 4
+  const barraFija = 'fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#f1eee8] via-[#f1eee8] to-transparent px-4 pb-5 pt-6 lg:static lg:mt-6 lg:bg-none lg:p-0'
 
   return (
-    <>
-      <EncabezadoAdmin ruta="Obras › Nueva obra" titulo="Subir obra con IA">
-        <ol aria-label="Pasos" className="flex flex-wrap gap-2 text-[13px] font-bold">
-          <li className={`rounded-full px-4 py-2.5 ${pasoCss(fotos.length > 0)}`}>1 · Fotos</li>
-          <li className={`rounded-full px-4 py-2.5 ${pasoCss(!!campos.precio || !!campos.tecnica)}`}>2 · Datos</li>
-          <li className={`rounded-full px-4 py-2.5 ${pasoCss(generado)}`}>3 · Textos con IA</li>
-          <li className={`rounded-full px-4 py-2.5 ${pasoCss(false)}`}>4 · Publicar</li>
-        </ol>
-      </EncabezadoAdmin>
+    <div className="mx-auto max-w-2xl pb-28 lg:pb-10">
+      <header className="flex items-center justify-between py-2">
+        <button onClick={() => puedeVolver ? setPaso(paso - 1) : descartar()} aria-label={puedeVolver ? 'Volver' : 'Descartar obra'}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white">{puedeVolver ? <ChevronLeft size={20} /> : <X size={19} />}</button>
+        <span className="text-[15px] font-bold">Nueva obra</span>
+        <span className="w-11 text-right text-[13px] font-bold text-gris">{paso}/4</span>
+      </header>
+      <div aria-label={`Paso ${paso} de 4`} className="mb-6 mt-2 grid grid-cols-4 gap-1.5">
+        {[1, 2, 3, 4].map(n => <span key={n} className={`h-[5px] rounded-full ${n <= paso ? 'bg-mostaza' : 'bg-crema-borde'}`} />)}
+      </div>
+      <h1 className="text-[32px] font-semibold leading-[1.02] tracking-[-0.035em] md:text-[40px]">{titulos[paso]}</h1>
 
-      {estado.texto && (
-        <p role="status" className={`mb-4 rounded-2xl px-5 py-3.5 text-sm font-semibold ${estado.tipo === 'error' ? 'bg-red-50 text-red-800' : estado.tipo === 'ok' ? 'bg-green-50 text-green-800' : 'bg-mostaza-fondo text-tinta'}`}>{estado.texto}</p>
+      {/* ── Paso 1: fotos ── */}
+      {paso === 1 && (
+        <section className="mt-3">
+          <p className="text-[15px] text-gris">La IA la recorta, mejora la luz y escribe la ficha por ti.</p>
+          {fotos.principal ? (
+            <div className="relative mt-5 overflow-hidden rounded-[28px] bg-white">
+              <img src={fotos.principal.img.src} alt="Foto de la obra" className="max-h-[420px] w-full object-contain" />
+              <label className="btn-contorno btn-chico absolute bottom-3 right-3 cursor-pointer bg-white">Cambiar
+                <input type="file" accept="image/*" onChange={e => elegirFoto('principal', e)} className="sr-only" />
+              </label>
+            </div>
+          ) : (
+            <div className="mt-5 flex flex-col items-center gap-3.5 rounded-[28px] border-2 border-dashed border-[#d9d2c5] bg-white p-6">
+              <span aria-hidden="true" className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-mostaza-clara">
+                {subiendo === 'principal' ? <Loader2 size={32} className="animate-spin" /> : <Camera size={34} />}
+              </span>
+              <label className="btn-primario h-[58px] w-full cursor-pointer text-[17px]">
+                {subiendo === 'principal' ? 'Subiendo…' : 'Tomar foto'}
+                <input type="file" accept="image/*" capture="environment" disabled={!!subiendo} onChange={e => elegirFoto('principal', e)} className="sr-only" />
+              </label>
+              <label className="btn-contorno h-[52px] w-full cursor-pointer text-[15px]">Elegir de la galería
+                <input type="file" accept="image/*" disabled={!!subiendo} onChange={e => elegirFoto('principal', e)} className="sr-only" />
+              </label>
+            </div>
+          )}
+          <ul aria-label="Consejos" className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+            {['De frente', 'Luz natural', 'Sin reflejos'].map(t => <li key={t} className="rounded-[18px] bg-white px-2 py-3">{t}</li>)}
+          </ul>
+          <p className="mb-2 mt-5 text-[13px] font-bold">Opcional: más fotos</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {RANURAS.slice(1).map(r => (
+              <label key={r.id} className="relative flex h-20 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-[18px] border-[1.5px] border-dashed border-[#d9d2c5] text-[13px] font-semibold text-gris">
+                {fotos[r.id] ? <>
+                  <img src={fotos[r.id].img.src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <span className="relative rounded-full bg-white/95 px-3 py-1 text-tinta">{r.etiqueta} ✓</span>
+                </> : subiendo === r.id ? 'Subiendo…' : <><ImagePlus size={18} />{r.etiqueta}</>}
+                <input type="file" accept="image/*" disabled={!!subiendo} onChange={e => elegirFoto(r.id, e)} className="sr-only" />
+              </label>
+            ))}
+          </div>
+          <details className="mt-4 rounded-[18px] bg-white px-4 py-3">
+            <summary className="cursor-pointer text-[13px] font-bold">Notas para la IA (opcional)</summary>
+            <textarea rows={2} value={campos.notas} onChange={e => cambiar('notas', e.target.value)} placeholder="Ej: inspirada en el atardecer de El Tunco" className="campo mt-2" />
+          </details>
+          <div className={barraFija}>
+            <button onClick={analizar} disabled={!fotos.principal || !!subiendo} className="btn-oscuro mx-auto flex h-[58px] w-full max-w-2xl text-base">
+              <Sparkles size={20} className="text-mostaza" />Analizar con IA
+            </button>
+          </div>
+        </section>
       )}
 
-      <div className="flex flex-wrap items-start gap-5">
-        <div className="flex min-w-0 flex-[1.25_1_520px] flex-col gap-5">
-          {/* 1. Fotos */}
-          <section className="rounded-[28px] bg-white p-5 md:p-6">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-lg font-bold">1. Fotos de la obra</h2>
-              <span className="text-[13px] text-gris">Hasta 3: la obra sola, en un ambiente y un detalle</span>
+      {/* ── Paso 2: IA trabajando ── */}
+      {paso === 2 && (
+        <section className="mt-5">
+          {fotos.principal && (
+            <div className="relative overflow-hidden rounded-[28px] bg-tinta-suave">
+              <img src={fotos.principal.img.src} alt="Foto de la obra" className="max-h-[360px] w-full object-contain opacity-80" />
+              {!errorIA && <span className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full bg-mostaza px-3 py-1.5 text-xs font-bold"><Loader2 size={14} className="animate-spin" />Analizando</span>}
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {[0, 1, 2].map(i => {
-                const f = fotos[i]
-                return f ? (
-                  <div key={i} className="flex flex-col gap-2">
-                    <div className="relative aspect-square overflow-hidden rounded-[20px] bg-crema">
-                      <img src={f.img.src} alt={ROL_ETIQUETA[ROLES[i]]} className="absolute inset-0 h-full w-full object-cover" />
-                      <button onClick={() => quitarFoto(i)} aria-label="Quitar foto" className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/95"><X size={16} /></button>
-                      {i > 0 && <button onClick={() => moverAntes(i)} aria-label="Mover antes" className="absolute left-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/95"><ChevronLeft size={18} /></button>}
-                      {i === 0 && <span className="absolute bottom-2 left-2 rounded-full bg-mostaza px-2.5 py-1 text-[11px] font-bold">Principal</span>}
-                    </div>
-                    <span className="text-[13px] font-semibold">{ROL_ETIQUETA[ROLES[i]]}</span>
-                  </div>
-                ) : (
-                  <label key={i} className={`flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-crema-borde bg-crema-clara text-center text-[13px] font-semibold text-gris ${i > fotos.length ? 'opacity-40' : ''}`}>
-                    <ImagePlus size={24} />{subiendo && i === fotos.length ? 'Subiendo…' : ROL_ETIQUETA[ROLES[i]]}
-                    <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={subiendo || i > fotos.length} onChange={agregarFotos} className="sr-only" />
-                  </label>
-                )
-              })}
+          )}
+          <ol className="mt-5 space-y-2.5">
+            {['Fotos subidas', 'Encontrando y recortando la obra', 'Escribiendo nombre, descripción y texto para redes', 'Mejorando la luz y armando ambientes y publicaciones'].map((t, i) => (
+              <li key={t} className={`flex items-center gap-3 rounded-[18px] bg-white px-4 py-3 text-[15px] font-semibold ${i > 1 ? 'text-[#a39e95]' : ''} ${i === 1 && !errorIA ? 'ring-2 ring-mostaza' : ''}`}>
+                <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm ${i === 0 ? 'bg-tinta text-white' : i === 1 ? 'bg-mostaza' : 'bg-[#efebe4]'}`}>
+                  {i === 0 ? <Check size={15} /> : i === 1 && !errorIA ? <Loader2 size={15} className="animate-spin" /> : i + 1}
+                </span>{t}
+              </li>
+            ))}
+          </ol>
+          {errorIA ? (
+            <div className="mt-5 rounded-[22px] bg-red-50 p-5 text-red-900">
+              <p className="font-semibold">{errorIA}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={analizar} className="btn-oscuro btn-chico">Intentar de nuevo</button>
+                <button onClick={() => setPaso(3)} className="btn-contorno btn-chico">Seguir sin IA</button>
+              </div>
             </div>
-          </section>
+          ) : <p className="mt-4 text-center text-[13px] text-gris">Tarda uno o dos minutos. Puedes salir: tu obra queda guardada y te avisamos al terminar.</p>}
+        </section>
+      )}
 
-          {/* 2. Datos */}
-          <section className="rounded-[28px] bg-white p-5 md:p-6">
-            <h2 className="text-lg font-bold">2. Datos de la obra</h2>
-            <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
-              <label className="etiqueta">Artista
-                <select value={campos.artista_id} onChange={e => cambiar('artista_id', e.target.value)} className="campo mt-1.5">
-                  <option value="">Elegir artista…</option>
-                  {artistas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-                </select>
-                {!artistas.length && <span className="mt-1 block text-xs font-normal text-gris">Agrega artistas en Admin › Artistas.</span>}
-              </label>
-              <SelectorAnio valor={campos.anio} onChange={v => cambiar('anio', v)} />
-              <div className="sm:col-span-2"><SelectorOpciones etiqueta="Técnica" tipo="tecnicas" valor={campos.tecnica} onChange={v => cambiar('tecnica', v)} /></div>
-              <div className="sm:col-span-2"><SelectorOpciones etiqueta="Soporte" tipo="soportes" valor={campos.soporte} onChange={v => cambiar('soporte', v)} /></div>
-              {circular ? (
-                <label className="etiqueta">Diámetro (cm)<input inputMode="decimal" value={campos.diametro} onChange={e => cambiar('diametro', e.target.value)} className="campo mt-1.5" /></label>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={campos.alto} onChange={e => cambiar('alto', e.target.value)} className="campo mt-1.5" /></label>
-                  <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={campos.ancho} onChange={e => cambiar('ancho', e.target.value)} className="campo mt-1.5" /></label>
-                </div>
-              )}
-              <label className="etiqueta">Precio (USD)<input inputMode="decimal" value={campos.precio} onChange={e => cambiar('precio', e.target.value)} placeholder="185.00" className="campo mt-1.5" /></label>
-              <label className="etiqueta">Existencias
-                <select value={campos.tipoExistencias} onChange={e => cambiar('tipoExistencias', e.target.value)} className="campo mt-1.5">
-                  <option value="unica">Pieza única (1)</option>
-                  <option value="edicion">Edición limitada</option>
-                </select>
-              </label>
-              {campos.tipoExistencias === 'edicion' && (
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="etiqueta">Total de la edición<input inputMode="numeric" value={campos.edicion_total} onChange={e => cambiar('edicion_total', e.target.value)} className="campo mt-1.5" /></label>
-                  <label className="etiqueta">Disponibles<input inputMode="numeric" value={campos.existencias} onChange={e => cambiar('existencias', e.target.value)} className="campo mt-1.5" /></label>
-                </div>
-              )}
+      {/* ── Paso 3: revisar ── */}
+      {paso === 3 && obraCanvas && (
+        <section className="mt-4">
+          <div role="tablist" aria-label="Comparar foto" className="grid grid-cols-2 rounded-full bg-white p-1">
+            {[[false, 'Foto original'], [true, 'Mejorada con IA']].map(([v, t]) => (
+              <button key={t} role="tab" aria-selected={vistaMejorada === v} onClick={() => setVistaMejorada(v)}
+                className={`h-10 rounded-full text-sm font-bold ${vistaMejorada === v ? 'bg-tinta text-white' : ''}`}>{t}</button>
+            ))}
+          </div>
+          <div className="mt-3 flex justify-center overflow-hidden rounded-[24px] bg-[#e9e4dc] p-3">
+            <img src={vistaMejorada ? obraFinalURL : fotos.principal.img.src} alt={vistaMejorada ? 'Obra recortada y mejorada' : 'Foto original'} className="max-h-[380px] rounded-lg object-contain shadow-lg" />
+          </div>
+          <button type="button" role="switch" aria-checked={campos.mejorar} onClick={() => cambiar('mejorar', !campos.mejorar)}
+            className="mt-3 flex w-full items-center justify-between rounded-[18px] bg-white px-4 py-3 text-left text-sm font-semibold">
+            Mejorar luz y color automáticamente
+            <span aria-hidden="true" className={`flex h-7 w-12 shrink-0 rounded-full p-[3px] ${campos.mejorar ? 'justify-end bg-tinta' : 'justify-start bg-[#d9d4cb]'}`}><span className="h-[22px] w-[22px] rounded-full bg-white" /></span>
+          </button>
+
+          <p className="mb-2 mt-5 text-[13px] font-bold">Elige el ambiente</p>
+          <div className="sin-scroll -mx-4 flex gap-2.5 overflow-x-auto px-4">
+            {[...(fotos.ambiente ? [{ id: 'propia', nombre: 'Tu foto', src: fotos.ambiente.img.src }] : []), ...AMBIENTES.map(a => ({ id: a.id, nombre: a.nombre, src: previas.ambientes[a.id] }))].map(a => (
+              <button key={a.id} onClick={() => cambiar('ambienteId', a.id)} aria-pressed={campos.ambienteId === a.id} className="w-36 shrink-0 text-left">
+                <span className={`flex h-28 items-center justify-center overflow-hidden rounded-2xl border-[3px] bg-crema-borde ${campos.ambienteId === a.id ? 'border-mostaza' : 'border-transparent'}`}>
+                  {a.src ? <img src={a.src} alt="" className="h-full w-full object-cover" /> : <Loader2 size={18} className="animate-spin text-gris" />}
+                </span>
+                <span className="mt-1 block text-xs font-semibold">{a.nombre}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-5 space-y-3.5 rounded-[22px] border-2 border-mostaza bg-white p-4">
+            <p className="flex items-center gap-1.5 text-xs font-bold text-gris"><Sparkles size={14} className="text-mostaza" />Escrito por la IA · puedes editarlo</p>
+            <label className="etiqueta">Nombre<input value={campos.nombre} onChange={e => cambiar('nombre', e.target.value)} className="campo mt-1.5 text-lg font-bold" /></label>
+            <label className="etiqueta">Descripción<textarea rows={3} value={campos.descripcion} onChange={e => cambiar('descripcion', e.target.value)} className="campo mt-1.5" /></label>
+            <SelectorOpciones etiqueta="Estilo" tipo="estilos" valor={campos.estilo} onChange={v => cambiar('estilo', v)} />
+            <label className="etiqueta">Texto para redes<textarea rows={5} value={campos.publicacion} onChange={e => cambiar('publicacion', e.target.value)} className="campo mt-1.5 text-sm" /></label>
+          </div>
+          <div className={barraFija}>
+            <button onClick={() => setPaso(4)} className="btn-oscuro mx-auto flex h-[58px] w-full max-w-2xl text-base">Siguiente: precio y medidas</button>
+          </div>
+        </section>
+      )}
+
+      {/* ── Paso 4: precio, datos y publicar ── */}
+      {paso === 4 && obraCanvas && (
+        <section className="mt-4 space-y-4">
+          <div className="grid grid-cols-2 gap-2.5">
+            <label className="etiqueta">Precio (USD)<input inputMode="decimal" value={campos.precio} onChange={e => cambiar('precio', e.target.value)} placeholder="650" className="campo mt-1.5 text-lg font-bold" /></label>
+            <label className="etiqueta">Artista
+              <select value={campos.artista_id} onChange={e => cambiar('artista_id', e.target.value)} className="campo mt-1.5">
+                <option value="">Elegir…</option>{artistas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+              </select>
+            </label>
+            {circular ? (
+              <label className="etiqueta col-span-2">Diámetro (cm)<input inputMode="decimal" value={campos.diametro} onChange={e => cambiar('diametro', e.target.value)} className="campo mt-1.5" /></label>
+            ) : <>
+              <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={campos.alto} onChange={e => cambiar('alto', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={campos.ancho} onChange={e => cambiar('ancho', e.target.value)} className="campo mt-1.5" /></label>
+            </>}
+          </div>
+          <div role="radiogroup" aria-label="Existencias" className="grid grid-cols-2 rounded-full bg-white p-1">
+            {[['unica', 'Pieza única'], ['edicion', 'Edición limitada']].map(([v, t]) => (
+              <button key={v} role="radio" aria-checked={campos.tipoExistencias === v} onClick={() => cambiar('tipoExistencias', v)}
+                className={`h-10 rounded-full text-[13px] font-bold ${campos.tipoExistencias === v ? 'bg-tinta text-white' : ''}`}>{t}</button>
+            ))}
+          </div>
+          {edicion && (
+            <div className="grid grid-cols-2 gap-2.5">
+              <label className="etiqueta">Total de la edición<input inputMode="numeric" value={campos.edicion_total} onChange={e => cambiar('edicion_total', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta">Disponibles<input inputMode="numeric" value={campos.existencias} onChange={e => cambiar('existencias', e.target.value)} className="campo mt-1.5" /></label>
             </div>
+          )}
+          <div className="space-y-4 rounded-[22px] bg-white p-4">
+            <SelectorOpciones etiqueta="Técnica" tipo="tecnicas" valor={campos.tecnica} onChange={v => cambiar('tecnica', v)} />
+            <SelectorOpciones etiqueta="Soporte" tipo="soportes" valor={campos.soporte} onChange={v => cambiar('soporte', v)} />
+            <SelectorAnio valor={campos.anio} onChange={v => cambiar('anio', v)} />
             {categorias.length > 0 && (
-              <fieldset className="mt-4">
+              <fieldset>
                 <legend className="etiqueta mb-2">Colecciones</legend>
                 <div className="flex flex-wrap gap-2">
                   {categorias.map(c => {
                     const on = campos.categorias.includes(c.nombre)
-                    return <button type="button" key={c.id} aria-pressed={on} onClick={() => cambiar('categorias', on ? campos.categorias.filter(x => x !== c.nombre) : [...campos.categorias, c.nombre])} className={`chip ${on ? 'chip-on' : 'chip-off'}`}>{c.nombre}</button>
+                    return <button type="button" key={c.id} aria-pressed={on} onClick={() => cambiar('categorias', on ? campos.categorias.filter(x => x !== c.nombre) : [...campos.categorias, c.nombre])}
+                      className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold ${on ? 'border-tinta bg-tinta text-white' : 'border-crema-borde bg-white'}`}>{on && <Check size={15} />}{c.nombre}</button>
                   })}
                 </div>
               </fieldset>
             )}
-            <label className="etiqueta mt-4">Notas para la IA (opcional)
-              <textarea rows={2} value={campos.notas} onChange={e => cambiar('notas', e.target.value)} placeholder="Ej: inspirada en el atardecer de El Tunco, tonos tierra" className="campo mt-1.5" />
-            </label>
-            <button onClick={generar} disabled={pendiente || subiendo || !fotos.length} className="btn-oscuro mt-5 h-[60px] w-full">
-              <Sparkles size={20} className="text-mostaza" />{pendiente ? 'La IA está trabajando…' : generado ? 'Volver a generar con IA' : 'Generar nombre, estilo y descripción con IA'}
-            </button>
-          </section>
+          </div>
 
-          {/* 3. Textos */}
-          {(generado || pendiente) && (
-            <section className="rounded-[28px] border-2 border-mostaza bg-white p-5 md:p-6">
-              <h2 className="flex items-center gap-2.5 text-lg font-bold"><Sparkles size={20} className="text-mostaza" />3. Textos generados con IA</h2>
-              <p className="mt-1 text-[13px] text-gris">Puedes editar todo antes de publicar.</p>
-              <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
-                <label className="etiqueta">Nombre de la obra<input value={campos.nombre} onChange={e => cambiar('nombre', e.target.value)} className="campo mt-1.5 font-semibold" /></label>
-                <div className="sm:col-span-2"><SelectorOpciones etiqueta="Estilo" tipo="estilos" valor={campos.estilo} onChange={v => cambiar('estilo', v)} /></div>
-              </div>
-              <label className="etiqueta mt-3.5">Descripción<textarea rows={3} value={campos.descripcion} onChange={e => cambiar('descripcion', e.target.value)} className="campo mt-1.5" /></label>
-              {campos.espacios.length > 0 && (
-                <p className="mt-3.5 flex flex-wrap items-center gap-2 text-[13px] font-semibold">Luce mejor en: {campos.espacios.map(e => <span key={e} className="rounded-full bg-mostaza-clara px-3 py-1.5">{e}</span>)}</p>
-              )}
-              <label className="etiqueta mt-3.5">Texto para Instagram y Facebook<textarea rows={6} value={campos.publicacion} onChange={e => cambiar('publicacion', e.target.value)} className="campo mt-1.5 text-sm" /></label>
-              <button onClick={copiarTexto} disabled={!campos.publicacion} className="btn-contorno btn-chico mt-3"><Copy size={16} />Copiar texto</button>
-            </section>
-          )}
-        </div>
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[13px] font-bold">Publicaciones listas para redes</p>
+              <button onClick={copiarTexto} disabled={!campos.publicacion} className="flex items-center gap-1.5 text-[13px] font-semibold underline"><Copy size={14} />Copiar texto</button>
+            </div>
+            <div className="flex items-end gap-3">
+              {FORMATOS.map(f => (
+                <button key={f.id} onClick={() => compartir([f.id])} aria-label={`Descargar ${f.nombre}`} className="min-w-0 text-left" style={{ flex: f.id === 'historia' ? '0.7 1 0' : '1 1 0' }}>
+                  <span className="block overflow-hidden rounded-xl bg-crema-borde shadow-[0_8px_18px_-10px_rgba(0,0,0,0.45)]" style={{ aspectRatio: `${f.w}/${f.h}` }}>
+                    {previas.posts[f.id] && <img src={previas.posts[f.id]} alt={f.nombre} className="h-full w-full object-cover" />}
+                  </span>
+                  <span className="mt-1.5 block truncate text-[11px] font-semibold">{f.nombre}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => compartir(FORMATOS.map(f => f.id))} disabled={!previas.posts.catalogo} className="btn-contorno btn-chico mt-3 w-full"><Share2 size={16} />Descargar o compartir las 3</button>
+          </div>
 
-        <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-5">
-          <section className="rounded-[28px] bg-white p-5">
-            <div className="flex items-center justify-between"><h2 className="text-[17px] font-bold">Ficha para redes</h2><span className="text-xs text-gris">1080 × 1350</span></div>
-            {fotos.length ? (
-              <>
-                <div className="relative mt-3.5 overflow-hidden rounded-2xl border border-[#efebe4]">
-                  <canvas ref={canvasRef} width={ANCHO} height={ALTO} className="block w-full" style={{ touchAction: hueco ? 'none' : 'auto' }}
-                    onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} />
-                  {hueco && <span aria-hidden="true" className="pointer-events-none absolute border-2 border-mostaza shadow-[0_0_0_9999px_rgba(23,22,20,0.25)]"
-                    style={{ left: `${HUECOS[hueco].x / ANCHO * 100}%`, top: `${HUECOS[hueco].y / ALTO * 100}%`, width: `${HUECOS[hueco].w / ANCHO * 100}%`, height: `${HUECOS[hueco].h / ALTO * 100}%` }} />}
-                </div>
-                <p className="mt-3 text-center text-xs text-gris">{hueco ? 'Arrastra para mover · pellizca o usa la barra para acercar.' : 'Toca una foto de la ficha para moverla o acercarla.'}</p>
-                {hueco && (
-                  <div className="mt-2 flex items-center gap-3">
-                    <label className="flex-1 text-xs font-semibold">Zoom
-                      <input type="range" min="0.5" max="3" step="0.01" value={ajustes[hueco]?.z || 1} onChange={e => setAjustes(a => ({ ...a, [hueco]: { dx: 0, dy: 0, ...a[hueco], z: parseFloat(e.target.value) } }))} className="w-full accent-[#17181b]" />
-                    </label>
-                    <button onClick={() => setAjustes(a => { const c = { ...a }; delete c[hueco]; return c })} className="btn-contorno btn-chico"><RotateCcw size={15} />Restablecer</button>
-                    <button onClick={() => setHueco(null)} aria-label="Listo" className="btn-oscuro btn-chico"><Check size={16} /></button>
-                  </div>
-                )}
-                <button onClick={descargarFicha} className="btn-contorno mt-3 h-12 w-full text-sm"><Download size={17} />Descargar ficha</button>
-              </>
-            ) : <p className="mt-4 rounded-2xl bg-crema-clara p-8 text-center text-sm text-gris">Sube las fotos para ver la ficha.</p>}
-          </section>
-
-          <section className="rounded-[28px] bg-white p-5">
-            <h2 className="mb-2 text-[17px] font-bold">4. Dónde se muestra</h2>
-            {[
-              ['destacada', 'Destacar en el banner', 'Aparece en "Obras de la semana" del inicio'],
-              ['usarPortada', 'Usar como portada', 'Entra en la rotación de la portada del sitio'],
-            ].map(([c, t, d]) => (
+          <div className="rounded-[20px] bg-white px-4">
+            {[['destacada', 'Destacar en "Obras de la semana"'], ['usarPortada', 'Usar en la portada del sitio']].map(([c, t], i) => (
               <button key={c} type="button" role="switch" aria-checked={campos[c]} onClick={() => cambiar(c, !campos[c])}
-                className="flex min-h-[60px] w-full items-center justify-between gap-3 border-t border-[#efebe4] py-2 text-left">
-                <span><span className="block text-sm font-bold">{t}</span><span className="block text-xs text-gris">{d}</span></span>
-                <span aria-hidden="true" className={`flex h-[30px] w-[50px] shrink-0 rounded-full p-[3px] transition ${campos[c] ? 'justify-end bg-tinta' : 'justify-start bg-[#d9d4cb]'}`}><span className="h-6 w-6 rounded-full bg-white shadow" /></span>
+                className={`flex min-h-[54px] w-full items-center justify-between gap-3 text-left text-sm font-semibold ${i ? 'border-t border-[#efebe4]' : ''}`}>
+                {t}<span aria-hidden="true" className={`flex h-7 w-12 shrink-0 rounded-full p-[3px] ${campos[c] ? 'justify-end bg-tinta' : 'justify-start bg-[#d9d4cb]'}`}><span className="h-[22px] w-[22px] rounded-full bg-white" /></span>
               </button>
             ))}
-            <div className="mt-3 grid grid-cols-2 gap-2.5">
-              <button onClick={() => guardar('borrador')} disabled={guardando || !fotos.length} className="btn-contorno h-[52px] px-3 text-sm">Guardar borrador</button>
-              <button onClick={() => guardar('disponible')} disabled={guardando || !fotos.length || pendiente} className="btn-primario h-[52px] px-3 text-sm">{guardando ? 'Guardando…' : 'Publicar obra'}</button>
+          </div>
+          <button onClick={() => guardar('borrador')} disabled={guardando} className="w-full text-sm font-semibold text-gris underline">Guardar como borrador</button>
+          <div className={barraFija}>
+            <div className="mx-auto flex max-w-2xl gap-2.5">
+              <button onClick={() => compartir(['catalogo'])} aria-label="Descargar ficha" disabled={!previas.posts.catalogo} className="btn-contorno h-[58px] w-[58px] shrink-0 px-0"><Download size={20} /></button>
+              <button onClick={() => guardar('disponible')} disabled={guardando} className="btn-primario h-[58px] flex-1 text-[17px]">{guardando ? 'Publicando…' : 'Publicar obra'}</button>
             </div>
-            <button onClick={empezarOtra} className="mt-3 w-full text-sm font-semibold text-gris underline">Empezar otra obra</button>
-          </section>
-        </div>
-      </div>
-    </>
+          </div>
+        </section>
+      )}
+    </div>
   )
 }
