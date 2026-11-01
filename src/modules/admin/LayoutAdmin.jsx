@@ -4,6 +4,7 @@ import { LayoutDashboard, Images, Sparkles, MonitorPlay, Star, Inbox, Palette, T
 import Logo from '../../components/Logo.jsx'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
+import { VERSION } from '../../lib/actualizacion.js'
 
 export const MENU_ADMIN = [
   { to: '/admin', etiqueta: 'Resumen', Icono: LayoutDashboard, fin: true },
@@ -52,6 +53,7 @@ export default function LayoutAdmin() {
           <Link to="/" target="_blank" className="flex h-11 items-center gap-3 rounded-full px-4 text-sm text-white/75 hover:bg-white/10"><ExternalLink size={17} />Ver sitio</Link>
           <button onClick={salir} className="flex h-11 w-full items-center gap-3 rounded-full px-4 text-sm text-white/75 hover:bg-white/10"><LogOut size={17} />Salir</button>
           <p className="truncate px-4 pt-2 text-xs text-white/50">{usuario?.email}</p>
+          <p className="px-4 pt-1 text-[11px] text-white/40">Versión {VERSION}</p>
         </div>
       </aside>
 
@@ -64,6 +66,7 @@ export default function LayoutAdmin() {
         <div className="fixed inset-0 top-[68px] z-20 overflow-y-auto bg-tinta p-4 lg:hidden">
           {menu}
           <button onClick={salir} className="mt-4 flex h-12 w-full items-center gap-3 rounded-full px-4 text-sm text-white/75"><LogOut size={17} />Salir</button>
+          <p className="px-4 pt-2 text-xs text-white/40">Versión {VERSION}</p>
         </div>
       )}
 
