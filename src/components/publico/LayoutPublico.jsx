@@ -33,7 +33,7 @@ export default function LayoutPublico() {
   const claro = sobrePortada || abierto
   return (
     <div className="min-h-screen bg-crema">
-      <header className={`fixed inset-x-0 top-0 z-40 transition-colors ${claro ? 'bg-transparent' : 'bg-white/95 shadow-[0_1px_0_#ebe6dd] backdrop-blur'}`}>
+      <header className={`fixed inset-x-0 top-0 z-40 transition-colors ${abierto ? 'bg-[#171614]' : claro ? 'bg-transparent' : 'bg-white/95 shadow-[0_1px_0_#ebe6dd] backdrop-blur'}`}>
         <div className="contenedor flex items-center justify-between gap-6 py-3.5 md:py-4">
           <Logo claro={claro} />
           <nav aria-label="Principal" className="hidden items-center gap-8 lg:flex">
@@ -56,17 +56,17 @@ export default function LayoutPublico() {
       </header>
 
       {abierto && (
-        <nav aria-label="Menú principal" className="fixed inset-0 z-30 flex flex-col bg-[#171614]/[0.97] px-6 pb-10 pt-28 text-white lg:hidden">
-          <Link to="/obras?buscar=1" className="flex h-14 items-center gap-3 rounded-full bg-white/10 px-5 text-white/80"><Search size={20} />Busca obra, color o artista</Link>
+        <nav aria-label="Menú principal" className="fixed inset-0 z-[35] flex flex-col overflow-y-auto overscroll-contain bg-[#171614] px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-28 text-white lg:hidden">
+          <Link to="/obras?buscar=1" className="flex h-14 shrink-0 items-center gap-3 rounded-full bg-white/10 px-5 text-white/80"><Search size={20} />Busca obra, color o artista</Link>
           <div className="mt-5 flex flex-col">
             {MENU.map(m => (
               <NavLink key={m.to} to={m.to} end={m.fin}
-                className={({ isActive }) => `flex h-16 items-center border-b border-white/10 text-[30px] font-medium tracking-tight ${isActive ? 'text-mostaza' : ''}`}>
+                className={({ isActive }) => `flex h-14 shrink-0 items-center border-b border-white/10 text-[26px] font-medium tracking-tight ${isActive ? 'text-mostaza' : ''}`}>
                 {m.etiqueta}
               </NavLink>
             ))}
           </div>
-          <Link to="/asesoria" className="btn-primario mt-auto">Asesoría para mi espacio</Link>
+          <Link to="/asesoria" className="btn-primario mt-8 shrink-0">Asesoría para mi espacio</Link>
         </nav>
       )}
 
@@ -74,7 +74,7 @@ export default function LayoutPublico() {
       <Footer />
 
       {/* Barra inferior flotante en celular */}
-      <nav aria-label="Accesos rápidos" className="fixed inset-x-4 bottom-4 z-30 grid h-[68px] grid-cols-4 rounded-full bg-tinta px-2 shadow-[0_16px_30px_-12px_rgba(23,22,20,0.6)] md:hidden">
+      <nav aria-label="Accesos rápidos" className={`fixed inset-x-4 bottom-4 z-30 ${abierto ? 'hidden' : 'grid'} h-[68px] grid-cols-4 rounded-full bg-tinta px-2 shadow-[0_16px_30px_-12px_rgba(23,22,20,0.6)] md:hidden`}>
         {[
           { to: '/', etiqueta: 'Inicio', Icono: Home, fin: true },
           { to: '/obras', etiqueta: 'Obras', Icono: Images },
