@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
 import { subirArchivo, reducirImagen } from '../adminService.js'
+import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 
 const ROLES = ['principal', 'ambiente', 'detalle']
 
@@ -93,10 +94,10 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
           <label className="etiqueta">Artista
             <select value={f.artista_id} onChange={c('artista_id')} className="campo mt-1.5"><option value="">Sin artista</option>{artistas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select>
           </label>
-          <label className="etiqueta">Año<input inputMode="numeric" value={f.anio} onChange={c('anio')} className="campo mt-1.5" /></label>
-          <label className="etiqueta">Técnica<input value={f.tecnica} onChange={c('tecnica')} className="campo mt-1.5" /></label>
-          <label className="etiqueta">Soporte<input value={f.soporte} onChange={c('soporte')} className="campo mt-1.5" /></label>
-          <label className="etiqueta">Estilo<input value={f.estilo} onChange={c('estilo')} className="campo mt-1.5" /></label>
+          <SelectorAnio valor={f.anio} onChange={v => setF(x => ({ ...x, anio: v }))} />
+          <div className="sm:col-span-2"><SelectorOpciones etiqueta="Técnica" tipo="tecnicas" valor={f.tecnica} onChange={v => setF(x => ({ ...x, tecnica: v }))} /></div>
+          <div className="sm:col-span-2"><SelectorOpciones etiqueta="Soporte" tipo="soportes" valor={f.soporte} onChange={v => setF(x => ({ ...x, soporte: v }))} /></div>
+          <div className="sm:col-span-2"><SelectorOpciones etiqueta="Estilo" tipo="estilos" valor={f.estilo} onChange={v => setF(x => ({ ...x, estilo: v }))} /></div>
           <label className="etiqueta">Precio (USD)<input inputMode="decimal" value={f.precio} onChange={c('precio')} className="campo mt-1.5" /></label>
           <div className="grid grid-cols-3 gap-2 sm:col-span-2">
             <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={f.alto} onChange={c('alto')} className="campo mt-1.5" /></label>
@@ -121,8 +122,8 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
         </section>
 
         <div className="sticky bottom-0 mt-4 flex gap-3 bg-[#f6f4f0] py-3">
-          <button type="button" onClick={onCerrar} className="btn-contorno flex-1">Cancelar</button>
-          <button disabled={guardando} className="btn-primario flex-1">{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
+          <button type="button" onClick={onCerrar} className="btn-contorno flex-1 whitespace-nowrap px-4">Cancelar</button>
+          <button disabled={guardando} className="btn-primario flex-1 whitespace-nowrap px-4">{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
         </div>
       </form>
     </div>

@@ -4,16 +4,15 @@ import { Sparkles, ImagePlus, X, ChevronLeft, Download, Copy, RotateCcw, Check }
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
-import { subirArchivo, reducirImagen, cargarImagen, leerConfig, guardarConfig } from '../adminService.js'
+import { subirArchivo, reducirImagen, cargarImagen } from '../adminService.js'
 import { dibujarFicha, HUECOS, ANCHO, ALTO, huecoEn, encuadresDesdeIA } from './fichaCanvas.js'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from './iaService.js'
 import { leerBorrador, guardarBorrador, borrarBorrador } from './borrador.js'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
+import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 
 const ROLES = ['principal', 'ambiente', 'detalle']
 const ROL_ETIQUETA = { principal: 'Principal', ambiente: 'En ambiente', detalle: 'Detalle' }
-const TECNICAS_BASE = ['Acrílico sobre lienzo', 'Óleo sobre lienzo', 'Acrílico sobre lienzo (manta)', 'Acrílico con texturas sobre lienzo', 'Técnica mixta sobre lienzo']
-const SOPORTES_BASE = ['Bastidor de pino', 'Bastidor circular de pino', 'Bastidor geométrico de pino']
 
 const CAMPOS_INICIALES = {
   artista_id: '', tecnica: '', soporte: '', alto: '', ancho: '', diametro: '', precio: '',
@@ -34,7 +33,6 @@ export default function SubirObraIA() {
   const [hueco, setHueco] = useState(null)
   const [artistas, setArtistas] = useState([])
   const [categorias, setCategorias] = useState([])
-  const [listas, setListas] = useState({ tecnicas: TECNICAS_BASE, soportes: SOPORTES_BASE })
   const [logo, setLogo] = useState(null)
   const [restaurado, setRestaurado] = useState(false)
   const canvasRef = useRef(null)
@@ -51,18 +49,11 @@ export default function SubirObraIA() {
     anio: campos.anio, medidas, estilo: campos.estilo, descripcion: campos.descripcion, precio: campos.precio,
   }), [campos, artista, medidas])
 
-  // ── Carga inicial: listas, artistas, colecciones, logo y borrador ──
+  // ── Carga inicial: artistas, colecciones, logo y borrador ──
   useEffect(() => {
     montado.current = true
     supabase.from('artistas').select('id, nombre').order('nombre').then(({ data }) => setArtistas(data || []))
     supabase.from('categorias').select('*').order('nombre').then(({ data }) => setCategorias(data || []))
-    leerConfig(['pub_tecnicas', 'pub_soportes']).then(cfg => {
-      const parse = v => { try { const a = JSON.parse(v || '[]'); return Array.isArray(a) ? a : [] } catch { return [] } }
-      setListas({
-        tecnicas: [...new Set([...TECNICAS_BASE, ...parse(cfg.pub_tecnicas)])],
-        soportes: [...new Set([...SOPORTES_BASE, ...parse(cfg.pub_soportes)])],
-      })
-    })
     cargarImagen(`${import.meta.env.BASE_URL}logo-entre-tu-arte.jpg`).then(setLogo).catch(() => {})
     leerBorrador().then(async b => {
       if (b?.fotos?.length) {
@@ -288,11 +279,6 @@ export default function SubirObraIA() {
           boton_texto: 'Ver la obra', boton_enlace: `/obra/${data.id}`, ficha_id: String(data.id), orden: 0, activa: true,
         })
       }
-      // Recordar técnicas y soportes nuevos para la próxima vez
-      for (const [clave, lista, valor] of [['pub_tecnicas', listas.tecnicas, campos.tecnica], ['pub_soportes', listas.soportes, campos.soporte]]) {
-        const v = valor.trim()
-        if (v && !lista.includes(v)) await guardarConfig(clave, JSON.stringify([...lista.filter(x => !TECNICAS_BASE.includes(x) && !SOPORTES_BASE.includes(x)), v])).catch(() => {})
-      }
       try { localStorage.setItem('eta_ultimo_artista', campos.artista_id); localStorage.setItem('eta_ultimo_soporte', campos.soporte) } catch { /* modo privado */ }
       await borrarBorrador()
       toast.success(estadoObra === 'disponible' ? '¡Obra publicada!' : 'Guardada como borrador')
@@ -371,15 +357,9 @@ export default function SubirObraIA() {
                 </select>
                 {!artistas.length && <span className="mt-1 block text-xs font-normal text-gris">Agrega artistas en Admin › Artistas.</span>}
               </label>
-              <label className="etiqueta">Año<input inputMode="numeric" value={campos.anio} onChange={e => cambiar('anio', e.target.value)} className="campo mt-1.5" /></label>
-              <label className="etiqueta">Técnica
-                <input list="lista-tecnicas" value={campos.tecnica} onChange={e => cambiar('tecnica', e.target.value)} placeholder="Elige o escribe" className="campo mt-1.5" />
-                <datalist id="lista-tecnicas">{listas.tecnicas.map(t => <option key={t} value={t} />)}</datalist>
-              </label>
-              <label className="etiqueta">Soporte
-                <input list="lista-soportes" value={campos.soporte} onChange={e => cambiar('soporte', e.target.value)} placeholder="Elige o escribe" className="campo mt-1.5" />
-                <datalist id="lista-soportes">{listas.soportes.map(t => <option key={t} value={t} />)}</datalist>
-              </label>
+              <SelectorAnio valor={campos.anio} onChange={v => cambiar('anio', v)} />
+              <div className="sm:col-span-2"><SelectorOpciones etiqueta="Técnica" tipo="tecnicas" valor={campos.tecnica} onChange={v => cambiar('tecnica', v)} /></div>
+              <div className="sm:col-span-2"><SelectorOpciones etiqueta="Soporte" tipo="soportes" valor={campos.soporte} onChange={v => cambiar('soporte', v)} /></div>
               {circular ? (
                 <label className="etiqueta">Diámetro (cm)<input inputMode="decimal" value={campos.diametro} onChange={e => cambiar('diametro', e.target.value)} className="campo mt-1.5" /></label>
               ) : (
@@ -428,7 +408,7 @@ export default function SubirObraIA() {
               <p className="mt-1 text-[13px] text-gris">Puedes editar todo antes de publicar.</p>
               <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
                 <label className="etiqueta">Nombre de la obra<input value={campos.nombre} onChange={e => cambiar('nombre', e.target.value)} className="campo mt-1.5 font-semibold" /></label>
-                <label className="etiqueta">Estilo<input value={campos.estilo} onChange={e => cambiar('estilo', e.target.value)} className="campo mt-1.5" /></label>
+                <div className="sm:col-span-2"><SelectorOpciones etiqueta="Estilo" tipo="estilos" valor={campos.estilo} onChange={v => cambiar('estilo', v)} /></div>
               </div>
               <label className="etiqueta mt-3.5">Descripción<textarea rows={3} value={campos.descripcion} onChange={e => cambiar('descripcion', e.target.value)} className="campo mt-1.5" /></label>
               {campos.espacios.length > 0 && (
