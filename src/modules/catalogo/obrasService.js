@@ -1,0 +1,94 @@
+import { supabase } from '../../lib/supabase.js'
+import { medidasTexto } from '../../lib/formato.js'
+
+// ── Normalización ───────────────────────────────────────────────────────────
+// Las obras viejas solo tienen "imagen_url" (la ficha diseñada). Las nuevas guardan sus
+// fotos en "fotos" ([{url, rol}]). Aquí se unifican para que la tienda no distinga.
+
+export const ESTADOS = {
+  disponible: { etiqueta: 'Disponible', clase: 'bg-white text-green-800' },
+  reservada:  { etiqueta: 'Reservada', clase: 'bg-mostaza text-tinta' },
+  vendida:    { etiqueta: 'Vendida', clase: 'bg-tinta text-white' },
+  borrador:   { etiqueta: 'Borrador', clase: 'bg-crema-borde text-tinta' },
+}
+
+export function estadoEfectivo(f) {
+  // Una reserva vencida vuelve a estar disponible sin esperar a que el admin la libere
+  if (f.estado === 'reservada' && f.reservada_hasta && new Date(f.reservada_hasta) < new Date()) return 'disponible'
+  return f.estado || 'disponible'
+}
+
+export function etiquetaExistencias(f) {
+  const estado = estadoEfectivo(f)
+  if (estado === 'vendida') return 'Vendida'
+  if (estado === 'reservada') return 'Reservada por 48 horas'
+  if (f.edicion_total) return `${f.existencias ?? 0} de ${f.edicion_total} disponibles`
+  if ((f.existencias ?? 1) <= 1) return 'Pieza única'
+  return `${f.existencias} disponibles`
+}
+
+export function insignia(f) {
+  const estado = estadoEfectivo(f)
+  if (estado !== 'disponible') return { texto: ESTADOS[estado].etiqueta, clase: ESTADOS[estado].clase }
+  if (f.edicion_total && f.existencias === 1) return { texto: 'Última pieza', clase: 'bg-tinta text-white' }
+  if (f.edicion_total) return { texto: 'Edición limitada', clase: 'bg-white text-tinta' }
+  return { texto: 'Disponible', clase: 'bg-white text-green-800' }
+}
+
+export function normalizarObra(f) {
+  if (!f) return null
+  const fotos = Array.isArray(f.fotos) && f.fotos.length
+    ? f.fotos.filter(x => x && x.url)
+    : (f.imagen_url ? [{ url: f.imagen_url, rol: 'principal' }] : [])
+  return {
+    ...f,
+    titulo: f.titulo || 'Obra sin título',
+    fotos,
+    foto: fotos[0]?.url || f.imagen_url || '',
+    medidasTexto: medidasTexto(f),
+    artista: f.artistas?.nombre || f.artista_nombre || '',
+    artistaSlug: f.artistas?.slug || null,
+    estadoEfectivo: estadoEfectivo(f),
+  }
+}
+
+const CAMPOS = '*, artistas(id, nombre, slug)'
+
+// ── Consultas ───────────────────────────────────────────────────────────────
+export async function listarObras({ estado, categoria, artistaId, destacadas, limite, orden = 'recientes', busqueda } = {}) {
+  let q = supabase.from('fichas').select(CAMPOS).neq('estado', 'borrador')
+  if (estado === 'vendida') q = q.eq('estado', 'vendida')
+  else if (estado === 'en_venta') q = q.in('estado', ['disponible', 'reservada'])
+  else if (estado) q = q.eq('estado', estado)
+  if (categoria) q = q.contains('categorias', [categoria])
+  if (artistaId) q = q.eq('artista_id', artistaId)
+  if (destacadas) q = q.eq('destacada', true)
+  const b = String(busqueda || '').replace(/[,()%*\\]/g, ' ').trim()
+  if (b) q = q.or(`titulo.ilike.%${b}%,estilo.ilike.%${b}%,artista_nombre.ilike.%${b}%,tecnica.ilike.%${b}%`)
+  if (destacadas) q = q.order('orden_destacada', { ascending: true, nullsFirst: false })
+  if (orden === 'precio_asc') q = q.order('precio', { ascending: true, nullsFirst: false })
+  else if (orden === 'precio_desc') q = q.order('precio', { ascending: false, nullsFirst: false })
+  else if (estado === 'vendida') q = q.order('vendida_en', { ascending: false, nullsFirst: false })
+  q = q.order('created_at', { ascending: false })
+  if (limite) q = q.limit(limite)
+  const { data, error } = await q
+  if (error) throw error
+  return (data || []).map(normalizarObra)
+}
+
+export async function obtenerObra(id) {
+  const { data, error } = await supabase.from('fichas').select(CAMPOS).eq('id', id).maybeSingle()
+  if (error) throw error
+  return normalizarObra(data)
+}
+
+export async function listarCategorias() {
+  const { data, error } = await supabase.from('categorias').select('*').order('nombre')
+  if (error) throw error
+  return data || []
+}
+
+export async function enviarConsulta(consulta) {
+  const { error } = await supabase.from('consultas').insert({ ...consulta, estado: 'nueva' })
+  if (error) throw error
+}
