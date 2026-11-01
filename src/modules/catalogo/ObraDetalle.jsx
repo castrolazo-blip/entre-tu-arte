@@ -19,6 +19,7 @@ export default function ObraDetalle() {
   const [foto, setFoto] = useState(0)
   const [consulta, setConsulta] = useState(null)
   const [ampliada, setAmpliada] = useState(false)
+  const [proporciones, setProporciones] = useState({})   // url → ancho/alto de cada foto
 
   useEffect(() => {
     setObra(undefined); setFoto(0)
@@ -42,6 +43,7 @@ export default function ObraDetalle() {
   )
 
   const vendida = obra.estadoEfectivo === 'vendida'
+  const proporcion = Math.min(1.5, Math.max(0.72, proporciones[(obra.fotos[foto] || obra.fotos[0])?.url] || 1.25))
   const reservada = obra.estadoEfectivo === 'reservada'
   const actual = obra.fotos[foto] || obra.fotos[0]
   const ficha = [
@@ -58,8 +60,13 @@ export default function ObraDetalle() {
       </div>
       <section className="contenedor flex flex-wrap items-start gap-10 pb-20 pt-6 md:gap-14">
         <div className="flex min-w-0 flex-[1.2_1_560px] flex-col gap-4">
-          <div className="relative aspect-[5/4] overflow-hidden rounded-[28px] bg-tinta-suave shadow-[0_30px_60px_-36px_rgba(23,22,20,0.8)] md:rounded-[34px]">
-            {actual && <img src={actual.url} alt={`${obra.titulo}, ${ROLES[actual.rol] || 'foto'}`} className={`absolute inset-0 h-full w-full ${actual.rol === 'principal' ? 'object-contain p-6 drop-shadow-[0_16px_22px_rgba(0,0,0,0.35)]' : 'object-cover'} ${vendida ? 'grayscale-[40%]' : ''}`} />}
+          {/* El visor toma la forma de la foto (vertical u horizontal) y la muestra completa */}
+          <div className="relative overflow-hidden rounded-[28px] bg-tinta-suave shadow-[0_30px_60px_-36px_rgba(23,22,20,0.8)] transition-[aspect-ratio] duration-300 md:rounded-[34px]"
+            style={{ aspectRatio: String(proporcion), width: '100%', maxWidth: `calc(78vh * ${proporcion})`, marginInline: 'auto' }}>
+            {actual && <img src={actual.url} alt="" aria-hidden="true" className="absolute -inset-8 h-[calc(100%+64px)] w-[calc(100%+64px)] max-w-none object-cover opacity-60" style={{ filter: 'blur(24px)' }} />}
+            {actual && <img src={actual.url} alt={`${obra.titulo}, ${ROLES[actual.rol] || 'foto'}`}
+              onLoad={e => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; if (w && h) setProporciones(p => ({ ...p, [actual.url]: w / h })) }}
+              className={`absolute inset-0 h-full w-full object-contain ${actual.rol === 'principal' ? 'p-6 drop-shadow-[0_16px_22px_rgba(0,0,0,0.35)]' : ''} ${vendida ? 'grayscale-[40%]' : ''}`} />}
             {actual && <span className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3.5 py-2 text-[13px] font-semibold">{ROLES[actual.rol] || 'Foto'}</span>}
             {actual && <button onClick={() => setAmpliada(true)} aria-label="Ver en pantalla completa" className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/95"><Maximize2 size={18} /></button>}
           </div>
