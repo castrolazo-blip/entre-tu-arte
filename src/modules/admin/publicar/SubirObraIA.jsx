@@ -37,6 +37,7 @@ export default function SubirObraIA() {
   const [caja, setCaja] = useState(null)             // encuadre de la obra en la foto principal
   const [trabajo, setTrabajo] = useState(null)       // { id, estado, orden }
   const [errorIA, setErrorIA] = useState('')
+  const [errorFoto, setErrorFoto] = useState('')
   const [artistas, setArtistas] = useState([])
   const [categorias, setCategorias] = useState([])
   const [vistaMejorada, setVistaMejorada] = useState(true)
@@ -163,7 +164,7 @@ export default function SubirObraIA() {
     const archivo = e.target.files?.[0]
     e.target.value = ''
     if (!archivo) return
-    setSubiendo(ranura)
+    setSubiendo(ranura); setErrorFoto('')
     try {
       const reducido = await reducirImagen(archivo, 2400, 0.9)
       const url = await subirArchivo('obras', reducido)
@@ -171,7 +172,7 @@ export default function SubirObraIA() {
       setFotos(f => ({ ...f, [ranura]: { url, img } }))
       if (ranura === 'principal') { setCaja(null); setTrabajo(null) }
     } catch (err) {
-      toast.error('No se pudo subir la foto: ' + (err.message || err))
+      setErrorFoto(err.message || String(err)); toast.error('No se pudo subir la foto')
     } finally { setSubiendo('') }
   }
 
@@ -313,6 +314,7 @@ export default function SubirObraIA() {
               </label>
             </div>
           )}
+          {errorFoto && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">No se pudo subir la foto. {errorFoto}</p>}
           <ul aria-label="Consejos" className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-semibold">
             {['De frente', 'Luz natural', 'Sin reflejos'].map(t => <li key={t} className="rounded-[18px] bg-white px-2 py-3">{t}</li>)}
           </ul>

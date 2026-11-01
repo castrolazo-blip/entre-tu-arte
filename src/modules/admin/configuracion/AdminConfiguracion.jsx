@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { guardarConfig } from '../adminService.js'
+import { guardarConfig, subirArchivo } from '../adminService.js'
+import { supabase, BUCKET } from '../../../lib/supabase.js'
 import { useConfig } from '../../../context/ConfigContext.jsx'
 import { leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
@@ -23,6 +24,28 @@ export default function AdminConfiguracion() {
   const [valores, setValores] = useState({})
   const [clave, setClave] = useState(leerClaveIA() ? '••••••••' : '')
   const [guardando, setGuardando] = useState(false)
+  const [diag, setDiag] = useState(null)
+
+  // Revisa paso a paso lo necesario para subir obras y muestra el resultado en pantalla.
+  async function diagnosticar() {
+    const r = []
+    const anotar = (t, ok, detalle) => { r.push({ t, ok, detalle }); setDiag([...r]) }
+    setDiag([])
+    const { data: s } = await supabase.auth.getSession()
+    anotar('Sesión iniciada', !!s.session, s.session?.user?.email || 'No hay sesión')
+    const { data: adm, error: eAdm } = await supabase.from('admins').select('user_id').eq('user_id', s.session?.user?.id || '').maybeSingle()
+    anotar('Registrado como administrador', !!adm, eAdm ? eAdm.message : adm ? 'Sí' : 'Tu usuario no está en la tabla admins')
+    try {
+      const c = document.createElement('canvas'); c.width = 8; c.height = 8
+      const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.8))
+      const url = await subirArchivo('pruebas', new File([blob], 'prueba.jpg', { type: 'image/jpeg' }))
+      anotar('Subir fotos al almacenamiento', true, 'Funciona')
+      const ruta = url.split(`/object/public/${BUCKET}/`)[1]
+      if (ruta) await supabase.storage.from(BUCKET).remove([ruta])
+    } catch (err) { anotar('Subir fotos al almacenamiento', false, err.message) }
+    const { error: eF } = await supabase.from('fichas').select('existencias, fotos, destacada').limit(1)
+    anotar('Base de datos actualizada (migración)', !eF, eF ? eF.message : 'Sí')
+  }
 
   useEffect(() => { setValores(cfg) }, [cfg])
 
@@ -61,6 +84,21 @@ export default function AdminConfiguracion() {
         ))}
         <button disabled={guardando} className="btn-primario">{guardando ? 'Guardando…' : 'Guardar configuración'}</button>
       </form>
+
+      <section className="mt-5 max-w-3xl rounded-[28px] bg-white p-5 md:p-6">
+        <h2 className="text-lg font-bold">Diagnóstico</h2>
+        <p className="mt-1 text-sm text-gris">Revisa si todo está listo para subir obras y fotos.</p>
+        <button type="button" onClick={diagnosticar} className="btn-oscuro mt-3 h-12">Probar conexión y subida de fotos</button>
+        {diag && (
+          <ul className="mt-4 space-y-2">
+            {diag.map(d => (
+              <li key={d.t} className={`rounded-2xl p-3 text-sm ${d.ok ? 'bg-green-50 text-green-900' : 'bg-red-50 text-red-900'}`}>
+                <span className="font-bold">{d.ok ? '✓' : '✕'} {d.t}</span><span className="block">{d.detalle}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-5 max-w-3xl rounded-[28px] bg-white p-5 md:p-6">
         <h2 className="text-lg font-bold">Clave de la IA</h2>

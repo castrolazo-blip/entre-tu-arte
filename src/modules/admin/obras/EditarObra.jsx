@@ -56,6 +56,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     }
   }
   const [subiendo, setSubiendo] = useState(false)
+  const [errorFoto, setErrorFoto] = useState('')
 
   useEffect(() => {
     supabase.from('artistas').select('id, nombre').order('nombre').then(({ data }) => setArtistas(data || []))
@@ -66,11 +67,11 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
   async function agregarFoto(e) {
     const a = e.target.files?.[0]; e.target.value = ''
     if (!a) return
-    setSubiendo(true)
+    setSubiendo(true); setErrorFoto('')
     try {
       const url = await subirArchivo('obras', await reducirImagen(a, 2000))
       setFotos(fs => [...fs, { url, rol: ROLES[fs.length] || 'detalle' }].slice(0, 3))
-    } catch (err) { toast.error('No se pudo subir: ' + err.message) } finally { setSubiendo(false) }
+    } catch (err) { setErrorFoto(err.message || String(err)); toast.error('No se pudo subir la foto') } finally { setSubiendo(false) }
   }
 
   async function guardar(e) {
@@ -121,6 +122,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
               </label>
             )}
           </div>
+          {errorFoto && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">No se pudo subir la foto. {errorFoto}</p>}
           {obra.ficha_url && <a href={obra.ficha_url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Ver ficha para redes</a>}
         </section>
 
