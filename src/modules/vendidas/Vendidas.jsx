@@ -41,8 +41,8 @@ export default function Vendidas() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {lista.map(o => (
               <article key={o.id} className="tarjeta overflow-hidden">
-                <Link to={`/obra/${o.id}`} className="relative block aspect-[4/3]">
-                  {o.foto && <img src={o.foto} alt={`${o.titulo}, vendida`} loading="lazy" className="absolute inset-0 h-full w-full object-cover grayscale-[55%]" />}
+                <Link to={`/obra/${o.id}`} className="relative block aspect-[4/3] bg-[#ece7df]">
+                  {o.foto && <img src={o.foto} alt={`${o.titulo}, vendida`} loading="lazy" className="absolute inset-0 h-full w-full object-contain p-3" />}
                   <span className="absolute left-4 top-4 rounded-full bg-tinta px-3.5 py-2 text-xs font-bold tracking-wider text-white">VENDIDA</span>
                 </Link>
                 <div className="p-6">

@@ -9,7 +9,7 @@ export default function TarjetaObra({ obra, compacta = false }) {
   return (
     <article className="tarjeta overflow-hidden">
       <Link to={`/obra/${obra.id}`} className="relative block aspect-[4/3] bg-[#ece7df]">
-        {obra.foto && <img src={obra.foto} alt={obra.titulo} loading="lazy" className={`absolute inset-0 h-full w-full object-contain p-4 drop-shadow-[0_10px_14px_rgba(23,22,20,0.25)] ${vendida ? 'grayscale-[55%]' : ''}`} />}
+        {obra.foto && <img src={obra.foto} alt={obra.titulo} loading="lazy" className={`absolute inset-0 h-full w-full object-contain p-4 drop-shadow-[0_10px_14px_rgba(23,22,20,0.25)]`} />}
         <span className={`absolute left-4 top-4 rounded-full px-3.5 py-2 text-xs font-bold ${tag.clase}`}>{tag.texto}</span>
         {obra.tipo_obra === 'interpretacion' && <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-2 text-xs font-bold">Interpretación</span>}
         {obra.tipo_obra === 'original' && obra.certificado && <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-2 text-xs font-bold">Original · Certificada</span>}

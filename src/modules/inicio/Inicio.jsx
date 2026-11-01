@@ -93,8 +93,8 @@ export default function Inicio() {
             <div className="sin-scroll -mx-5 flex gap-4 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-4 md:px-0">
               {vendidas.map(o => (
                 <Link key={o.id} to={`/obra/${o.id}`} className="w-52 shrink-0 md:w-auto">
-                  <span className="relative block aspect-[4/3] overflow-hidden rounded-3xl">
-                    {o.foto && <img src={o.foto} alt={`${o.titulo}, vendida`} loading="lazy" className="absolute inset-0 h-full w-full object-cover grayscale-[50%]" />}
+                  <span className="relative block aspect-[4/3] overflow-hidden rounded-3xl bg-[#ece7df]">
+                    {o.foto && <img src={o.foto} alt={`${o.titulo}, vendida`} loading="lazy" className="absolute inset-0 h-full w-full object-contain p-3" />}
                     <span className="absolute left-3.5 top-3.5 rounded-full bg-tinta px-3 py-1.5 text-[11px] font-bold tracking-wider text-white">VENDIDA</span>
                   </span>
                   <span className="mt-3 block text-lg font-semibold">{o.titulo}</span>

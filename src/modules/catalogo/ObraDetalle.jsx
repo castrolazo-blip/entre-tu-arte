@@ -67,7 +67,7 @@ export default function ObraDetalle() {
             {actual && <img src={actual.url} alt="" aria-hidden="true" className="absolute -inset-8 h-[calc(100%+64px)] w-[calc(100%+64px)] max-w-none object-cover opacity-60" style={{ filter: 'blur(24px)' }} />}
             {actual && <img src={actual.url} alt={`${obra.titulo}, ${ROLES[actual.rol] || 'foto'}`}
               onLoad={e => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; if (w && h) setProporciones(p => ({ ...p, [actual.url]: w / h })) }}
-              className={`absolute inset-0 h-full w-full object-contain ${actual.rol === 'principal' ? 'p-6 drop-shadow-[0_16px_22px_rgba(0,0,0,0.35)]' : ''} ${vendida ? 'grayscale-[40%]' : ''}`} />}
+              className={`absolute inset-0 h-full w-full object-contain ${actual.rol === 'principal' ? 'p-6 drop-shadow-[0_16px_22px_rgba(0,0,0,0.35)]' : ''}`} />}
             {actual && <span className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3.5 py-2 text-[13px] font-semibold">{ROLES[actual.rol] || 'Foto'}</span>}
             {actual && <button onClick={() => setAmpliada(true)} aria-label="Ver en pantalla completa" className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/95"><Maximize2 size={18} /></button>}
           </div>
