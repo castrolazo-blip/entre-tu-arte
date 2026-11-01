@@ -3,12 +3,18 @@
 El orden importa: la migración activa la seguridad y desde ese momento el panel viejo
 (contraseña dentro de la página) deja de poder escribir.
 
-## 1. Publicar la web nueva (Vercel, igual que Sport Car)
-1. En vercel.com › Add New › Project, importa el repositorio `entre-tu-arte`.
-2. Framework: **Vite** (se detecta solo). Build: `npm run build`. Output: `dist`.
-3. Conecta tu dominio en Settings › Domains.
+## 1. Publicar la web nueva (GitHub Pages, como hasta ahora)
+La web nueva se compila antes de publicarse; de eso se encarga `.github/workflows/publicar.yml`.
 
-`vercel.json` ya hace que rutas como `/obra/12` funcionen al recargar la página.
+1. **Antes de unir la rama a `main`**: en GitHub › repositorio › Settings › Pages ›
+   Build and deployment › Source, elige **"GitHub Actions"** (hoy dice "Deploy from a branch").
+   Si unes sin hacer este cambio, el sitio quedaría en blanco.
+2. Une el pull request a `main`. En la pestaña Actions verás "Publicar en GitHub Pages";
+   al terminar (unos 2 minutos) el sitio queda en `https://castrolazo-blip.github.io/entre-tu-arte/`.
+3. **Si usas dominio propio**: Settings › Secrets and variables › Actions › Variables ›
+   New variable `VITE_BASE` = `/` y vuelve a correr el proceso desde Actions.
+
+Alternativa: Vercel (igual que Sport Car). `vercel.json` ya está listo; solo importa el repositorio.
 
 ## 2. Crear tu usuario administrador
 Supabase (proyecto de Entre tu Arte) › Authentication › Users › **Add user**:

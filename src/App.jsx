@@ -36,7 +36,7 @@ const AdminConfiguracion = lazy(() => import('./modules/admin/configuracion/Admi
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <AuthProvider>
         <ConfigProvider>
           <ErrorBoundary>

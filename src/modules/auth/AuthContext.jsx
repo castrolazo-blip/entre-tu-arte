@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
     cargando,
     entrar: (email, password) => supabase.auth.signInWithPassword({ email, password }),
     salir: () => supabase.auth.signOut(),
-    recuperar: (email) => supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/login' }),
+    recuperar: (email) => supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + import.meta.env.BASE_URL + 'login' }),
   }
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>
 }

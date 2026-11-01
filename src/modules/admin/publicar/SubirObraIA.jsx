@@ -63,7 +63,7 @@ export default function SubirObraIA() {
         soportes: [...new Set([...SOPORTES_BASE, ...parse(cfg.pub_soportes)])],
       })
     })
-    cargarImagen('/logo-entre-tu-arte.jpg').then(setLogo).catch(() => {})
+    cargarImagen(`${import.meta.env.BASE_URL}logo-entre-tu-arte.jpg`).then(setLogo).catch(() => {})
     leerBorrador().then(async b => {
       if (b?.fotos?.length) {
         const recuperadas = await Promise.all(b.fotos.map(async f => ({ ...f, img: await cargarImagen(f.url).catch(() => null) })))

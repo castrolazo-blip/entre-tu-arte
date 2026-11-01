@@ -46,4 +46,5 @@ npm run dev      # http://localhost:5173
 npm run build    # genera dist/
 ```
 
+Se publica en GitHub Pages con `.github/workflows/publicar.yml` cada vez que hay cambios en `main`.
 Para publicar por primera vez sigue `docs/PUESTA_EN_MARCHA.md`.
