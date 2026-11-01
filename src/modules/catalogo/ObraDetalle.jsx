@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowRight, ShieldCheck, Frame, Maximize2 } from 'lucide-react'
 import { obtenerObra, listarObras, etiquetaExistencias } from './obrasService.js'
 import { precio } from '../../lib/formato.js'
+import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
 import { registrarEvento } from '../../lib/analytics.js'
 import FormularioConsulta from '../../components/obras/FormularioConsulta.jsx'
 import TarjetaObra from '../../components/obras/TarjetaObra.jsx'
@@ -44,7 +45,7 @@ export default function ObraDetalle() {
   const reservada = obra.estadoEfectivo === 'reservada'
   const actual = obra.fotos[foto] || obra.fotos[0]
   const ficha = [
-    ['Medidas', obra.medidasTexto], ['Técnica', obra.tecnica], ['Soporte', obra.soporte],
+    ['Medidas', obra.medidasTexto], ['Formato', ORIENTACIONES[orientacionPorMedidas(obra)]], ['Técnica', obra.tecnica], ['Soporte', obra.soporte],
     ['Estilo', obra.estilo], ['Año', obra.anio], ['Existencias', vendida ? 'Vendida' : etiquetaExistencias(obra)],
   ].filter(f => f[1])
   const palabras = obra.titulo.split(' ')
@@ -58,7 +59,7 @@ export default function ObraDetalle() {
       <section className="contenedor flex flex-wrap items-start gap-10 pb-20 pt-6 md:gap-14">
         <div className="flex min-w-0 flex-[1.2_1_560px] flex-col gap-4">
           <div className="relative aspect-[5/4] overflow-hidden rounded-[28px] bg-tinta-suave shadow-[0_30px_60px_-36px_rgba(23,22,20,0.8)] md:rounded-[34px]">
-            {actual && <img src={actual.url} alt={`${obra.titulo}, ${ROLES[actual.rol] || 'foto'}`} className={`absolute inset-0 h-full w-full object-cover ${vendida ? 'grayscale-[40%]' : ''}`} />}
+            {actual && <img src={actual.url} alt={`${obra.titulo}, ${ROLES[actual.rol] || 'foto'}`} className={`absolute inset-0 h-full w-full ${actual.rol === 'principal' ? 'object-contain p-6 drop-shadow-[0_16px_22px_rgba(0,0,0,0.35)]' : 'object-cover'} ${vendida ? 'grayscale-[40%]' : ''}`} />}
             {actual && <span className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3.5 py-2 text-[13px] font-semibold">{ROLES[actual.rol] || 'Foto'}</span>}
             {actual && <button onClick={() => setAmpliada(true)} aria-label="Ver en pantalla completa" className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/95"><Maximize2 size={18} /></button>}
           </div>

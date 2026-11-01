@@ -32,6 +32,17 @@ function cubrir(ctx, img, x, y, w, h, radio = 0) {
   ctx.restore()
 }
 
+// Dibuja la obra completa dentro de la caja, a su proporción real, centrada y con sombra.
+function obraCompleta(ctx, img, cx, cy, maxW, maxH, radio = 18, sombra = 'rgba(23,22,20,0.35)') {
+  const e = Math.min(maxW / img.width, maxH / img.height)
+  const w = img.width * e, h = img.height * e
+  const x = cx - w / 2, y = cy - h / 2
+  ctx.save(); ctx.shadowColor = sombra; ctx.shadowBlur = 40; ctx.shadowOffsetY = 18
+  ctx.fillStyle = '#fff'; redondeado(ctx, x, y, w, h, radio); ctx.fill(); ctx.restore()
+  cubrir(ctx, img, x, y, w, h, radio)
+  return { x, y, w, h }
+}
+
 function logo(ctx, x, y, claro, escala = 1) {
   const s = escala
   ctx.save()
@@ -118,9 +129,7 @@ export function dibujarPublicacion(formatoId, { datos, imagenes }) {
     ctx.fillStyle = CREMA; ctx.fillRect(0, 0, W, H)
     logo(ctx, 64, 56, false)
     if (datos.existencias) pastilla(ctx, datos.existencias, W - 64, 74, { fondo: TINTA, color: '#fff', tam: 26, alineado: 'der' })
-    ctx.save(); ctx.shadowColor = 'rgba(23,22,20,0.35)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 18
-    ctx.fillStyle = '#fff'; redondeado(ctx, 64, 200, W - 128, 690, 44); ctx.fill(); ctx.restore()
-    if (imagenes.obra) cubrir(ctx, imagenes.obra, 64, 200, W - 128, 690, 44)
+    if (imagenes.obra) obraCompleta(ctx, imagenes.obra, W / 2, 200 + 345, W - 128, 690, 28)
     const fin = titulo(ctx, nombre, 64, 1000, W - 128, { tam: 76, maxLineas: 2 })
     textoAjustado(ctx, meta, 64, fin + 62, W - 128, F(500, 30), GRIS)
     if (p) { ctx.font = F(700, 72); ctx.fillStyle = TINTA; ctx.fillText(p, 64, H - 70) }
@@ -146,11 +155,7 @@ export function dibujarPublicacion(formatoId, { datos, imagenes }) {
     ctx.textAlign = 'center'
     ctx.font = F(700, 34); ctx.fillStyle = MOSTAZA; ctx.fillText('N U E V A   O B R A', W / 2, 370)
     ctx.textAlign = 'left'
-    if (imagenes.obra) {
-      const iw = W - 160, ih = 820
-      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 50; ctx.fillStyle = '#000'; redondeado(ctx, 80, 430, iw, ih, 40); ctx.fill(); ctx.restore()
-      cubrir(ctx, imagenes.obra, 80, 430, iw, ih, 40)
-    }
+    if (imagenes.obra) obraCompleta(ctx, imagenes.obra, W / 2, 430 + 410, W - 160, 820, 24, 'rgba(0,0,0,0.55)')
     const fin = titulo(ctx, nombre, 80, 1400, W - 160, { tam: 86, claro: true, resalte: 'color', centro: true, maxLineas: 2 })
     textoAjustado(ctx, [datos.medidas, datos.existencias].filter(Boolean).join(' · '), W / 2, fin + 70, W - 160, F(500, 34), 'rgba(255,255,255,0.78)', 'center')
     pastilla(ctx, p ? `Disponible · ${p}` : 'Disponible', W / 2, H - 230, { fondo: MOSTAZA, color: TINTA, tam: 40, alineado: 'centro' })

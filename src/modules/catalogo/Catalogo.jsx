@@ -5,6 +5,7 @@ import TarjetaObra from '../../components/obras/TarjetaObra.jsx'
 import TituloSeccion from '../../components/TituloSeccion.jsx'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
 import { listarObras, listarCategorias } from './obrasService.js'
+import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
 
 const ORDENES = [
   ['recientes', 'Más recientes'],
@@ -17,6 +18,7 @@ export default function Catalogo() {
   const coleccion = params.get('coleccion') || ''
   const orden = params.get('orden') || 'recientes'
   const q = params.get('q') || ''
+  const formato = params.get('formato') || ''
   const [texto, setTexto] = useState(q)
   const [obras, setObras] = useState(null)
   const [categorias, setCategorias] = useState([])
@@ -30,6 +32,8 @@ export default function Catalogo() {
       .then(setObras).catch(() => setObras([]))
   }, [coleccion, orden, q])
 
+  const lista = (obras || []).filter(o => !formato || orientacionPorMedidas(o) === formato)
+
   function cambiar(clave, valor) {
     const p = new URLSearchParams(params)
     p.delete('buscar')
@@ -41,7 +45,7 @@ export default function Catalogo() {
     <div className="contenedor pb-24 pt-28 md:pt-36">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
         <TituloSeccion titulo={coleccion || 'Obras disponibles'}>
-          <p className="mt-4 text-gris">{obras ? `${obras.length} ${obras.length === 1 ? 'obra' : 'obras'}` : ' '}</p>
+          <p className="mt-4 text-gris">{obras ? `${lista.length} ${lista.length === 1 ? 'obra' : 'obras'}` : ' '}</p>
         </TituloSeccion>
         <form onSubmit={e => { e.preventDefault(); cambiar('q', texto.trim()) }} className="flex w-full max-w-md items-center gap-2 rounded-full bg-white px-5 shadow-sm">
           <Search size={19} className="text-gris" />
@@ -56,14 +60,22 @@ export default function Catalogo() {
             <button key={c.id} onClick={() => cambiar('coleccion', c.nombre)} className={`chip ${coleccion === c.nombre ? 'chip-on' : 'chip-off'}`}>{c.nombre}</button>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-3 text-sm font-semibold">Formato
+          <select value={formato} onChange={e => cambiar('formato', e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
+            <option value="">Todos</option>
+            {Object.entries(ORIENTACIONES).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+          </select>
+        </label>
         <label className="flex items-center gap-3 text-sm font-semibold">Ordenar
           <select value={orden} onChange={e => cambiar('orden', e.target.value === 'recientes' ? '' : e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
             {ORDENES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
         </label>
+        </div>
       </div>
-      {!obras ? <CargandoModulo /> : obras.length
-        ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{obras.map(o => <TarjetaObra key={o.id} obra={o} />)}</div>
+      {!obras ? <CargandoModulo /> : lista.length
+        ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{lista.map(o => <TarjetaObra key={o.id} obra={o} />)}</div>
         : <p className="rounded-[28px] bg-white p-12 text-center text-gris">No encontramos obras con esos filtros. Prueba con otra colección o escríbenos y te ayudamos.</p>}
     </div>
   )

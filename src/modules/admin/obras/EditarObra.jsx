@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
 import { subirArchivo, reducirImagen } from '../adminService.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
+import { ORIENTACIONES, orientacionPorMedidas } from '../../../lib/orientacion.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
 
@@ -149,6 +150,12 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
             <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={f.ancho} onChange={c('ancho')} className="campo mt-1.5" /></label>
             <label className="etiqueta">Diámetro<input inputMode="decimal" value={f.diametro} onChange={c('diametro')} className="campo mt-1.5" /></label>
           </div>
+          {orientacionPorMedidas({ alto_cm: numero(f.alto), ancho_cm: numero(f.ancho), diametro_cm: numero(f.diametro) }) && (
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-crema-clara px-4 py-2.5 text-sm sm:col-span-2">
+              <span>Formato: <strong>{ORIENTACIONES[orientacionPorMedidas({ alto_cm: numero(f.alto), ancho_cm: numero(f.ancho), diametro_cm: numero(f.diametro) })]}</strong> (según las medidas)</span>
+              {!numero(f.diametro) && <button type="button" onClick={() => setF(v => ({ ...v, alto: v.ancho, ancho: v.alto }))} className="text-sm font-semibold underline">Invertir alto y ancho</button>}
+            </div>
+          )}
           <label className="etiqueta">Existencias disponibles<input inputMode="numeric" value={f.existencias} onChange={c('existencias')} className="campo mt-1.5" /></label>
           <label className="etiqueta">Total de la edición<input inputMode="numeric" value={f.edicion_total} onChange={c('edicion_total')} placeholder="Vacío = pieza única" className="campo mt-1.5" /></label>
           <label className="etiqueta sm:col-span-2">Descripción<textarea rows={4} value={f.descripcion} onChange={c('descripcion')} className="campo mt-1.5" /></label>

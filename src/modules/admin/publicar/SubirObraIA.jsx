@@ -12,6 +12,7 @@ import { recortarObra, mejorarImagen, aBlob } from './imagenObra.js'
 import { AMBIENTES, dibujarAmbiente } from './ambientes.js'
 import { FORMATOS, dibujarPublicacion, cargarFuentes } from './publicaciones.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
+import { ORIENTACIONES, orientacionPorProporcion } from '../../../lib/orientacion.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 
 const RANURAS = [
@@ -139,6 +140,11 @@ export default function SubirObraIA() {
   }, [fotos.principal, caja])
   const obraFinal = obraCanvas ? (campos.mejorar ? obraCanvas.mejorada : obraCanvas.recorte) : null
   const obraFinalURL = useMemo(() => aURL(obraFinal), [obraFinal])
+  // Orientación detectada en la foto recortada y la que indican las medidas escritas
+  const orientacionFoto = obraCanvas ? orientacionPorProporcion(obraCanvas.recorte.width, obraCanvas.recorte.height) : null
+  const orientacionMedidas = circular ? 'redonda' : orientacionPorProporcion(cm.ancho, cm.alto)
+  const medidasContradicen = orientacionFoto && orientacionMedidas && orientacionMedidas !== 'redonda' && orientacionFoto !== 'cuadrada' && orientacionMedidas !== 'cuadrada' && orientacionFoto !== orientacionMedidas
+  const invertirMedidas = () => setCampos(f => ({ ...f, alto: f.ancho, ancho: f.alto }))
 
   // ── Ambientes y publicaciones (vista previa) ──
   useEffect(() => {
@@ -377,6 +383,7 @@ export default function SubirObraIA() {
           <div className="mt-3 flex justify-center overflow-hidden rounded-[24px] bg-[#e9e4dc] p-3">
             <img src={vistaMejorada ? obraFinalURL : fotos.principal.img.src} alt={vistaMejorada ? 'Obra recortada y mejorada' : 'Foto original'} className="max-h-[380px] rounded-lg object-contain shadow-lg" />
           </div>
+          {orientacionFoto && <p className="mt-3 text-center text-sm font-semibold">Obra <span className="rounded-full bg-mostaza px-3 py-1">{ORIENTACIONES[orientacionFoto].toLowerCase()}</span> · detectada en la foto</p>}
           <button type="button" role="switch" aria-checked={campos.mejorar} onClick={() => cambiar('mejorar', !campos.mejorar)}
             className="mt-3 flex w-full items-center justify-between rounded-[18px] bg-white px-4 py-3 text-left text-sm font-semibold">
             Mejorar luz y color automáticamente
@@ -425,6 +432,14 @@ export default function SubirObraIA() {
               <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={campos.ancho} onChange={e => cambiar('ancho', e.target.value)} className="campo mt-1.5" /></label>
             </>}
           </div>
+          {medidasContradicen ? (
+            <div role="alert" className="flex items-center justify-between gap-3 rounded-[18px] bg-mostaza-fondo p-3 text-sm">
+              <span>La foto es <strong>{ORIENTACIONES[orientacionFoto].toLowerCase()}</strong>, pero las medidas indican {ORIENTACIONES[orientacionMedidas].toLowerCase()}. ¿Están al revés?</span>
+              <button type="button" onClick={invertirMedidas} className="btn-oscuro btn-chico shrink-0 px-4">Invertir</button>
+            </div>
+          ) : (orientacionMedidas || orientacionFoto) && (
+            <p className="text-sm font-semibold">Formato: <span className="rounded-full bg-white px-3 py-1">{ORIENTACIONES[orientacionMedidas || orientacionFoto]}</span></p>
+          )}
           <div role="radiogroup" aria-label="Existencias" className="grid grid-cols-2 rounded-full bg-white p-1">
             {[['unica', 'Pieza única'], ['edicion', 'Edición limitada']].map(([v, t]) => (
               <button key={v} role="radio" aria-checked={campos.tipoExistencias === v} onClick={() => cambiar('tipoExistencias', v)}
