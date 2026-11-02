@@ -23,6 +23,7 @@ export default function Catalogo() {
   const q = params.get('q') || ''
   const formato = params.get('formato') || ''
   const tipo = params.get('tipo') || ''
+  const piezas = params.get('piezas') || ''
   const [texto, setTexto] = useState(q)
   const claveLista = JSON.stringify([coleccion, orden, q])
   const [obras, setObras] = useState(() => memoria.get(claveLista) || null)
@@ -37,7 +38,7 @@ export default function Catalogo() {
       .then(l => { memoria.set(claveLista, l); setObras(l) }).catch(() => { if (!memoria.has(claveLista)) setObras([]) })
   }, [coleccion, orden, q])
 
-  const lista = (obras || []).filter(o => (!formato || orientacionPorMedidas(o) === formato) && (!tipo || o.tipo_obra === tipo))
+  const lista = (obras || []).filter(o => (!formato || orientacionPorMedidas(o) === formato) && (!tipo || o.tipo_obra === tipo) && (!piezas || (piezas === 'juego' ? o.piezas > 1 : o.piezas === 1)))
 
   function cambiar(clave, valor) {
     const p = new URLSearchParams(params)
@@ -69,6 +70,11 @@ export default function Catalogo() {
         <label className="flex items-center gap-3 text-sm font-semibold">Tipo
           <select value={tipo} onChange={e => cambiar('tipo', e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
             <option value="">Todas</option><option value="original">Originales</option><option value="interpretacion">Interpretaciones</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-3 text-sm font-semibold">Piezas
+          <select value={piezas} onChange={e => cambiar('piezas', e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
+            <option value="">Todas</option><option value="una">Una pieza</option><option value="juego">Juegos (dípticos, trípticos…)</option>
           </select>
         </label>
         <label className="flex items-center gap-3 text-sm font-semibold">Formato

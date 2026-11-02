@@ -65,10 +65,15 @@ Devuelve:
   Disponible. Escríbenos al WhatsApp (503) 7797-9504"
   Texto plano, sin markdown.
 - hashtags: 5 o 6 hashtags, sin espacios, incluyendo #EntreTuArte.
+- piezas: cuántas piezas o lienzos separados forman la obra en la foto principal (1 si es una
+  sola; 2 si es un díptico, 3 si es un tríptico, etc.). Cuenta solo bastidores físicamente
+  separados que se cuelgan como un juego, no zonas de color dentro de un mismo lienzo. Si son
+  varias piezas, nómbralas y descríbelas como un solo conjunto.
 - encuadres: uno por cada foto, en el mismo orden en que te las paso (foto 1, 2, 3). Sirven para
   encuadrar cada foto en la ficha sin cortar la obra. Para cada foto da el rectángulo, en
   fracciones de 0 a 1 del ancho y alto de ESA foto (x, y = esquina superior izquierda), que
-  contiene la obra COMPLETA incluido su bastidor o marco, bien ajustado a sus bordes. Si la obra
+  contiene la obra COMPLETA incluido su bastidor o marco, bien ajustado a sus bordes (si es un
+  juego de varias piezas, el rectángulo debe contener todas las piezas juntas). Si la obra
   se ve en perspectiva, el rectángulo debe abarcar todas sus esquinas. Si la foto es un
   acercamiento de textura donde la obra no se ve completa, da la zona de textura más atractiva,
   nítida y con más relieve.
@@ -88,6 +93,7 @@ const ESQUEMA = {
     espacios: { type: "array", items: { type: "string" } },
     publicacion: { type: "string" },
     hashtags: { type: "array", items: { type: "string" } },
+    piezas: { type: "integer" },
     encuadres: {
       type: "array",
       items: {
@@ -104,7 +110,7 @@ const ESQUEMA = {
       },
     },
   },
-  required: ["nombre", "descripcion", "estilo", "tecnica", "espacios", "publicacion", "hashtags", "encuadres"],
+  required: ["nombre", "descripcion", "estilo", "tecnica", "espacios", "publicacion", "hashtags", "piezas", "encuadres"],
   additionalProperties: false,
 };
 

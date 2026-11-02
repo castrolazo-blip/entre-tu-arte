@@ -1,3 +1,4 @@
+import { textoMedidasJuego } from './piezas.js'
 // Utilidades de presentación compartidas por la tienda y el panel de administración.
 
 export function precio(valor) {
@@ -18,7 +19,8 @@ export function slugify(texto) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-export function medidasTexto({ alto_cm, ancho_cm, diametro_cm, medidas }) {
+export function medidasTexto({ alto_cm, ancho_cm, diametro_cm, medidas, piezas, medidas_piezas }) {
+  if (Number(piezas) > 1) return textoMedidasJuego({ alto_cm, ancho_cm, piezas, medidas_piezas })
   if (diametro_cm) return `${Number(diametro_cm)} cm de diámetro`
   if (alto_cm && ancho_cm) return `${Number(alto_cm)} × ${Number(ancho_cm)} cm`
   return medidas || ''

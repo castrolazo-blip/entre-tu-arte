@@ -4,6 +4,7 @@ import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check } from 'l
 import { obtenerObra, listarObras, etiquetaExistencias, textoTipo } from './obrasService.js'
 import { precio } from '../../lib/formato.js'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
+import { nombreJuego } from '../../lib/piezas.js'
 import { registrarEvento } from '../../lib/analytics.js'
 import FormularioConsulta from '../../components/obras/FormularioConsulta.jsx'
 import TarjetaObra from '../../components/obras/TarjetaObra.jsx'
@@ -52,6 +53,7 @@ export default function ObraDetalle() {
   const actual = obra.fotos[foto] || obra.fotos[0]
   const ficha = [
     ['Tipo', textoTipo(obra)], ['Certificado', obra.certificado ? 'Incluye certificado de autenticidad' : ''],
+    ['Piezas', obra.piezas > 1 ? `${nombreJuego(obra.piezas)} · se vende como juego completo` : ''],
     ['Medidas', obra.medidasTexto], ['Formato', ORIENTACIONES[orientacionPorMedidas(obra)]], ['Técnica', obra.tecnica], ['Soporte', obra.soporte],
     ['Estilo', obra.estilo], ['Año', obra.anio], ['Existencias', vendida ? 'Vendida' : etiquetaExistencias(obra)],
   ].filter(f => f[1])

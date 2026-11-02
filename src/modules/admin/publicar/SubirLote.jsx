@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Images, Sparkles, Check, Loader2, AlertCircle, X } from 'lucide-react'
+import { Images, Sparkles, Check, Loader2, AlertCircle, X, Minus, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
@@ -13,6 +13,7 @@ import { dibujarPublicacion, cargarFuentes } from './publicaciones.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
 import SelectorTipoObra, { notaTipoParaIA, faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
+import { medidaConjunto, insigniaJuego } from '../../../lib/piezas.js'
 
 const MAX_OBRAS = 20
 const SIMULTANEAS = 2
@@ -62,7 +63,7 @@ export default function SubirLote() {
     if (archivos.length > libres) toast(`Se agregaron ${libres}: máximo ${MAX_OBRAS} obras por vez`)
     const nuevos = archivos.slice(0, libres).map(archivo => ({
       id: siguienteId++, archivo, vista: URL.createObjectURL(archivo), estado: 'cola',
-      precio: '', alto: '', ancho: '',
+      precio: '', alto: '', ancho: '', piezas: 1,
     }))
     setItems(l => [...l, ...nuevos])
   }
@@ -94,7 +95,9 @@ export default function SubirLote() {
       const tags = (r.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ')
       const cats = new Set(comun.categoria ? [comun.categoria] : [])
       categorias.forEach(c => { if ((r.espacios || []).some(e => e.toLowerCase() === c.nombre.toLowerCase())) cats.add(c.nombre) })
+      const piezas = Math.min(Math.max(Math.round(Number(r.piezas) || 1), 1), 20)
       const registro = {
+        piezas,
         titulo: r.nombre || null, descripcion: r.descripcion || null, estilo: r.estilo || null, tecnica: r.tecnica || null,
         publicacion: (r.publicacion || '') + (tags ? '\n\n' + tags : ''), espacios: r.espacios || [], categorias: [...cats],
         artista_id: comun.artista_id || null, artista_nombre: artista?.nombre || null,
@@ -105,7 +108,7 @@ export default function SubirLote() {
       let { data, error } = await supabase.from('fichas').insert(registro).select('id').single()
       if (error && faltanColumnasTipo(error)) ({ data, error } = await supabase.from('fichas').insert(sinCamposTipo(registro)).select('id').single())
       if (error) throw error
-      actualizar(item.id, { estado: 'listo', obraId: data.id, nombre: r.nombre, tecnica: r.tecnica, miniatura: obra.toDataURL('image/jpeg', 0.7) })
+      actualizar(item.id, { estado: 'listo', piezas, obraId: data.id, nombre: r.nombre, tecnica: r.tecnica, miniatura: obra.toDataURL('image/jpeg', 0.7) })
     } catch (err) {
       actualizar(item.id, { estado: 'error', error: err.message || String(err) })
     }
@@ -134,17 +137,20 @@ export default function SubirLote() {
     if (precio === null) { toast.error('Pon el precio antes de publicar'); return }
     actualizar(item.id, { publicando: true })
     try {
-      const medidas = medidasTexto({ alto_cm: alto, ancho_cm: ancho })
-      const cambios = { precio, alto_cm: alto, ancho_cm: ancho, medidas: medidas || null, estado: 'disponible' }
+      const piezas = item.piezas || 1
+      const medidas = medidasTexto({ alto_cm: alto, ancho_cm: ancho, piezas })
+      const cambios = { precio, alto_cm: alto, ancho_cm: ancho, piezas, medidas_piezas: null, medidas: medidas || null, estado: 'disponible' }
+      const conjunto = piezas > 1 ? medidaConjunto({ alto_cm: alto, ancho_cm: ancho, piezas }) : null
       // Rehacer la ficha y el ambiente con las medidas y el precio
       const l = lienzos.current[item.id]
       if (l) {
-        const ambiente = dibujarAmbiente(l.obra, AMBIENTES[0], { alto, ancho })
+        const ambiente = dibujarAmbiente(l.obra, AMBIENTES[0], conjunto || { alto, ancho })
         const etiqueta = comun.tipo_obra === 'interpretacion' ? 'Interpretación' : comun.certificado ? 'Original certificada' : 'Pieza única'
         const ficha = dibujarPublicacion('catalogo', { datos: { nombre: item.nombre, artista: artista?.nombre, tecnica: item.tecnica, medidas, precio: item.precio, existencias: etiqueta }, imagenes: { obra: l.obra, ambiente } })
         cambios.ficha_url = await subirArchivo('fichas', new File([await aBlob(ficha, 0.9)], 'ficha.jpg', { type: 'image/jpeg' }))
       }
-      const { error } = await supabase.from('fichas').update(cambios).eq('id', item.obraId)
+      let { error } = await supabase.from('fichas').update(cambios).eq('id', item.obraId)
+      if (error && faltanColumnasTipo(error)) ({ error } = await supabase.from('fichas').update(sinCamposTipo(cambios)).eq('id', item.obraId))
       if (error) throw error
       actualizar(item.id, { estado: 'publicada', publicando: false })
     } catch (err) {
@@ -222,10 +228,20 @@ export default function SubirLote() {
                     )}
                   </div>
                   {x.estado === 'listo' && (
+                    <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl bg-crema-clara px-3 py-1.5 text-sm">
+                      <span className="font-semibold">{x.piezas > 1 ? insigniaJuego(x.piezas) : 'Una sola pieza'}</span>
+                      <span className="flex items-center gap-1">
+                        <button onClick={() => actualizar(x.id, { piezas: Math.max(1, (x.piezas || 1) - 1) })} aria-label="Una pieza menos" className="flex h-9 w-9 items-center justify-center rounded-full bg-white"><Minus size={15} /></button>
+                        <span className="w-6 text-center font-bold">{x.piezas || 1}</span>
+                        <button onClick={() => actualizar(x.id, { piezas: Math.min(20, (x.piezas || 1) + 1) })} aria-label="Una pieza más" className="flex h-9 w-9 items-center justify-center rounded-full bg-white"><Plus size={15} /></button>
+                      </span>
+                    </div>
+                  )}
+                  {x.estado === 'listo' && (
                     <div className="mt-3 grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
                       <label className="text-xs font-semibold">Precio $<input inputMode="decimal" value={x.precio} onChange={e => actualizar(x.id, { precio: e.target.value })} className="campo mt-1 h-11 px-3" /></label>
-                      <label className="text-xs font-semibold">Alto cm<input inputMode="decimal" value={x.alto} onChange={e => actualizar(x.id, { alto: e.target.value })} className="campo mt-1 h-11 px-3" /></label>
-                      <label className="text-xs font-semibold">Ancho cm<input inputMode="decimal" value={x.ancho} onChange={e => actualizar(x.id, { ancho: e.target.value })} className="campo mt-1 h-11 px-3" /></label>
+                      <label className="text-xs font-semibold">{x.piezas > 1 ? 'Alto c/u' : 'Alto cm'}<input inputMode="decimal" value={x.alto} onChange={e => actualizar(x.id, { alto: e.target.value })} className="campo mt-1 h-11 px-3" /></label>
+                      <label className="text-xs font-semibold">{x.piezas > 1 ? 'Ancho c/u' : 'Ancho cm'}<input inputMode="decimal" value={x.ancho} onChange={e => actualizar(x.id, { ancho: e.target.value })} className="campo mt-1 h-11 px-3" /></label>
                       <button onClick={() => publicar(x)} disabled={x.publicando} className="btn-primario h-11 px-4 text-sm">{x.publicando ? '…' : 'Publicar'}</button>
                     </div>
                   )}

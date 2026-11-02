@@ -15,6 +15,8 @@ import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
 import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes, faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import { ORIENTACIONES, orientacionPorProporcion } from '../../../lib/orientacion.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
+import SelectorPiezas, { camposPiezas, notaPiezasParaIA } from '../../../components/admin/SelectorPiezas.jsx'
+import { medidaConjunto } from '../../../lib/piezas.js'
 
 const RANURAS = [
   { id: 'principal', etiqueta: 'La obra de frente' },
@@ -28,6 +30,7 @@ const CAMPOS_INICIALES = {
   precio: '', alto: '', ancho: '', diametro: '', tipoExistencias: 'unica', edicion_total: '', existencias: '1',
   categorias: [], destacada: false, usarPortada: false, mejorar: true, ambienteId: 'sala',
   tipo_obra: 'original', inspirada_en: '', certificado: true,
+  piezas: { piezas: 1, iguales: true, lista: [] },
 }
 
 const aURL = canvas => canvas ? canvas.toDataURL('image/jpeg', 0.82) : ''
@@ -54,9 +57,16 @@ export default function SubirObraIA() {
 
   const cambiar = (c, v) => setCampos(f => ({ ...f, [c]: v }))
   const artista = artistas.find(a => a.id === campos.artista_id)
-  const circular = /circular|redond/i.test(campos.soporte)
-  const cm = { alto: circular ? numero(campos.diametro) : numero(campos.alto), ancho: circular ? numero(campos.diametro) : numero(campos.ancho) }
-  const medidas = medidasTexto({ alto_cm: circular ? null : cm.alto, ancho_cm: circular ? null : cm.ancho, diametro_cm: circular ? cm.ancho : null })
+  const piezas = campos.piezas || CAMPOS_INICIALES.piezas
+  const juego = piezas.piezas > 1
+  const distintas = juego && !piezas.iguales
+  const datosPiezas = camposPiezas(piezas, campos.alto, campos.ancho)
+  const circular = !juego && /circular|redond/i.test(campos.soporte)
+  const conjunto = juego ? medidaConjunto(datosPiezas) : null
+  const cm = juego ? { alto: conjunto?.alto ?? null, ancho: conjunto?.ancho ?? null }
+    : { alto: circular ? numero(campos.diametro) : numero(campos.alto), ancho: circular ? numero(campos.diametro) : numero(campos.ancho) }
+  const medidas = juego ? medidasTexto(datosPiezas)
+    : medidasTexto({ alto_cm: circular ? null : cm.alto, ancho_cm: circular ? null : cm.ancho, diametro_cm: circular ? cm.ancho : null })
   const edicion = campos.tipoExistencias === 'edicion'
   const textoExistencias = campos.tipo_obra === 'interpretacion' ? 'Interpretación'
     : campos.certificado ? 'Original certificada' : edicion ? `Edición de ${campos.edicion_total || '—'}` : 'Pieza única'
@@ -72,6 +82,7 @@ export default function SubirObraIA() {
       tecnica: f.tecnica || r.tecnica || '',
       publicacion: (r.publicacion || '') + (tags ? '\n\n' + tags : ''),
       espacios: r.espacios || [],
+      piezas: Number(r.piezas) > 1 && (f.piezas?.piezas || 1) === 1 ? { ...(f.piezas || CAMPOS_INICIALES.piezas), piezas: Math.min(Number(r.piezas), 20) } : f.piezas,
       categorias: f.categorias.length ? f.categorias
         : categorias.map(c => c.nombre).filter(n => (r.espacios || []).some(e => e.toLowerCase() === n.toLowerCase())),
     }))
@@ -167,7 +178,7 @@ export default function SubirObraIA() {
       setPrevias({ ambientes: ambPrev, posts: postPrev })
     }, 250)
     return () => clearTimeout(t)
-  }, [obraFinal, paso, campos.nombre, campos.tecnica, campos.precio, campos.ambienteId, campos.alto, campos.ancho, campos.diametro, campos.soporte, campos.tipoExistencias, campos.edicion_total, artista?.nombre, fotos.ambiente]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [obraFinal, paso, campos.nombre, campos.tecnica, campos.precio, campos.ambienteId, campos.alto, campos.ancho, campos.diametro, campos.soporte, campos.piezas, campos.tipoExistencias, campos.edicion_total, artista?.nombre, fotos.ambiente]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fotos ──
   async function elegirFoto(ranura, archivo) {
@@ -204,7 +215,7 @@ export default function SubirObraIA() {
     setPaso(2); setErrorIA('')
     try {
       const orden = RANURAS.map(r => r.id).filter(id => fotos[id])
-      const notas = [campos.notas, artista && `artista: ${artista.nombre}`, notaTipoParaIA(campos.tipo_obra, campos.inspirada_en)].filter(Boolean).join('\n')
+      const notas = [campos.notas, artista && `artista: ${artista.nombre}`, notaTipoParaIA(campos.tipo_obra, campos.inspirada_en), notaPiezasParaIA(piezas.piezas)].filter(Boolean).join('\n')
       const id = await iniciarTrabajoIA({ urls: orden.map(id => fotos[id].url), notas, clave })
       const t = { id, estado: 'pendiente', orden }
       setTrabajo(t)
@@ -252,7 +263,8 @@ export default function SubirObraIA() {
         titulo: campos.nombre.trim() || null,
         descripcion: campos.descripcion.trim() || null,
         estilo: campos.estilo || null, tecnica: campos.tecnica || null, soporte: campos.soporte || null,
-        alto_cm: circular ? null : cm.alto, ancho_cm: circular ? null : cm.ancho, diametro_cm: circular ? cm.ancho : null,
+        ...(juego ? { ...datosPiezas, diametro_cm: null }
+          : { piezas: 1, medidas_piezas: null, alto_cm: circular ? null : cm.alto, ancho_cm: circular ? null : cm.ancho, diametro_cm: circular ? cm.ancho : null }),
         medidas: medidas || null, precio: numero(campos.precio), anio: parseInt(campos.anio, 10) || null,
         existencias: edicion ? Math.max(0, parseInt(campos.existencias, 10) || 0) : 1,
         edicion_total: edicion ? (parseInt(campos.edicion_total, 10) || null) : null,
@@ -265,7 +277,7 @@ export default function SubirObraIA() {
       let { data, error } = await supabase.from('fichas').insert(registro).select('id').single()
       if (error && faltanColumnasTipo(error)) {
         ({ data, error } = await supabase.from('fichas').insert(sinCamposTipo(registro)).select('id').single())
-        if (!error) toast('Obra guardada. El tipo (original/interpretación) quedará pendiente hasta ejecutar el SQL de tipo de obra en Supabase.', { icon: '⚠️', duration: 9000 })
+        if (!error) toast('Obra guardada. El tipo (original/interpretación) y el número de piezas quedarán pendientes hasta ejecutar docs/ACTUALIZAR_TIPO_OBRA.sql en Supabase.', { icon: '⚠️', duration: 9000 })
       }
       if (error) throw error
       if (campos.usarPortada && estado === 'disponible') {
@@ -446,17 +458,18 @@ export default function SubirObraIA() {
                 <option value="">Elegir…</option>{artistas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
               </select>
             </label>
-            {circular ? (
+            <div className="col-span-2 rounded-[18px] bg-white p-3.5"><SelectorPiezas valor={piezas} onChange={v => cambiar('piezas', v)} /></div>
+            {distintas ? null : circular ? (
               <label className="etiqueta col-span-2">Diámetro (cm)<input inputMode="decimal" value={campos.diametro} onChange={e => cambiar('diametro', e.target.value)} className="campo mt-1.5" /></label>
             ) : <>
-              <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={campos.alto} onChange={e => cambiar('alto', e.target.value)} className="campo mt-1.5" /></label>
-              <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={campos.ancho} onChange={e => cambiar('ancho', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta">{juego ? 'Alto de cada pieza' : 'Alto (cm)'}<input inputMode="decimal" value={campos.alto} onChange={e => cambiar('alto', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta">{juego ? 'Ancho de cada pieza' : 'Ancho (cm)'}<input inputMode="decimal" value={campos.ancho} onChange={e => cambiar('ancho', e.target.value)} className="campo mt-1.5" /></label>
             </>}
           </div>
           {medidasContradicen ? (
             <div role="alert" className="flex items-center justify-between gap-3 rounded-[18px] bg-mostaza-fondo p-3 text-sm">
               <span>La foto es <strong>{ORIENTACIONES[orientacionFoto].toLowerCase()}</strong>, pero las medidas indican {ORIENTACIONES[orientacionMedidas].toLowerCase()}. ¿Están al revés?</span>
-              <button type="button" onClick={invertirMedidas} className="btn-oscuro btn-chico shrink-0 px-4">Invertir</button>
+              {!juego && <button type="button" onClick={invertirMedidas} className="btn-oscuro btn-chico shrink-0 px-4">Invertir</button>}
             </div>
           ) : (orientacionMedidas || orientacionFoto) && (
             <p className="text-sm font-semibold">Formato: <span className="rounded-full bg-white px-3 py-1">{ORIENTACIONES[orientacionMedidas || orientacionFoto]}</span></p>

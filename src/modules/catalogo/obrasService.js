@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase.js'
 import { medidasTexto } from '../../lib/formato.js'
+import { numeroPiezas } from '../../lib/piezas.js'
 
 // ── Normalización ───────────────────────────────────────────────────────────
 // Las obras viejas solo tienen "imagen_url" (la ficha diseñada). Las nuevas guardan sus
@@ -52,13 +53,17 @@ export function normalizarObra(f) {
   const fotos = Array.isArray(f.fotos) && f.fotos.length
     ? f.fotos.filter(x => x && x.url)
     : (f.imagen_url ? [{ url: f.imagen_url, rol: 'principal' }] : [])
+  // Si la base aún no tiene la columna "piezas", se lee del texto de medidas ("3 piezas de …")
+  const deTexto = /^(\d+) piezas/.exec(f.medidas || '')
+  const piezas = f.piezas != null ? numeroPiezas(f) : deTexto ? numeroPiezas({ piezas: deTexto[1] }) : 1
   return {
     ...f,
+    piezas,
     titulo: f.titulo || 'Obra sin título',
     fotos,
     foto: fotos[0]?.url || f.imagen_url || '',
     fotoReal: Array.isArray(f.fotos) && f.fotos.some(x => x && x.url),
-    medidasTexto: medidasTexto(f),
+    medidasTexto: f.piezas == null && deTexto ? f.medidas : medidasTexto(f),
     artista: f.artistas?.nombre || f.artista_nombre || '',
     artistaSlug: f.artistas?.slug || null,
     estadoEfectivo: estadoEfectivo(f),

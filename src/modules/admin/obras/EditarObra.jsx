@@ -7,6 +7,7 @@ import { subirArchivo, reducirImagen } from '../adminService.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
 import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes, faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../../lib/orientacion.js'
+import SelectorPiezas, { piezasIniciales, camposPiezas, notaPiezasParaIA } from '../../../components/admin/SelectorPiezas.jsx'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
 
@@ -21,6 +22,9 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     artista_id: obra.artista_id || '', categorias: obra.categorias || [], publicacion: obra.publicacion || '',
     tipo_obra: obra.tipo_obra || '', inspirada_en: obra.inspirada_en || '', certificado: !!obra.certificado,
   })
+  const [piezas, setPiezas] = useState(() => piezasIniciales(obra))
+  const juego = piezas.piezas > 1
+  const distintas = juego && !piezas.iguales
   const [fotos, setFotos] = useState(obra.fotos || [])
   const [artistas, setArtistas] = useState([])
   const [categorias, setCategorias] = useState([])
@@ -40,7 +44,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     setIa({ estado: 'trabajando', error: '' })
     try {
       const artista = artistas.find(a => a.id === f.artista_id)
-      const notas = [artista && `artista: ${artista.nombre}`, f.tecnica && `tecnica: ${f.tecnica}`, notaTipoParaIA(f.tipo_obra, f.inspirada_en)].filter(Boolean).join('\n')
+      const notas = [artista && `artista: ${artista.nombre}`, f.tecnica && `tecnica: ${f.tecnica}`, notaTipoParaIA(f.tipo_obra, f.inspirada_en), notaPiezasParaIA(piezas.piezas)].filter(Boolean).join('\n')
       const id = await iniciarTrabajoIA({ urls, notas, clave })
       const r = await esperarTrabajoIA(id, clave)
       if (!r) return
@@ -53,8 +57,9 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
         tecnica: v.tecnica || r.tecnica || '',
         publicacion: (r.publicacion || '') + (tags ? '\n\n' + tags : ''),
       }))
+      if (Number(r.piezas) > 1 && piezas.piezas === 1) setPiezas(p => ({ ...p, piezas: Math.min(Number(r.piezas), 20) }))
       setIa({ estado: 'listo', error: '' })
-      toast.success('Listo. Revisa los textos y guarda los cambios.')
+      toast.success(Number(r.piezas) > 1 && piezas.piezas === 1 ? `Listo. La IA vio un juego de ${r.piezas} piezas: revisa las medidas y guarda.` : 'Listo. Revisa los textos y guarda los cambios.')
     } catch (err) {
       setIa({ estado: '', error: err.message || 'La IA no pudo terminar' })
     }
@@ -85,6 +90,8 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     setSubiendo(false)
   }
 
+  const formatoActual = orientacionPorMedidas({ ...camposPiezas(piezas, f.alto, f.ancho), diametro_cm: juego ? null : numero(f.diametro) })
+
   async function guardar(e) {
     e.preventDefault()
     setGuardando(true)
@@ -100,12 +107,14 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
       fotos: fotos.map((x, i) => ({ url: x.url, rol: ROLES[i] || x.rol })),
     }
     if (f.tipo_obra) Object.assign(cambios, { tipo_obra: f.tipo_obra, inspirada_en: f.tipo_obra === 'interpretacion' ? (f.inspirada_en.trim() || null) : null, certificado: !!f.certificado })
-    cambios.medidas = medidasTexto({ alto_cm: cambios.alto_cm, ancho_cm: cambios.ancho_cm, diametro_cm: cambios.diametro_cm }) || null
+    Object.assign(cambios, camposPiezas(piezas, f.alto, f.ancho))
+    if (juego) cambios.diametro_cm = null
+    cambios.medidas = medidasTexto(cambios) || null
     if (fotos[0]) cambios.imagen_url = fotos[0].url
     let { error } = await supabase.from('fichas').update(cambios).eq('id', obra.id)
     if (error && faltanColumnasTipo(error)) {
       ({ error } = await supabase.from('fichas').update(sinCamposTipo(cambios)).eq('id', obra.id))
-      if (!error) toast('Se guardó la obra, pero el tipo (original/interpretación) quedará pendiente hasta ejecutar el SQL de tipo de obra en Supabase.', { icon: '⚠️', duration: 9000 })
+      if (!error) toast('Se guardó la obra, pero el tipo (original/interpretación) y el número de piezas quedarán pendientes hasta ejecutar docs/ACTUALIZAR_TIPO_OBRA.sql en Supabase.', { icon: '⚠️', duration: 9000 })
     }
     setGuardando(false)
     if (error) { toast.error('No se pudo guardar: ' + mensajeColumnasFaltantes(error), { duration: 8000 }); return }
@@ -164,15 +173,18 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
           <div className="sm:col-span-2"><SelectorOpciones etiqueta="Soporte" tipo="soportes" valor={f.soporte} onChange={v => setF(x => ({ ...x, soporte: v }))} /></div>
           <div className="sm:col-span-2"><SelectorOpciones etiqueta="Estilo" tipo="estilos" valor={f.estilo} onChange={v => setF(x => ({ ...x, estilo: v }))} /></div>
           <label className="etiqueta">Precio (USD)<input inputMode="decimal" value={f.precio} onChange={c('precio')} className="campo mt-1.5" /></label>
-          <div className="grid grid-cols-3 gap-2 sm:col-span-2">
-            <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={f.alto} onChange={c('alto')} className="campo mt-1.5" /></label>
-            <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={f.ancho} onChange={c('ancho')} className="campo mt-1.5" /></label>
-            <label className="etiqueta">Diámetro<input inputMode="decimal" value={f.diametro} onChange={c('diametro')} className="campo mt-1.5" /></label>
-          </div>
-          {orientacionPorMedidas({ alto_cm: numero(f.alto), ancho_cm: numero(f.ancho), diametro_cm: numero(f.diametro) }) && (
+          <div className="sm:col-span-2"><SelectorPiezas valor={piezas} onChange={setPiezas} /></div>
+          {!distintas && (
+            <div className={`grid gap-2 sm:col-span-2 ${juego ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              <label className="etiqueta">{juego ? 'Alto de cada pieza' : 'Alto (cm)'}<input inputMode="decimal" value={f.alto} onChange={c('alto')} className="campo mt-1.5" /></label>
+              <label className="etiqueta">{juego ? 'Ancho de cada pieza' : 'Ancho (cm)'}<input inputMode="decimal" value={f.ancho} onChange={c('ancho')} className="campo mt-1.5" /></label>
+              {!juego && <label className="etiqueta">Diámetro<input inputMode="decimal" value={f.diametro} onChange={c('diametro')} className="campo mt-1.5" /></label>}
+            </div>
+          )}
+          {formatoActual && (
             <div className="flex items-center justify-between gap-3 rounded-2xl bg-crema-clara px-4 py-2.5 text-sm sm:col-span-2">
-              <span>Formato: <strong>{ORIENTACIONES[orientacionPorMedidas({ alto_cm: numero(f.alto), ancho_cm: numero(f.ancho), diametro_cm: numero(f.diametro) })]}</strong> (según las medidas)</span>
-              {!numero(f.diametro) && <button type="button" onClick={() => setF(v => ({ ...v, alto: v.ancho, ancho: v.alto }))} className="text-sm font-semibold underline">Invertir alto y ancho</button>}
+              <span>Formato: <strong>{ORIENTACIONES[formatoActual]}</strong> ({juego ? 'el conjunto colgado en fila' : 'según las medidas'})</span>
+              {!numero(f.diametro) && !distintas && <button type="button" onClick={() => setF(v => ({ ...v, alto: v.ancho, ancho: v.alto }))} className="text-sm font-semibold underline">Invertir alto y ancho</button>}
             </div>
           )}
           <label className="etiqueta">Existencias disponibles<input inputMode="numeric" value={f.existencias} onChange={c('existencias')} className="campo mt-1.5" /></label>
