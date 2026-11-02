@@ -7,7 +7,20 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const BUCKET = 'catalogos'
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Ninguna llamada puede quedarse esperando para siempre: si el servidor no contesta, se corta
+// (60 s para subir archivos, 30 s para lo demás) y quien llamó puede reintentar o avisar.
+function fetchConLimite(url, opciones = {}) {
+  const esSubida = /\/storage\/v1\/object\//.test(String(url)) && /POST|PUT/i.test(opciones.method || '')
+  const control = new AbortController()
+  const reloj = setTimeout(() => control.abort(new Error('timeout: el servidor no respondió a tiempo')), esSubida ? 60000 : 30000)
+  if (opciones.signal) {
+    if (opciones.signal.aborted) control.abort(opciones.signal.reason)
+    else opciones.signal.addEventListener('abort', () => control.abort(opciones.signal.reason), { once: true })
+  }
+  return fetch(url, { ...opciones, signal: control.signal }).finally(() => clearTimeout(reloj))
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: fetchConLimite } })
 
 export function urlPublica(ruta) {
   return supabase.storage.from(BUCKET).getPublicUrl(ruta).data.publicUrl

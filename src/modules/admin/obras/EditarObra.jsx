@@ -87,7 +87,9 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     let fallidas = 0
     await Promise.all(tareas.map(async t => {
       try {
-        const url = await subirArchivo('obras', await reducirImagen(t.archivo, 1800, 0.82))
+        const url = await subirArchivo('obras', await reducirImagen(t.archivo, 1800, 0.82), null, {
+          alReintentar: (n, total) => setEnCurso(l => l.map(x => x.id === t.id ? { ...x, nota: `Reintentando ${n} de ${total}…` } : x)),
+        })
         setFotos(fs => [...fs, { url }].slice(0, 3).map((x, j) => ({ ...x, rol: ROLES[j] || 'detalle' })))
       } catch (err) { fallidas++; setErrorFoto(err.message || String(err)) }
       finally { setEnCurso(l => l.filter(x => x.id !== t.id)); URL.revokeObjectURL(t.vista) }
@@ -148,7 +150,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
             {enCurso.map(t => (
               <div key={t.id} className="relative aspect-square overflow-hidden rounded-2xl">
                 <img src={t.vista} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
-                <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/30 text-xs font-bold"><Loader2 size={22} className="animate-spin" />Subiendo…</span>
+                <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/30 text-xs font-bold"><Loader2 size={22} className="animate-spin" />{t.nota || 'Subiendo…'}</span>
               </div>
             ))}
             {fotos.length + enCurso.length < 3 && (
