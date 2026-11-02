@@ -37,6 +37,24 @@ export async function esperarTrabajoIA(id, clave, { onAviso, cancelado } = {}) {
     if (data.estado === 'pendiente' && Date.now() - new Date(data.creado).getTime() > 10 * 60 * 1000)
       throw new Error('La IA tardó demasiado. Vuelve a intentarlo.')
     if (data.estado === 'error') throw new Error(data.error || 'La IA no pudo generar la ficha.')
-    if (data.estado === 'listo') return data.resultado || {}
+    if (data.estado === 'listo') return limpiarResultado(data.resultado || {})
   }
+}
+
+// Pedido de Entre tu Arte: sin emojis y sin la palabra "carmesí" en ningún texto de la IA.
+const EMOJI = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu
+export function limpiarTextoIA(s) {
+  return String(s)
+    .replace(EMOJI, '')
+    .replace(/carmes[ií]es/gi, m => (m[0] === m[0].toUpperCase() ? 'Rojos profundos' : 'rojos profundos'))
+    .replace(/carmes[ií]/gi, m => (m[0] === m[0].toUpperCase() ? 'Rojo profundo' : 'rojo profundo'))
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+}
+export function limpiarResultado(v) {
+  if (typeof v === 'string') return limpiarTextoIA(v)
+  if (Array.isArray(v)) return v.map(limpiarResultado)
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, limpiarResultado(x)]))
+  return v
 }

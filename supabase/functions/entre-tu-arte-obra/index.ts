@@ -51,18 +51,18 @@ Devuelve:
   "Recámara", "Oficina", "Recibidor").
 - publicacion: caption breve pero con alma para Instagram/Facebook (entre 220 y 380 caracteres
   en total), en 3 bloques separados por una línea en blanco:
-  1) el nombre de la obra con 1 emoji sobrio;
+  1) el nombre de la obra, solo (sin emojis);
   2) 2 o 3 frases cortas (25 a 45 palabras en total) que despierten deseo: un detalle sensorial
      de la obra (un color, una textura, un gesto) y lo que provoca en el espacio o en quien la
      vive. Cálido y evocador, sin listar datos técnicos ni repetir la descripción de la ficha;
-  3) exactamente esta línea: "Disponible. Escríbenos al WhatsApp (503) 7797-9504 ✨".
+  3) exactamente esta línea: "Disponible. Escríbenos al WhatsApp (503) 7797-9504".
   Ejemplo:
-  "Umbral Ígneo 🔥
+  "Umbral Ígneo
 
   Rojos que arden junto a azules profundos, como una conversación entre fuego y calma. Una pieza
   que convierte cualquier pared en el punto donde todo se reúne.
 
-  Disponible. Escríbenos al WhatsApp (503) 7797-9504 ✨"
+  Disponible. Escríbenos al WhatsApp (503) 7797-9504"
   Texto plano, sin markdown.
 - hashtags: 5 o 6 hashtags, sin espacios, incluyendo #EntreTuArte.
 - encuadres: uno por cada foto, en el mismo orden en que te las paso (foto 1, 2, 3). Sirven para
@@ -73,7 +73,9 @@ Devuelve:
   acercamiento de textura donde la obra no se ve completa, da la zona de textura más atractiva,
   nítida y con más relieve.
 
-Reglas: español neutro centroamericano, cálido y profesional. No inventes medidas, precios ni
+Reglas: español neutro centroamericano, cálido y profesional. No uses emojis ni emoticones en
+ningún campo. Nunca uses la palabra "carmesí" (ni "carmesíes"): para ese color usa "rojo
+profundo", "granate", "rojo intenso" u otra palabra precisa. No inventes medidas, precios ni
 materiales que no se puedan ver; si la técnica no es clara, descríbela por su apariencia.`;
 
 const ESQUEMA = {
@@ -146,7 +148,25 @@ async function generar(apiKey: string, urls: string[], notas: unknown) {
   if (resp.stop_reason === "refusal") throw new Error("La IA no pudo procesar estas fotos. Prueba con otras imágenes.");
   const bloque = resp.content.find((b) => b.type === "text");
   if (!bloque || bloque.type !== "text") throw new Error("La IA no devolvió texto. Intenta de nuevo.");
-  return JSON.parse(bloque.text);
+  return limpiar(JSON.parse(bloque.text));
+}
+
+// Quita emojis y la palabra "carmesí" de todos los textos (pedido de Entre Tu Arte).
+const EMOJI = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu;
+function limpiarTexto(s: string) {
+  return s
+    .replace(EMOJI, "")
+    .replace(/carmes[ií]es/gi, (m) => (m[0] === m[0].toUpperCase() ? "Rojos profundos" : "rojos profundos"))
+    .replace(/carmes[ií]/gi, (m) => (m[0] === m[0].toUpperCase() ? "Rojo profundo" : "rojo profundo"))
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+function limpiar(v: unknown): unknown {
+  if (typeof v === "string") return limpiarTexto(v);
+  if (Array.isArray(v)) return v.map(limpiar);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, limpiar(x)]));
+  return v;
 }
 
 async function procesar(id: string, apiKey: string, urls: string[], notas: unknown) {
@@ -178,7 +198,9 @@ Deno.serve(async (req) => {
   if (!claveEsperada) {
     return responder({ error: "Falta configurar la clave de acceso (ETA_CLAVE o tabla eta_config)." }, 500);
   }
-  if (req.headers.get("x-eta-clave") !== claveEsperada) {
+  // Sin distinguir mayúsculas ni espacios: el iPhone pone mayúscula automática al escribir la clave
+  const normalizar = (v: string | null) => (v || "").trim().toLowerCase();
+  if (normalizar(req.headers.get("x-eta-clave")) !== normalizar(claveEsperada)) {
     return responder({ error: "Clave de acceso incorrecta." }, 401);
   }
 
