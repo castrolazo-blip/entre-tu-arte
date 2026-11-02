@@ -11,3 +11,6 @@ alter table public.fichas add constraint fichas_tipo_obra_check
 
 -- Las obras que ya existen quedan "sin indicar" (null) hasta que el administrador las clasifique,
 -- para no afirmar en la tienda algo que no se ha confirmado.
+
+-- Que la API reconozca los campos nuevos de inmediato
+notify pgrst, 'reload schema';
