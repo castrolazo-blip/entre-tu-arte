@@ -80,13 +80,16 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     if (!lote.length) return
     if (archivos.length > libres) toast(`Solo caben ${libres} foto(s) más (máximo 3)`)
     setErrorFoto('')
-    const nuevas = []
+    let fallidas = 0
     for (const [i, a] of lote.entries()) {
       setSubiendo(lote.length > 1 ? `${i + 1} de ${lote.length}` : true)
-      try { nuevas.push(await subirArchivo('obras', await reducirImagen(a, 2000))) }
-      catch (err) { setErrorFoto(err.message || String(err)); toast.error('No se pudo subir una foto') }
+      try {
+        const url = await subirArchivo('obras', await reducirImagen(a, 2000, 0.85))
+        // Cada foto aparece apenas sube, aunque otra falle después
+        setFotos(fs => [...fs, { url }].slice(0, 3).map((x, j) => ({ ...x, rol: ROLES[j] || 'detalle' })))
+      } catch (err) { fallidas++; setErrorFoto(err.message || String(err)) }
     }
-    setFotos(fs => [...fs, ...nuevas.map(url => ({ url }))].slice(0, 3).map((x, i) => ({ ...x, rol: ROLES[i] || 'detalle' })))
+    if (fallidas) toast.error(fallidas === 1 ? 'Una foto no se pudo subir; las demás sí' : `${fallidas} fotos no se pudieron subir`)
     setSubiendo(false)
   }
 
