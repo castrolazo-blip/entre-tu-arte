@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Camera, ImagePlus, X, ChevronLeft, Check, Sparkles, Download, Copy, Loader2, Share2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
@@ -313,7 +313,7 @@ export default function SubirObraIA() {
       {/* ── Paso 1: fotos ── */}
       {paso === 1 && (
         <section className="mt-3">
-          <p className="text-[15px] text-gris">La IA la recorta, mejora la luz y escribe la ficha por ti.</p>
+          <p className="text-[15px] text-gris">La IA la recorta, mejora la luz y escribe la ficha por ti. ¿Tienes muchas? <Link to="/admin/lote" className="font-semibold text-tinta underline">Sube varias obras a la vez</Link>.</p>
           {fotos.principal ? (
             <div className="relative mt-5 overflow-hidden rounded-[28px] bg-white">
               <img src={fotos.principal.img.src} alt="Foto de la obra" className="max-h-[420px] w-full object-contain" />

@@ -62,6 +62,7 @@ export default function AdminObras() {
   return (
     <>
       <EncabezadoAdmin ruta="Catálogo" titulo="Obras">
+        <Link to="/admin/lote" className="btn-contorno btn-chico">Subir varias</Link>
         <Link to="/admin/subir" className="btn-primario btn-chico"><Sparkles size={18} />Subir obra con IA</Link>
       </EncabezadoAdmin>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
