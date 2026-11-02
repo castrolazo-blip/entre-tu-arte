@@ -79,7 +79,37 @@ export default function AdminObras() {
       </div>
 
       {!obras ? <p className="p-6 text-gris">Cargando…</p> : !lista.length ? <p className="rounded-[28px] bg-white p-10 text-center text-gris">No hay obras con este filtro.</p> : (
-        <div className="overflow-hidden rounded-[28px] bg-white">
+        <>
+        {/* Celular: tarjetas */}
+        <ul className="space-y-3 md:hidden">
+          {lista.map(o => (
+            <li key={o.id} className="rounded-[22px] bg-white p-3">
+              <div className="flex gap-3">
+                {o.foto ? <img src={o.foto} alt="" className="h-20 w-20 shrink-0 rounded-2xl bg-crema object-cover" /> : <span className="h-20 w-20 shrink-0 rounded-2xl bg-crema" />}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold">{o.titulo}</p>
+                  <p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos'}</p>
+                  <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Original${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p>
+                  <p className="mt-1 text-sm"><span className="font-bold">{precio(o.precio) || 'Sin precio'}</span><span className="text-gris"> · {etiquetaExistencias(o)}</span></p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <select aria-label={`Estado de ${o.titulo}`} value={o.estado || 'disponible'} onChange={e => cambiarEstado(o, e.target.value)}
+                  className={`h-10 flex-1 rounded-full border-0 px-3 text-sm font-bold ${ESTADOS[o.estado || 'disponible'].clase} ring-1 ring-crema-borde`}>
+                  {Object.entries(ESTADOS).map(([v, e]) => <option key={v} value={v}>{e.etiqueta}</option>)}
+                </select>
+                <button onClick={() => actualizar(o, { destacada: !o.destacada }, o.destacada ? 'Quitada del banner' : 'Agregada al banner')} disabled={o.estado === 'vendida'}
+                  aria-pressed={!!o.destacada} aria-label={o.destacada ? 'Quitar de destacadas' : 'Destacar'} className="flex h-10 w-10 items-center justify-center rounded-full bg-crema disabled:opacity-30">
+                  <Star size={18} className={o.destacada ? 'fill-mostaza text-mostaza' : 'text-gris'} />
+                </button>
+                <button onClick={() => setEditando(o)} className="flex h-10 items-center gap-1.5 rounded-full bg-tinta px-4 text-sm font-bold text-white"><Pencil size={15} />Editar</button>
+                <button onClick={() => eliminar(o)} aria-label="Eliminar" className="flex h-10 w-10 items-center justify-center rounded-full text-red-700"><Trash2 size={17} /></button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {/* Computadora: tabla */}
+        <div className="hidden overflow-hidden rounded-[28px] bg-white md:block">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] text-[15px]">
               <thead><tr className="text-left text-[13px] text-gris">
@@ -123,6 +153,7 @@ export default function AdminObras() {
             </table>
           </div>
         </div>
+        </>
       )}
       {editando && <EditarObra obra={editando} onCerrar={() => setEditando(null)} onGuardado={() => { setEditando(null); cargar() }} />}
     </>
