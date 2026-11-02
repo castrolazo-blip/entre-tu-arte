@@ -7,7 +7,6 @@ import { registrarEvento } from '../../lib/analytics.js'
 
 export const MENU = [
   { to: '/', etiqueta: 'Inicio', fin: true },
-  { to: '/colecciones', etiqueta: 'Colecciones' },
   { to: '/obras', etiqueta: 'Obras' },
   { to: '/artistas', etiqueta: 'Artistas' },
   { to: '/vendidas', etiqueta: 'Vendidas' },

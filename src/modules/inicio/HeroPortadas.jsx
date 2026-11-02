@@ -18,7 +18,7 @@ export default function HeroPortadas({ portadas }) {
   }, [total, segundos])
 
   const p = portadas[i % Math.max(total, 1)] || {}
-  const enlace = p.boton_enlace || '/colecciones'
+  const enlace = p.boton_enlace || '/obras'
   const externo = /^https?:/.test(enlace)
 
   return (
@@ -44,8 +44,8 @@ export default function HeroPortadas({ portadas }) {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             {externo
-              ? <a href={enlace} className="btn-primario h-16 px-8 text-[17px]">{p.boton_texto || 'Explorar Colecciones'} <ArrowRight size={22} /></a>
-              : <Link to={enlace} className="btn-primario h-16 px-8 text-[17px]">{p.boton_texto || 'Explorar Colecciones'} <ArrowRight size={22} /></Link>}
+              ? <a href={enlace} className="btn-primario h-16 px-8 text-[17px]">{p.boton_texto || 'Ver las obras'} <ArrowRight size={22} /></a>
+              : <Link to={enlace} className="btn-primario h-16 px-8 text-[17px]">{p.boton_texto || 'Ver las obras'} <ArrowRight size={22} /></Link>}
             <Link to="/asesoria" className="btn-claro hidden h-16 md:inline-flex">Asesoría para mi espacio</Link>
           </div>
         </div>
