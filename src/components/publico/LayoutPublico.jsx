@@ -5,6 +5,7 @@ import Logo from '../Logo.jsx'
 import Footer from './Footer.jsx'
 import { registrarEvento } from '../../lib/analytics.js'
 import { useCarrito } from '../../context/CarritoContext.jsx'
+import { useRestaurarScroll } from '../../lib/scroll.js'
 
 export const MENU = [
   { to: '/', etiqueta: 'Inicio', fin: true },
@@ -23,7 +24,8 @@ export default function LayoutPublico() {
   const { cantidad } = useCarrito()
   const sobrePortada = pathname === '/' && !scroll
 
-  useEffect(() => { setAbierto(false); window.scrollTo(0, 0); registrarEvento('visita', pathname) }, [pathname])
+  useRestaurarScroll()
+  useEffect(() => { setAbierto(false); registrarEvento('visita', pathname) }, [pathname])
   useEffect(() => {
     const f = () => setScroll(window.scrollY > 40)
     f(); window.addEventListener('scroll', f, { passive: true })

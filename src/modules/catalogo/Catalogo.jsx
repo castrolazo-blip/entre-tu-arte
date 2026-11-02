@@ -13,6 +13,9 @@ const ORDENES = [
   ['precio_desc', 'Precio: mayor a menor'],
 ]
 
+// Última lista cargada por filtro: al volver de una obra se muestra al instante
+const memoria = new Map()
+
 export default function Catalogo() {
   const [params, setParams] = useSearchParams()
   const coleccion = params.get('coleccion') || ''
@@ -21,16 +24,17 @@ export default function Catalogo() {
   const formato = params.get('formato') || ''
   const tipo = params.get('tipo') || ''
   const [texto, setTexto] = useState(q)
-  const [obras, setObras] = useState(null)
+  const claveLista = JSON.stringify([coleccion, orden, q])
+  const [obras, setObras] = useState(() => memoria.get(claveLista) || null)
   const [categorias, setCategorias] = useState([])
   const buscador = useRef(null)
 
   useEffect(() => { listarCategorias().then(setCategorias).catch(() => {}) }, [])
   useEffect(() => { if (params.get('buscar')) buscador.current?.focus() }, [params])
   useEffect(() => {
-    setObras(null)
+    setObras(memoria.get(claveLista) || null)
     listarObras({ estado: 'en_venta', categoria: coleccion || undefined, orden, busqueda: q || undefined })
-      .then(setObras).catch(() => setObras([]))
+      .then(l => { memoria.set(claveLista, l); setObras(l) }).catch(() => { if (!memoria.has(claveLista)) setObras([]) })
   }, [coleccion, orden, q])
 
   const lista = (obras || []).filter(o => (!formato || orientacionPorMedidas(o) === formato) && (!tipo || o.tipo_obra === tipo))
