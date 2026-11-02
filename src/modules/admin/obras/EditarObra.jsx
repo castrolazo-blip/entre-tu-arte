@@ -5,7 +5,7 @@ import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
 import { subirArchivo, reducirImagen } from '../adminService.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
-import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes } from '../../../components/admin/SelectorTipoObra.jsx'
+import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes, faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../../lib/orientacion.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
@@ -94,7 +94,11 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     if (f.tipo_obra) Object.assign(cambios, { tipo_obra: f.tipo_obra, inspirada_en: f.tipo_obra === 'interpretacion' ? (f.inspirada_en.trim() || null) : null, certificado: !!f.certificado })
     cambios.medidas = medidasTexto({ alto_cm: cambios.alto_cm, ancho_cm: cambios.ancho_cm, diametro_cm: cambios.diametro_cm }) || null
     if (fotos[0]) cambios.imagen_url = fotos[0].url
-    const { error } = await supabase.from('fichas').update(cambios).eq('id', obra.id)
+    let { error } = await supabase.from('fichas').update(cambios).eq('id', obra.id)
+    if (error && faltanColumnasTipo(error)) {
+      ({ error } = await supabase.from('fichas').update(sinCamposTipo(cambios)).eq('id', obra.id))
+      if (!error) toast('Se guardó la obra, pero el tipo (original/interpretación) quedará pendiente hasta ejecutar el SQL de tipo de obra en Supabase.', { icon: '⚠️', duration: 9000 })
+    }
     setGuardando(false)
     if (error) { toast.error('No se pudo guardar: ' + mensajeColumnasFaltantes(error), { duration: 8000 }); return }
     toast.success('Obra actualizada')

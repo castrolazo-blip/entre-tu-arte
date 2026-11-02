@@ -12,7 +12,7 @@ import { recortarObra, mejorarImagen, aBlob } from './imagenObra.js'
 import { AMBIENTES, dibujarAmbiente } from './ambientes.js'
 import { FORMATOS, dibujarPublicacion, cargarFuentes } from './publicaciones.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
-import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes } from '../../../components/admin/SelectorTipoObra.jsx'
+import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes, faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import { ORIENTACIONES, orientacionPorProporcion } from '../../../lib/orientacion.js'
 import SelectorOpciones, { SelectorAnio } from '../../../components/admin/SelectorOpciones.jsx'
 
@@ -254,7 +254,11 @@ export default function SubirObraIA() {
         estado, destacada: estado === 'disponible' && campos.destacada,
         tipo_obra: campos.tipo_obra || null, inspirada_en: campos.tipo_obra === 'interpretacion' ? (campos.inspirada_en.trim() || null) : null, certificado: !!campos.certificado,
       }
-      const { data, error } = await supabase.from('fichas').insert(registro).select('id').single()
+      let { data, error } = await supabase.from('fichas').insert(registro).select('id').single()
+      if (error && faltanColumnasTipo(error)) {
+        ({ data, error } = await supabase.from('fichas').insert(sinCamposTipo(registro)).select('id').single())
+        if (!error) toast('Obra guardada. El tipo (original/interpretación) quedará pendiente hasta ejecutar el SQL de tipo de obra en Supabase.', { icon: '⚠️', duration: 9000 })
+      }
       if (error) throw error
       if (campos.usarPortada && estado === 'disponible') {
         await supabase.from('portadas').insert({

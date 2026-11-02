@@ -34,6 +34,18 @@ export function notaTipoParaIA(tipo, inspiradaEn) {
   return ''
 }
 
+// Si la base aún no tiene los campos de tipo, se guarda la obra sin ellos y se avisa.
+export const CAMPOS_TIPO = ['tipo_obra', 'inspirada_en', 'certificado']
+export function faltanColumnasTipo(error) {
+  const m = String(error?.message || error || '')
+  return /tipo_obra|inspirada_en|certificado/.test(m) && /column|schema cache/i.test(m)
+}
+export function sinCamposTipo(datos) {
+  const copia = { ...datos }
+  CAMPOS_TIPO.forEach(c => delete copia[c])
+  return copia
+}
+
 // Mensaje claro si falta ejecutar la actualización de base de datos
 export function mensajeColumnasFaltantes(error) {
   const m = String(error?.message || error || '')
