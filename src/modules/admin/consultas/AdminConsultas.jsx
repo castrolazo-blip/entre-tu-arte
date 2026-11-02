@@ -68,7 +68,7 @@ export default function AdminConsultas() {
                     {c.mensaje && <p className="mt-4 whitespace-pre-line rounded-2xl bg-crema-clara p-4 text-[15px]">{c.mensaje}</p>}
                     {c.datos?.pedido && (
                       <div className="mt-4 rounded-2xl bg-mostaza-fondo p-4 text-sm">
-                        <p className="font-bold">Pedido</p>
+                        <p className="font-bold">Pedido{c.datos.canal === 'whatsapp' ? ' · enviado por WhatsApp (el cliente te escribe ahí)' : ''}</p>
                         <ul className="mt-2 space-y-1">
                           {(c.datos.items || []).map(it => (
                             <li key={it.id} className="flex justify-between gap-3"><Link to={`/obra/${it.id}`} target="_blank" className="underline">{it.titulo}{it.cantidad > 1 ? ` (x${it.cantidad})` : ''}</Link><span>{it.precio ? `$${Number(it.precio * (it.cantidad || 1)).toLocaleString('en-US')}` : '—'}</span></li>
