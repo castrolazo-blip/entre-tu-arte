@@ -66,7 +66,20 @@ export default function AdminConsultas() {
                       {c.ficha_id && <Link to={`/obra/${c.ficha_id}`} target="_blank" className="btn-contorno btn-chico"><ExternalLink size={16} />Ver obra</Link>}
                     </div>
                     {c.mensaje && <p className="mt-4 whitespace-pre-line rounded-2xl bg-crema-clara p-4 text-[15px]">{c.mensaje}</p>}
-                    {c.datos && Object.keys(c.datos).some(k => c.datos[k]) && (
+                    {c.datos?.pedido && (
+                      <div className="mt-4 rounded-2xl bg-mostaza-fondo p-4 text-sm">
+                        <p className="font-bold">Pedido</p>
+                        <ul className="mt-2 space-y-1">
+                          {(c.datos.items || []).map(it => (
+                            <li key={it.id} className="flex justify-between gap-3"><Link to={`/obra/${it.id}`} target="_blank" className="underline">{it.titulo}{it.cantidad > 1 ? ` (x${it.cantidad})` : ''}</Link><span>{it.precio ? `$${Number(it.precio * (it.cantidad || 1)).toLocaleString('en-US')}` : '—'}</span></li>
+                          ))}
+                        </ul>
+                        <p className="mt-2 flex justify-between border-t border-black/10 pt-2 font-bold"><span>Total</span><span>${Number(c.datos.total || 0).toLocaleString('en-US')}</span></p>
+                        <p className="mt-2">Entrega: <strong>{c.datos.entrega === 'envio' ? 'Envío a domicilio' : 'Retiro en San Salvador'}</strong>{c.datos.instalacion ? ' · con instalación' : ''}</p>
+                        {c.datos.direccion && <p>Dirección: {c.datos.direccion}</p>}
+                      </div>
+                    )}
+                    {c.datos && !c.datos.pedido && Object.keys(c.datos).some(k => c.datos[k]) && (
                       <div className="mt-4 flex flex-wrap items-start gap-4">
                         {c.datos.foto_url && <a href={c.datos.foto_url} target="_blank" rel="noreferrer"><img src={c.datos.foto_url} alt="Foto del espacio del cliente" className="h-40 rounded-2xl object-cover" /></a>}
                         <dl className="text-sm">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, ShieldCheck, Frame, Maximize2 } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check } from 'lucide-react'
 import { obtenerObra, listarObras, etiquetaExistencias, textoTipo } from './obrasService.js'
 import { precio } from '../../lib/formato.js'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
@@ -9,6 +9,8 @@ import FormularioConsulta from '../../components/obras/FormularioConsulta.jsx'
 import TarjetaObra from '../../components/obras/TarjetaObra.jsx'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
 import FondoImagen from '../../components/FondoImagen.jsx'
+import { useCarrito } from '../../context/CarritoContext.jsx'
+import toast from 'react-hot-toast'
 
 const ROLES = { principal: 'Vista de la obra', ambiente: 'En un ambiente', detalle: 'Detalle de textura' }
 
@@ -19,6 +21,8 @@ export default function ObraDetalle() {
   const [foto, setFoto] = useState(0)
   const [consulta, setConsulta] = useState(null)
   const [ampliada, setAmpliada] = useState(false)
+  const carrito = useCarrito()
+  const navigate = useNavigate()
   const [proporciones, setProporciones] = useState({})   // url → ancho/alto de cada foto
 
   useEffect(() => {
@@ -103,7 +107,16 @@ export default function ObraDetalle() {
               <button onClick={() => setConsulta('encargo')} className="btn-primario h-16 text-[17px]">Pedir una obra similar <ArrowRight size={20} /></button>
             ) : (
               <>
-                <button onClick={() => setConsulta('compra')} disabled={reservada} className="btn-primario h-16 text-[17px]">{reservada ? 'Reservada por otro cliente' : <>Comprar esta obra <ArrowRight size={20} /></>}</button>
+{reservada ? (
+                  <button disabled className="btn-primario h-16 text-[17px]">Reservada por otro cliente</button>
+                ) : carrito.tiene(obra.id) ? (
+                  <Link to="/carrito" className="btn-oscuro h-16 text-[17px]"><Check size={20} className="text-mostaza" />En tu carrito · Ver carrito</Link>
+                ) : (
+                  <div className="grid grid-cols-[1fr_auto] gap-3">
+                    <button onClick={() => { carrito.agregar(obra); toast.success('Agregada al carrito') }} className="btn-primario h-16 text-[17px]"><ShoppingBag size={20} />Agregar al carrito</button>
+                    <button onClick={() => { carrito.agregar(obra); navigate('/carrito') }} className="btn-oscuro h-16 px-5 text-[15px]">Comprar ya</button>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setConsulta('reserva')} disabled={reservada} className="btn-contorno px-3 text-[15px]">Reservar 48 h</button>
                   <Link to={`/asesoria?obra=${obra.id}`} className="btn-contorno px-3 text-[15px]"><Frame size={18} />En mi pared</Link>

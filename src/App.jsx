@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import CargandoModulo from './components/CargandoModulo.jsx'
 import { AuthProvider } from './modules/auth/AuthContext.jsx'
 import { ConfigProvider } from './context/ConfigContext.jsx'
+import { CarritoProvider } from './context/CarritoContext.jsx'
 import RutaAdmin from './modules/auth/RutaAdmin.jsx'
 import LayoutPublico from './components/publico/LayoutPublico.jsx'
 import Inicio from './modules/inicio/Inicio.jsx'
@@ -20,6 +21,7 @@ const ArtistaDetalle = lazy(() => import('./modules/artistas/ArtistaDetalle.jsx'
 const Blog           = lazy(() => import('./modules/blog/Blog.jsx'))
 const Articulo       = lazy(() => import('./modules/blog/Articulo.jsx'))
 const Asesoria       = lazy(() => import('./modules/asesoria/Asesoria.jsx'))
+const Carrito        = lazy(() => import('./modules/carrito/Carrito.jsx'))
 // Administración
 const Login              = lazy(() => import('./modules/auth/Login.jsx'))
 const LayoutAdmin        = lazy(() => import('./modules/admin/LayoutAdmin.jsx'))
@@ -40,6 +42,7 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <AuthProvider>
         <ConfigProvider>
+        <CarritoProvider>
           <ErrorBoundary>
             <Suspense fallback={<CargandoModulo />}>
               <Routes>
@@ -54,6 +57,7 @@ export default function App() {
                   <Route path="blog" element={<Blog />} />
                   <Route path="blog/:id" element={<Articulo />} />
                   <Route path="asesoria" element={<Asesoria />} />
+                  <Route path="carrito" element={<Carrito />} />
                 </Route>
 
                 <Route path="login" element={<Login />} />
@@ -76,6 +80,7 @@ export default function App() {
             </Suspense>
           </ErrorBoundary>
           <Toaster position="top-center" toastOptions={{ style: { borderRadius: '999px', fontFamily: '"Plus Jakarta Sans", sans-serif', fontWeight: 600 } }} />
+        </CarritoProvider>
         </ConfigProvider>
       </AuthProvider>
     </BrowserRouter>

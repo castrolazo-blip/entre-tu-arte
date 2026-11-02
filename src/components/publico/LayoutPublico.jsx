@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Menu, X, Search, Home, Heart, MessageCircle, Images } from 'lucide-react'
+import { Menu, X, Search, Home, Heart, MessageCircle, Images, ShoppingBag } from 'lucide-react'
 import Logo from '../Logo.jsx'
 import Footer from './Footer.jsx'
 import { registrarEvento } from '../../lib/analytics.js'
+import { useCarrito } from '../../context/CarritoContext.jsx'
 
 export const MENU = [
   { to: '/', etiqueta: 'Inicio', fin: true },
@@ -19,6 +20,7 @@ export default function LayoutPublico() {
   const [abierto, setAbierto] = useState(false)
   const [scroll, setScroll] = useState(false)
   const { pathname } = useLocation()
+  const { cantidad } = useCarrito()
   const sobrePortada = pathname === '/' && !scroll
 
   useEffect(() => { setAbierto(false); window.scrollTo(0, 0); registrarEvento('visita', pathname) }, [pathname])
@@ -45,6 +47,10 @@ export default function LayoutPublico() {
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/obras?buscar=1" aria-label="Buscar obras" className={`hidden h-11 w-11 items-center justify-center rounded-full sm:flex ${claro ? 'bg-white/10 text-white' : 'bg-crema text-tinta'}`}><Search size={19} /></Link>
+            <Link to="/carrito" aria-label={`Carrito, ${cantidad} ${cantidad === 1 ? 'obra' : 'obras'}`} className={`relative flex h-11 w-11 items-center justify-center rounded-full ${claro ? 'bg-white/10 text-white' : 'bg-crema text-tinta'}`}>
+              <ShoppingBag size={19} />
+              {cantidad > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-mostaza px-1 text-[11px] font-bold text-tinta">{cantidad}</span>}
+            </Link>
             <Link to="/asesoria" className={`hidden h-11 items-center rounded-full px-5 text-sm font-semibold md:inline-flex ${claro ? 'border-2 border-mostaza text-mostaza' : 'bg-tinta text-white'}`}>Asesoría gratis</Link>
             <button onClick={() => setAbierto(!abierto)} aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={abierto}
               className={`flex h-12 w-12 items-center justify-center lg:hidden ${claro ? 'text-white' : 'text-tinta'}`}>
