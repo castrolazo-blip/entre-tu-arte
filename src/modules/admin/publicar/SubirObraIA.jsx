@@ -39,7 +39,7 @@ export default function SubirObraIA() {
   const navigate = useNavigate()
   const [paso, setPaso] = useState(1)
   const [fotos, setFotos] = useState({})            // { principal: {url, img}, ambiente, detalle }
-  const [subiendo, setSubiendo] = useState('')
+  const [subiendo, setSubiendo] = useState([])     // ranuras subiéndose
   const [campos, setCampos] = useState(CAMPOS_INICIALES)
   const [caja, setCaja] = useState(null)             // encuadre de la obra en la foto principal
   const [trabajo, setTrabajo] = useState(null)       // { id, estado, orden }
@@ -183,23 +183,24 @@ export default function SubirObraIA() {
   // ── Fotos ──
   async function elegirFoto(ranura, archivo) {
     if (!archivo) return
-    setSubiendo(ranura); setErrorFoto('')
+    setSubiendo(l => [...l, ranura]); setErrorFoto('')
     try {
-      const reducido = await reducirImagen(archivo, 2400, 0.9)
+      const reducido = await reducirImagen(archivo, 2000, 0.85)
       const url = await subirArchivo('obras', reducido)
       const img = await cargarImagen(URL.createObjectURL(reducido))
       setFotos(f => ({ ...f, [ranura]: { url, img } }))
       if (ranura === 'principal') { setCaja(null); setTrabajo(null) }
     } catch (err) {
       setErrorFoto(err.message || String(err)); toast.error('No se pudo subir la foto')
-    } finally { setSubiendo('') }
+    } finally { setSubiendo(l => l.filter(x => x !== ranura)) }
   }
 
   // Varias fotos a la vez: la primera va al espacio elegido y las demás a los espacios libres
   async function elegirVarias(archivos, desde = 'principal') {
     const orden = RANURAS.map(r => r.id)
     const destinos = [desde, ...orden.filter(id => id !== desde && !fotos[id])]
-    for (const [i, archivo] of archivos.slice(0, destinos.length).entries()) await elegirFoto(destinos[i], archivo)
+    // Todas a la vez: tres fotos tardan casi lo mismo que una
+    await Promise.all(archivos.slice(0, destinos.length).map((archivo, i) => elegirFoto(destinos[i], archivo)))
     if (archivos.length > destinos.length) toast(`Se usaron ${destinos.length} foto(s): máximo 3 por obra`)
   }
 
@@ -334,12 +335,12 @@ export default function SubirObraIA() {
           ) : (
             <div className="mt-5 flex flex-col items-center gap-3.5 rounded-[28px] border-2 border-dashed border-[#d9d2c5] bg-white p-6">
               <span aria-hidden="true" className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-mostaza-clara">
-                {subiendo === 'principal' ? <Loader2 size={32} className="animate-spin" /> : <Camera size={34} />}
+                {subiendo.includes('principal') ? <Loader2 size={32} className="animate-spin" /> : <Camera size={34} />}
               </span>
-              <BotonArchivo camara disabled={!!subiendo} onArchivos={([f]) => elegirFoto('principal', f)} className="btn-primario h-[58px] w-full text-[17px]">
-                {subiendo === 'principal' ? 'Subiendo…' : 'Tomar foto'}
+              <BotonArchivo camara disabled={subiendo.length > 0} onArchivos={([f]) => elegirFoto('principal', f)} className="btn-primario h-[58px] w-full text-[17px]">
+                {subiendo.includes('principal') ? 'Subiendo…' : 'Tomar foto'}
               </BotonArchivo>
-              <BotonArchivo multiple disabled={!!subiendo} onArchivos={f => elegirVarias(f)} className="btn-contorno h-[52px] w-full text-[15px]">Elegir de la galería (1 a 3 fotos)</BotonArchivo>
+              <BotonArchivo multiple disabled={subiendo.length > 0} onArchivos={f => elegirVarias(f)} className="btn-contorno h-[52px] w-full text-[15px]">Elegir de la galería (1 a 3 fotos)</BotonArchivo>
             </div>
           )}
           {errorFoto && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">No se pudo subir la foto. {errorFoto}</p>}
@@ -349,11 +350,11 @@ export default function SubirObraIA() {
           <p className="mb-2 mt-5 text-[13px] font-bold">Opcional: más fotos</p>
           <div className="grid grid-cols-2 gap-2.5">
             {RANURAS.slice(1).map(r => (
-              <BotonArchivo key={r.id} multiple disabled={!!subiendo} onArchivos={f => elegirVarias(f, r.id)} className="relative flex h-20 w-full items-center justify-center gap-2 overflow-hidden rounded-[18px] border-[1.5px] border-dashed border-[#d9d2c5] text-[13px] font-semibold text-gris">
+              <BotonArchivo key={r.id} multiple disabled={subiendo.length > 0} onArchivos={f => elegirVarias(f, r.id)} className="relative flex h-20 w-full items-center justify-center gap-2 overflow-hidden rounded-[18px] border-[1.5px] border-dashed border-[#d9d2c5] text-[13px] font-semibold text-gris">
                 {fotos[r.id] ? <>
                   <img src={fotos[r.id].img.src} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   <span className="relative rounded-full bg-white/95 px-3 py-1 text-tinta">{r.etiqueta} ✓</span>
-                </> : subiendo === r.id ? 'Subiendo…' : <><ImagePlus size={18} />{r.etiqueta}</>}
+                </> : subiendo.includes(r.id) ? 'Subiendo…' : <><ImagePlus size={18} />{r.etiqueta}</>}
               </BotonArchivo>
             ))}
           </div>
@@ -367,7 +368,7 @@ export default function SubirObraIA() {
             <textarea rows={2} value={campos.notas} onChange={e => cambiar('notas', e.target.value)} placeholder="Ej: inspirada en el atardecer de El Tunco" className="campo mt-2" />
           </details>
           <div className={barraFija}>
-            <button onClick={analizar} disabled={!fotos.principal || !!subiendo} className="btn-oscuro mx-auto flex h-[58px] w-full max-w-2xl text-base">
+            <button onClick={analizar} disabled={!fotos.principal || subiendo.length > 0} className="btn-oscuro mx-auto flex h-[58px] w-full max-w-2xl text-base">
               <Sparkles size={20} className="text-mostaza" />Analizar con IA
             </button>
           </div>

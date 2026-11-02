@@ -64,7 +64,8 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
       setIa({ estado: '', error: err.message || 'La IA no pudo terminar' })
     }
   }
-  const [subiendo, setSubiendo] = useState(false)
+  const [enCurso, setEnCurso] = useState([])   // fotos subiéndose: { id, vista }
+  const subiendo = enCurso.length > 0
   const [errorFoto, setErrorFoto] = useState('')
 
   useEffect(() => {
@@ -74,23 +75,24 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
   const c = k => e => setF(v => ({ ...v, [k]: e.target.value }))
 
   // Se pueden elegir varias fotos a la vez; se suben hasta completar 3.
+  // Las fotos suben todas a la vez; mientras tanto se ve la foto local con su avance
   async function agregarFotos(archivos) {
-    const libres = 3 - fotos.length
-    const lote = archivos.slice(0, libres)
+    const libres = 3 - fotos.length - enCurso.length
+    const lote = archivos.slice(0, Math.max(libres, 0))
     if (!lote.length) return
     if (archivos.length > libres) toast(`Solo caben ${libres} foto(s) más (máximo 3)`)
     setErrorFoto('')
+    const tareas = lote.map(a => ({ id: Math.random().toString(36).slice(2), vista: URL.createObjectURL(a), archivo: a }))
+    setEnCurso(l => [...l, ...tareas])
     let fallidas = 0
-    for (const [i, a] of lote.entries()) {
-      setSubiendo(lote.length > 1 ? `${i + 1} de ${lote.length}` : true)
+    await Promise.all(tareas.map(async t => {
       try {
-        const url = await subirArchivo('obras', await reducirImagen(a, 2000, 0.85))
-        // Cada foto aparece apenas sube, aunque otra falle después
+        const url = await subirArchivo('obras', await reducirImagen(t.archivo, 1800, 0.82))
         setFotos(fs => [...fs, { url }].slice(0, 3).map((x, j) => ({ ...x, rol: ROLES[j] || 'detalle' })))
       } catch (err) { fallidas++; setErrorFoto(err.message || String(err)) }
-    }
+      finally { setEnCurso(l => l.filter(x => x.id !== t.id)); URL.revokeObjectURL(t.vista) }
+    }))
     if (fallidas) toast.error(fallidas === 1 ? 'Una foto no se pudo subir; las demás sí' : `${fallidas} fotos no se pudieron subir`)
-    setSubiendo(false)
   }
 
   const formatoActual = orientacionPorMedidas({ ...camposPiezas(piezas, f.alto, f.ancho), diametro_cm: juego ? null : numero(f.diametro) })
@@ -143,10 +145,16 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
                 <button type="button" onClick={() => setFotos(fs => fs.filter((_, n) => n !== i))} aria-label="Quitar foto" className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/95"><Trash2 size={15} /></button>
               </div>
             ))}
-            {fotos.length < 3 && (
-              <BotonArchivo multiple onArchivos={agregarFotos} disabled={!!subiendo}
+            {enCurso.map(t => (
+              <div key={t.id} className="relative aspect-square overflow-hidden rounded-2xl">
+                <img src={t.vista} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
+                <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/30 text-xs font-bold"><Loader2 size={22} className="animate-spin" />Subiendo…</span>
+              </div>
+            ))}
+            {fotos.length + enCurso.length < 3 && (
+              <BotonArchivo multiple onArchivos={agregarFotos}
                 className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-crema-borde text-xs font-semibold text-gris">
-                <ImagePlus size={22} />{subiendo ? `Subiendo${subiendo === true ? '' : ' ' + subiendo}…` : 'Agregar fotos'}
+                <ImagePlus size={22} />Agregar fotos
               </BotonArchivo>
             )}
           </div>
@@ -155,7 +163,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
         </section>
 
         <section className="mt-4 rounded-[24px] border-2 border-mostaza bg-white p-5">
-          <button type="button" onClick={completarConIA} disabled={ia.estado === 'trabajando' || !fotos.length} className="btn-oscuro h-14 w-full text-[15px]">
+          <button type="button" onClick={completarConIA} disabled={ia.estado === 'trabajando' || !fotos.length || subiendo} className="btn-oscuro h-14 w-full text-[15px]">
             {ia.estado === 'trabajando' ? <><Loader2 size={19} className="animate-spin" />La IA está trabajando… (1 a 2 min)</> : <><Sparkles size={19} className="text-mostaza" />{ia.estado === 'listo' ? 'Volver a generar con IA' : 'Completar con IA: nombre, descripción y texto'}</>}
           </button>
           <p className="mt-2 text-center text-xs text-gris">Usa las fotos de la obra. Después revisa y toca "Guardar cambios".</p>
@@ -209,7 +217,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
 
         <div className="sticky bottom-0 mt-4 flex gap-3 bg-[#f6f4f0] py-3">
           <button type="button" onClick={onCerrar} className="btn-contorno flex-1 whitespace-nowrap px-4">Cancelar</button>
-          <button disabled={guardando} className="btn-primario flex-1 whitespace-nowrap px-4">{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
+          <button disabled={guardando || subiendo} className="btn-primario flex-1 whitespace-nowrap px-4">{guardando ? 'Guardando…' : subiendo ? 'Subiendo fotos…' : 'Guardar cambios'}</button>
         </div>
       </form>
     </div>

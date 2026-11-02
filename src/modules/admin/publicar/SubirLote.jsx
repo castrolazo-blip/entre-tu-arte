@@ -71,7 +71,7 @@ export default function SubirLote() {
   async function procesar(item, clave) {
     try {
       actualizar(item.id, { estado: 'subiendo', error: '' })
-      const reducido = await reducirImagen(item.archivo, 2400, 0.9)
+      const reducido = await reducirImagen(item.archivo, 2000, 0.85)
       const url = await subirArchivo('obras', reducido)
       const img = await cargarImagen(URL.createObjectURL(reducido))
 
