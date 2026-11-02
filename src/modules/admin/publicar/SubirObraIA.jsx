@@ -184,6 +184,14 @@ export default function SubirObraIA() {
     } finally { setSubiendo('') }
   }
 
+  // Varias fotos a la vez: la primera va al espacio elegido y las demás a los espacios libres
+  async function elegirVarias(archivos, desde = 'principal') {
+    const orden = RANURAS.map(r => r.id)
+    const destinos = [desde, ...orden.filter(id => id !== desde && !fotos[id])]
+    for (const [i, archivo] of archivos.slice(0, destinos.length).entries()) await elegirFoto(destinos[i], archivo)
+    if (archivos.length > destinos.length) toast(`Se usaron ${destinos.length} foto(s): máximo 3 por obra`)
+  }
+
   async function analizar() {
     if (!fotos.principal) { toast.error('Primero sube la foto de la obra'); return }
     let clave = leerClaveIA()
@@ -319,7 +327,7 @@ export default function SubirObraIA() {
               <BotonArchivo camara disabled={!!subiendo} onArchivos={([f]) => elegirFoto('principal', f)} className="btn-primario h-[58px] w-full text-[17px]">
                 {subiendo === 'principal' ? 'Subiendo…' : 'Tomar foto'}
               </BotonArchivo>
-              <BotonArchivo disabled={!!subiendo} onArchivos={([f]) => elegirFoto('principal', f)} className="btn-contorno h-[52px] w-full text-[15px]">Elegir de la galería</BotonArchivo>
+              <BotonArchivo multiple disabled={!!subiendo} onArchivos={f => elegirVarias(f)} className="btn-contorno h-[52px] w-full text-[15px]">Elegir de la galería (1 a 3 fotos)</BotonArchivo>
             </div>
           )}
           {errorFoto && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">No se pudo subir la foto. {errorFoto}</p>}
@@ -329,7 +337,7 @@ export default function SubirObraIA() {
           <p className="mb-2 mt-5 text-[13px] font-bold">Opcional: más fotos</p>
           <div className="grid grid-cols-2 gap-2.5">
             {RANURAS.slice(1).map(r => (
-              <BotonArchivo key={r.id} disabled={!!subiendo} onArchivos={([f]) => elegirFoto(r.id, f)} className="relative flex h-20 w-full items-center justify-center gap-2 overflow-hidden rounded-[18px] border-[1.5px] border-dashed border-[#d9d2c5] text-[13px] font-semibold text-gris">
+              <BotonArchivo key={r.id} multiple disabled={!!subiendo} onArchivos={f => elegirVarias(f, r.id)} className="relative flex h-20 w-full items-center justify-center gap-2 overflow-hidden rounded-[18px] border-[1.5px] border-dashed border-[#d9d2c5] text-[13px] font-semibold text-gris">
                 {fotos[r.id] ? <>
                   <img src={fotos[r.id].img.src} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   <span className="relative rounded-full bg-white/95 px-3 py-1 text-tinta">{r.etiqueta} ✓</span>

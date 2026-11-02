@@ -68,13 +68,21 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
   }, [])
   const c = k => e => setF(v => ({ ...v, [k]: e.target.value }))
 
-  async function agregarFoto(a) {
-    if (!a) return
-    setSubiendo(true); setErrorFoto('')
-    try {
-      const url = await subirArchivo('obras', await reducirImagen(a, 2000))
-      setFotos(fs => [...fs, { url, rol: ROLES[fs.length] || 'detalle' }].slice(0, 3))
-    } catch (err) { setErrorFoto(err.message || String(err)); toast.error('No se pudo subir la foto') } finally { setSubiendo(false) }
+  // Se pueden elegir varias fotos a la vez; se suben hasta completar 3.
+  async function agregarFotos(archivos) {
+    const libres = 3 - fotos.length
+    const lote = archivos.slice(0, libres)
+    if (!lote.length) return
+    if (archivos.length > libres) toast(`Solo caben ${libres} foto(s) más (máximo 3)`)
+    setErrorFoto('')
+    const nuevas = []
+    for (const [i, a] of lote.entries()) {
+      setSubiendo(lote.length > 1 ? `${i + 1} de ${lote.length}` : true)
+      try { nuevas.push(await subirArchivo('obras', await reducirImagen(a, 2000))) }
+      catch (err) { setErrorFoto(err.message || String(err)); toast.error('No se pudo subir una foto') }
+    }
+    setFotos(fs => [...fs, ...nuevas.map(url => ({ url }))].slice(0, 3).map((x, i) => ({ ...x, rol: ROLES[i] || 'detalle' })))
+    setSubiendo(false)
   }
 
   async function guardar(e) {
@@ -124,9 +132,9 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
               </div>
             ))}
             {fotos.length < 3 && (
-              <BotonArchivo onArchivos={([a]) => agregarFoto(a)} disabled={subiendo}
+              <BotonArchivo multiple onArchivos={agregarFotos} disabled={!!subiendo}
                 className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-crema-borde text-xs font-semibold text-gris">
-                <ImagePlus size={22} />{subiendo ? 'Subiendo…' : 'Agregar'}
+                <ImagePlus size={22} />{subiendo ? `Subiendo${subiendo === true ? '' : ' ' + subiendo}…` : 'Agregar fotos'}
               </BotonArchivo>
             )}
           </div>
