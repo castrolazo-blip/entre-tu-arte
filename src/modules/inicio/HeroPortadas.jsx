@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ChevronDown } from 'lucide-react'
 import { useConfig } from '../../context/ConfigContext.jsx'
 
 // Portada a pantalla completa que rota sola. Las portadas se administran en /admin/portadas;
@@ -18,11 +18,26 @@ export default function HeroPortadas({ portadas }) {
   }, [total, segundos])
 
   const p = portadas[i % Math.max(total, 1)] || {}
-  const enlace = p.boton_enlace || '/obras'
-  const externo = /^https?:/.test(enlace)
+  // Solo se muestra botón si la portada lleva a una obra concreta ("Ver la obra")
+  const enlaceObra = /^\/obra\//.test(p.boton_enlace || '') ? p.boton_enlace : null
+  const seccion = useRef(null)
+  const bajar = () => {
+    const fin = seccion.current ? seccion.current.getBoundingClientRect().bottom + window.scrollY : window.innerHeight
+    window.scrollTo({ top: fin - 70, behavior: 'smooth' })
+  }
+
+  // Deslizar de lado con el dedo cambia de portada
+  const toque = useRef(null)
+  const alTocar = e => { toque.current = e.touches[0].clientX }
+  const alSoltar = e => {
+    if (toque.current == null || total < 2) return
+    const dx = e.changedTouches[0].clientX - toque.current
+    toque.current = null
+    if (Math.abs(dx) > 50) setI(v => (v + (dx < 0 ? 1 : total - 1)) % total)
+  }
 
   return (
-    <section className="relative min-h-[100svh] overflow-hidden bg-tinta-suave text-white md:min-h-[88vh]">
+    <section ref={seccion} onTouchStart={alTocar} onTouchEnd={alSoltar} className="relative min-h-[100svh] overflow-hidden bg-tinta-suave text-white md:min-h-[88vh]">
       {portadas.map((s, n) => (
         <picture key={s.id || n}>
           {s.imagen_movil_url && <source media="(max-width: 767px)" srcSet={s.imagen_movil_url} />}
@@ -33,7 +48,7 @@ export default function HeroPortadas({ portadas }) {
       <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#171614]/80 via-[#171614]/45 to-transparent" />
       <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[#171614]/40 via-transparent to-[#171614]/70" />
 
-      <div className="contenedor relative flex min-h-[100svh] flex-col justify-end pb-24 pt-32 md:min-h-[88vh] md:justify-center md:pb-16">
+      <div className="contenedor relative flex min-h-[100svh] flex-col justify-end pb-36 pt-32 md:min-h-[88vh] md:justify-center md:pb-16">
         <div className="max-w-2xl">
           <h1 className="text-[56px] font-medium leading-[0.96] tracking-[-0.045em] md:text-[96px]">
             <TitularConAcento texto={p.titular || 'Arte que transforma espacios'} />
@@ -42,11 +57,15 @@ export default function HeroPortadas({ portadas }) {
           <p className="mt-6 max-w-md text-lg leading-relaxed text-white/90 md:text-xl">
             {p.subtitulo || 'Obras hechas a mano por artistas salvadoreños para hogares, oficinas y proyectos especiales.'}
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            {externo
-              ? <a href={enlace} className="btn-primario h-16 px-8 text-[17px]">{p.boton_texto || 'Ver las obras'} <ArrowRight size={22} /></a>
-              : <Link to={enlace} className="btn-primario h-16 px-8 text-[17px]">{p.boton_texto || 'Ver las obras'} <ArrowRight size={22} /></Link>}
-            <Link to="/asesoria" className="btn-claro hidden h-16 md:inline-flex">Asesoría para mi espacio</Link>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={bajar} className="group flex items-center gap-3 text-left text-[17px] font-semibold">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-mostaza text-tinta shadow-lg">
+                <ChevronDown size={28} className="animate-bounce" />
+              </span>
+              <span>Desliza para ver las obras</span>
+            </button>
+            {enlaceObra && <Link to={enlaceObra} className="btn-claro h-14 px-6 text-[15px]">Ver la obra <ArrowRight size={18} /></Link>}
+            <Link to="/asesoria" className="btn-claro hidden h-14 md:inline-flex">Asesoría para mi espacio</Link>
           </div>
         </div>
       </div>

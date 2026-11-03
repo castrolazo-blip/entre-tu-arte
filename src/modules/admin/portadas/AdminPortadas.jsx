@@ -7,7 +7,7 @@ import { normalizarObra } from '../../catalogo/obrasService.js'
 import { useConfig } from '../../../context/ConfigContext.jsx'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
 
-const VACIA = { imagen_url: '', imagen_movil_url: '', titular: 'Arte que transforma espacios', subtitulo: '', boton_texto: 'Explorar Colecciones', boton_enlace: '/colecciones', activa: true, desde: '', hasta: '' }
+const VACIA = { imagen_url: '', imagen_movil_url: '', titular: 'Arte que transforma espacios', subtitulo: '', boton_texto: '', boton_enlace: '', activa: true, desde: '', hasta: '' }
 
 export default function AdminPortadas() {
   const { cfg, recargar } = useConfig()
@@ -138,7 +138,7 @@ export default function AdminPortadas() {
             <label className="etiqueta">Subtítulo<input value={form.subtitulo || ''} onChange={c('subtitulo')} className="campo mt-1.5" /></label>
             <div className="grid grid-cols-2 gap-2.5">
               <label className="etiqueta">Texto del botón<input value={form.boton_texto || ''} onChange={c('boton_texto')} className="campo mt-1.5" /></label>
-              <label className="etiqueta">Lleva a<input value={form.boton_enlace || ''} onChange={c('boton_enlace')} placeholder="/colecciones" className="campo mt-1.5" /></label>
+              <label className="etiqueta">Lleva a<input value={form.boton_enlace || ''} onChange={c('boton_enlace')} placeholder="/obra/123 (opcional)" className="campo mt-1.5" /></label>
               <label className="etiqueta">Mostrar desde<input type="date" value={form.desde} onChange={c('desde')} className="campo mt-1.5" /></label>
               <label className="etiqueta">Hasta<input type="date" value={form.hasta} onChange={c('hasta')} className="campo mt-1.5" /></label>
             </div>
