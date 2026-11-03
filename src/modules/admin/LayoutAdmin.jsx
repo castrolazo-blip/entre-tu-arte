@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom'
-import { LayoutDashboard, Images, Sparkles, Layers, MonitorPlay, Star, Inbox, Palette, Tags, BookOpen, Settings, LogOut, Menu, X, ExternalLink, Store } from 'lucide-react'
+import { LayoutDashboard, Images, Sparkles, Layers, MonitorPlay, Star, Inbox, Palette, Tags, BookOpen, Settings, LogOut, Menu, X, ExternalLink, Store, BarChart3 } from 'lucide-react'
 import Logo from '../../components/Logo.jsx'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -8,6 +8,7 @@ import { VERSION } from '../../lib/actualizacion.js'
 
 export const MENU_ADMIN = [
   { to: '/admin', etiqueta: 'Resumen', Icono: LayoutDashboard, fin: true },
+  { to: '/admin/estadisticas', etiqueta: 'Estadísticas', Icono: BarChart3 },
   { to: '/admin/obras', etiqueta: 'Obras', Icono: Images },
   { to: '/admin/subir', etiqueta: 'Subir obra con IA', Icono: Sparkles },
   { to: '/admin/lote', etiqueta: 'Subir varias obras', Icono: Layers },

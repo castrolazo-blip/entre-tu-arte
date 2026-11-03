@@ -34,6 +34,7 @@ const AdminPortadas      = lazy(() => import('./modules/admin/portadas/AdminPort
 const AdminDestacadas    = lazy(() => import('./modules/admin/destacadas/AdminDestacadas.jsx'))
 const AdminConsultas     = lazy(() => import('./modules/admin/consultas/AdminConsultas.jsx'))
 const AdminMarketplace = lazy(() => import('./modules/admin/marketplace/AdminMarketplace.jsx'))
+const Estadisticas = lazy(() => import('./modules/admin/estadisticas/Estadisticas.jsx'))
 const Marketplace    = lazy(() => import('./modules/marketplace/Marketplace.jsx'))
 const Vender         = lazy(() => import('./modules/marketplace/Vender.jsx'))
 const AdminArtistas      = lazy(() => import('./modules/admin/artistas/AdminArtistas.jsx'))
@@ -78,6 +79,7 @@ export default function App() {
                   <Route path="destacadas" element={<AdminDestacadas />} />
                   <Route path="consultas" element={<AdminConsultas />} />
                   <Route path="marketplace" element={<AdminMarketplace />} />
+                  <Route path="estadisticas" element={<Estadisticas />} />
                   <Route path="artistas" element={<AdminArtistas />} />
                   <Route path="colecciones" element={<AdminColecciones />} />
                   <Route path="blog" element={<AdminBlog />} />

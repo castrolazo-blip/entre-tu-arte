@@ -3,6 +3,7 @@
 --   1. Tipo de obra (original / interpretación) y certificado
 --   2. Obras en juego (dípticos, trípticos, n piezas)
 --   3. Marketplace (cuadros de otros artistas y coleccionistas)
+--   4. Estadísticas (visitantes únicos, origen de las visitas y dispositivo)
 -- Cómo: Supabase › proyecto entre-tu-arte › SQL Editor › New query › pegar todo › Run.
 -- Se puede ejecutar más de una vez sin problema.
 -- ════════════════════════════════════════════════════════════════════════════
@@ -87,5 +88,17 @@ create policy mkt_admin_borrar on public.marketplace_solicitudes for delete usin
 drop policy if exists catalogos_marketplace_subir on storage.objects;
 create policy catalogos_marketplace_subir on storage.objects for insert
   with check (bucket_id = 'catalogos' and (storage.foldername(name))[1] = 'marketplace');
+
+notify pgrst, 'reload schema';
+
+-- Estadísticas: datos anónimos extra en cada evento de la tabla analytics.
+--   visitante   identificador aleatorio del navegador (para contar visitantes únicos)
+--   origen      de dónde llegó la visita (Google, Instagram, Facebook, WhatsApp, Directo…)
+--   dispositivo Celular, Tablet o Computadora
+-- Se puede ejecutar más de una vez.
+alter table public.analytics add column if not exists visitante text;
+alter table public.analytics add column if not exists origen text;
+alter table public.analytics add column if not exists dispositivo text;
+create index if not exists analytics_created_at_idx on public.analytics (created_at desc);
 
 notify pgrst, 'reload schema';

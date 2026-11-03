@@ -1,3 +1,4 @@
+import { registrarEvento } from '../lib/analytics.js'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 // Carrito guardado en este dispositivo. Cada obra única entra una sola vez; las ediciones
@@ -24,13 +25,13 @@ export function CarritoProvider({ children }) {
     cantidad: items.reduce((s, x) => s + (x.cantidad || 1), 0),
     total: items.reduce((s, x) => s + (Number(x.precio) || 0) * (x.cantidad || 1), 0),
     tiene: id => items.some(x => String(x.id) === String(id)),
-    agregar: obra => setItems(l => l.some(x => String(x.id) === String(obra.id)) ? l : [...l, {
+    agregar: obra => { if (!items.some(x => String(x.id) === String(obra.id))) registrarEvento('agregar_carrito', '/obra', obra.id, obra.titulo); setItems(l => l.some(x => String(x.id) === String(obra.id)) ? l : [...l, {
       id: obra.id, titulo: obra.titulo, precio: obra.precio, foto: obra.foto, medidas: obra.medidasTexto || '',
       artista: obra.artista || '', cantidad: 1,
       // Por pedido (obra vendida que se pinta de nuevo): se puede pedir más de una
       porPedido: obra.estadoEfectivo === 'vendida' && obra.origen !== 'marketplace',
       maximo: obra.estadoEfectivo === 'vendida' && obra.origen !== 'marketplace' ? 10 : obra.edicion_total ? Math.max(1, obra.existencias || 1) : 1,
-    }]),
+    }]) },
     cambiarCantidad: (id, n) => setItems(l => l.map(x => String(x.id) === String(id) ? { ...x, cantidad: Math.min(x.maximo || 1, Math.max(1, n)) } : x)),
     quitar: id => setItems(l => l.filter(x => String(x.id) !== String(id))),
     vaciar: () => setItems([]),

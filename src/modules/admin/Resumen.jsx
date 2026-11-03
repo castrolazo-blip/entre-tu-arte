@@ -64,7 +64,7 @@ export default function Resumen() {
               )}
             </section>
             <section className="rounded-[28px] bg-white p-6">
-              <h2 className="text-lg font-bold">Obras más vistas (30 días)</h2>
+              <div className="flex items-center justify-between"><h2 className="text-lg font-bold">Obras más vistas (30 días)</h2><Link to="/admin/estadisticas" className="text-sm font-semibold">Estadísticas <ArrowRight size={15} className="inline" /></Link></div>
               {!d.top.length ? <p className="mt-4 text-gris">Todavía no hay datos.</p> : (
                 <ol className="mt-3 space-y-2.5">
                   {d.top.map(([nombre, n], i) => (
