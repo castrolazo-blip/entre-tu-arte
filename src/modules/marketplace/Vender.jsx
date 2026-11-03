@@ -4,8 +4,6 @@ import { ImagePlus, Plus, Trash2, Check, Loader2, Palette, Frame } from 'lucide-
 import toast from 'react-hot-toast'
 import BotonArchivo from '../../components/admin/BotonArchivo.jsx'
 import { enviarSolicitudes } from './marketplaceService.js'
-import { COMISION_PCT } from './condiciones.js'
-import { precio as formatoPrecio } from '../../lib/formato.js'
 
 const numeroPrecio = v => Number(String(v).replace(/[^0-9.]/g, '')) || 0
 
@@ -143,7 +141,7 @@ export default function Vender() {
               <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={c.alto} onChange={e => cambiar(c.id, 'alto', e.target.value)} className="campo mt-1.5" /></label>
               <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={c.ancho} onChange={e => cambiar(c.id, 'ancho', e.target.value)} className="campo mt-1.5" /></label>
               <label className="etiqueta sm:col-span-2">Precio de venta que propones (USD)<input inputMode="decimal" value={c.precio} onChange={e => cambiar(c.id, 'precio', e.target.value)} placeholder="Ej. 500" className="campo mt-1.5 text-lg font-bold" />
-                {numeroPrecio(c.precio) > 0 && <span className="mt-1.5 block text-sm font-normal text-gris">Si se vende a {formatoPrecio(numeroPrecio(c.precio))}, recibes <strong className="text-tinta">{formatoPrecio(Math.round(numeroPrecio(c.precio) * (100 - COMISION_PCT)) / 100)}</strong> ({100 - COMISION_PCT}%). Comisión de Entre tu Arte: {COMISION_PCT}%.</span>}
+                <span className="mt-1.5 block text-sm font-normal text-gris">La comisión de Entre tu Arte se acuerda contigo antes de publicar la obra.</span>
               </label>
               <label className="etiqueta sm:col-span-2">Cuéntanos del cuadro (opcional)<textarea rows={3} value={c.descripcion} onChange={e => cambiar(c.id, 'descripcion', e.target.value)} placeholder="Año, estado, si tiene marco, firma…" className="campo mt-1.5" /></label>
             </div>
@@ -156,7 +154,7 @@ export default function Vender() {
           <h2 className="font-bold">Condiciones comerciales, en resumen</h2>
           <ul className="mt-2 space-y-1.5">
             {['Inscripción y publicación gratuitas; Entre tu Arte selecciona las obras que publica.',
-              `Comisión del ${COMISION_PCT}% sobre el precio de venta acordado: tú recibes el ${100 - COMISION_PCT}%.`,
+              'La comisión sobre el precio de venta se acuerda contigo antes de publicar cada obra.',
               'Te pagamos dentro de 7 días hábiles después del pago completo del comprador y la entrega.',
               'Sin exclusividad. La obra queda contigo hasta la venta; avísanos si deja de estar disponible.',
               'El transporte lo paga el comprador. Los compradores tratan solo con Entre tu Arte y tus datos no se publican.'].map(t => (
@@ -167,7 +165,7 @@ export default function Vender() {
         </section>
         <label className="flex cursor-pointer gap-3 rounded-[22px] bg-white p-4 text-sm leading-relaxed">
           <input type="checkbox" checked={acepto} onChange={e => setAcepto(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#17181b]" />
-          <span>He leído y acepto las <Link to="/condiciones-artistas" target="_blank" className="font-semibold underline">Condiciones comerciales para artistas</Link>, incluida la comisión del {COMISION_PCT}%, y confirmo que la información y las fotos que envío son verdaderas y que puedo vender estas obras.</span>
+          <span>He leído y acepto las <Link to="/condiciones-artistas" target="_blank" className="font-semibold underline">Condiciones comerciales para artistas</Link> y confirmo que la información y las fotos que envío son verdaderas y que puedo vender estas obras.</span>
         </label>
         <button disabled={!!enviando} className="btn-primario h-16 w-full text-[17px]">
           {enviando ? <><Loader2 size={20} className="animate-spin" />Enviando cuadro {enviando} de {cuadros.length}…</> : `Enviar ${cuadros.length === 1 ? 'mi cuadro' : `mis ${cuadros.length} cuadros`}`}

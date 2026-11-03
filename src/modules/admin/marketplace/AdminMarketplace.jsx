@@ -6,10 +6,10 @@ import { supabase } from '../../../lib/supabase.js'
 import { precio, medidasTexto, fechaCorta } from '../../../lib/formato.js'
 import { faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
-import { COMISION_PCT } from '../../marketplace/condiciones.js'
+import { COMISION_SUGERIDA } from '../../marketplace/condiciones.js'
 
-// Lo que se paga al vendedor: el precio de venta menos la comisión (30 % según las condiciones)
-const pagoVendedor = s => s.precio_publicado ? Math.round(Number(s.precio_publicado) * (100 - (s.comision_pct ?? COMISION_PCT))) / 100 : Number(s.precio_deseado) || 0
+// Lo que se paga al vendedor: el precio de venta menos la comisión acordada para esa obra
+const pagoVendedor = s => s.precio_publicado ? Math.round(Number(s.precio_publicado) * (100 - (s.comision_pct ?? COMISION_SUGERIDA))) / 100 : Number(s.precio_deseado) || 0
 
 const PESTANAS = [['pendiente', 'Por revisar'], ['publicada', 'Publicadas'], ['rechazada', 'Rechazadas'], ['', 'Todas']]
 const enPestana = (s, p) => !p || (p === 'publicada' ? ['aprobada', 'pagada'].includes(s.estado) : s.estado === p)
@@ -95,14 +95,15 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
   // El vendedor propone el precio de venta; se publica a ese precio salvo que se acuerde otro
   const sugerido = s.precio_deseado ? Number(s.precio_deseado) : ''
   const [f, setF] = useState({
-    titulo: s.titulo || '', precio: sugerido,
+    titulo: s.titulo || '', precio: sugerido, comision: String(COMISION_SUGERIDA),
     // Crédito público: el artista del cuadro; si no se sabe, "Artista anónimo"
     credito: s.autor || (s.autor_anonimo ? 'Artista anónimo' : s.tipo_vendedor === 'artista' ? s.nombre : 'Colección privada'),
   })
   const [publicando, setPublicando] = useState(false)
   const medidas = medidasTexto({ alto_cm: s.alto_cm, ancho_cm: s.ancho_cm, piezas: s.piezas })
   const venta = Number(String(f.precio).replace(/[^0-9.]/g, '')) || 0
-  const alVendedor = Math.round(venta * (100 - COMISION_PCT)) / 100
+  const pct = Math.min(100, Math.max(0, Number(String(f.comision).replace(',', '.')) || 0))
+  const alVendedor = Math.round(venta * (100 - pct)) / 100
   const wa = waVendedor(s.telefono)
   const vendida = ficha?.estado === 'vendida'
 
@@ -123,7 +124,7 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
       toast.error(/origen/.test(error.message) ? 'Falta activar el Marketplace: ejecuta docs/ACTUALIZAR_BASE.sql en Supabase.' : 'No se pudo publicar: ' + error.message, { duration: 8000 })
       return
     }
-    await actualizar(s, { estado: 'aprobada', ficha_id: String(data.id), precio_publicado: precioVenta, comision_pct: COMISION_PCT }, 'Publicado en el Marketplace. Puedes completarlo con IA en Obras › Editar.')
+    await actualizar(s, { estado: 'aprobada', ficha_id: String(data.id), precio_publicado: precioVenta, comision_pct: pct }, 'Publicado en el Marketplace. Puedes completarlo con IA en Obras › Editar.')
     setPublicando(false)
   }
 
@@ -163,19 +164,20 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
         <div>
           <p className="text-xs font-semibold text-gris">Precio de venta que propone</p>
           <p className="text-xl font-bold">{precio(s.precio_deseado) || 'No indicó'}</p>
-          {s.precio_publicado && <p className="text-xs text-gris">Publicado a {precio(s.precio_publicado)} · al vendedor {precio(pagoVendedor(s))} ({100 - (s.comision_pct ?? COMISION_PCT)}%)</p>}
+          {s.precio_publicado && <p className="text-xs text-gris">Publicado a {precio(s.precio_publicado)} · al vendedor {precio(pagoVendedor(s))} ({100 - (s.comision_pct ?? COMISION_SUGERIDA)}%) · comisión acordada {s.comision_pct ?? COMISION_SUGERIDA}%</p>}
           <p className="mt-1 text-xs text-gris">{s.condiciones_version ? `Aceptó las condiciones (versión ${s.condiciones_version}) el ${fechaCorta(s.condiciones_aceptadas_en || s.created_at)}` : 'Sin registro de aceptación de condiciones'}</p>
         </div>
       </div>
 
       {s.estado === 'pendiente' && (
         <div className="mt-4 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-4">
             <label className="etiqueta">Nombre público<input value={f.titulo} onChange={e => setF(x => ({ ...x, titulo: e.target.value }))} placeholder="Puedes completarlo con IA después" className="campo mt-1.5" /></label>
             <label className="etiqueta">Crédito público<input value={f.credito} onChange={e => setF(x => ({ ...x, credito: e.target.value }))} className="campo mt-1.5" /></label>
             <label className="etiqueta">Precio de publicación (USD)<input inputMode="decimal" value={f.precio} onChange={e => setF(x => ({ ...x, precio: e.target.value }))} className="campo mt-1.5 font-bold" /></label>
+            <label className="etiqueta">Comisión acordada (%)<input inputMode="decimal" value={f.comision} onChange={e => setF(x => ({ ...x, comision: e.target.value }))} className="campo mt-1.5 font-bold" /></label>
           </div>
-          {venta > 0 && <p className="text-sm">Al vendedor ({100 - COMISION_PCT}%): <strong>{precio(alVendedor)}</strong> · Entre tu Arte ({COMISION_PCT}%): <strong>{precio(venta - alVendedor)}</strong>. Si cambias el precio, acuérdalo antes con el vendedor (condición 4).</p>}
+          {venta > 0 && <p className="text-sm">Al vendedor ({100 - pct}%): <strong>{precio(alVendedor)}</strong> · Entre tu Arte ({pct}%): <strong>{precio(venta - alVendedor)}</strong>. Acuerda el precio y la comisión con el vendedor antes de publicar (condiciones 3 y 4).</p>}
           <div className="flex flex-wrap gap-2">
             <button onClick={publicar} disabled={publicando} className="btn-primario h-12 flex-1">{publicando ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}Aprobar y publicar</button>
             <button onClick={() => actualizar(s, { estado: 'rechazada' }, 'Solicitud rechazada')} className="h-12 rounded-full px-5 text-sm font-bold text-red-700 ring-1 ring-red-200"><X size={16} className="mr-1 inline" />Rechazar</button>

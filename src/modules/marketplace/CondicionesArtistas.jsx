@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Printer, ArrowRight } from 'lucide-react'
-import { CONDICIONES, CONDICIONES_VERSION } from './condiciones.js'
+import { CONDICIONES, CONDICIONES_FECHA } from './condiciones.js'
 
 // Condiciones comerciales para artistas: página pública, imprimible (o "guardar como PDF").
 export default function CondicionesArtistas() {
   useEffect(() => { document.title = 'Condiciones comerciales para artistas · Entre tu Arte' }, [])
-  const fecha = new Date(CONDICIONES_VERSION + 'T12:00:00').toLocaleDateString('es-SV', { day: 'numeric', month: 'long', year: 'numeric' })
+  const fecha = new Date(CONDICIONES_FECHA + 'T12:00:00').toLocaleDateString('es-SV', { day: 'numeric', month: 'long', year: 'numeric' })
   return (
     <div className="contenedor pb-28 pt-28 md:pt-36">
       <article className="mx-auto max-w-3xl rounded-[30px] bg-white p-6 md:p-12 print:rounded-none print:p-0">
@@ -16,7 +16,7 @@ export default function CondicionesArtistas() {
         <p className="mt-1 text-sm text-gris">Versión del {fecha}</p>
 
         <div className="mt-6 grid gap-2 rounded-[22px] bg-mostaza-fondo p-5 text-[15px] ring-1 ring-mostaza sm:grid-cols-2 print:hidden">
-          {['Inscripción y publicación gratuitas', 'Comisión del 30% sobre el precio de venta: tú recibes el 70%', 'Pago en 7 días hábiles tras el pago del comprador y la entrega', 'Sin exclusividad; la obra queda contigo hasta la venta'].map(t => (
+          {['Inscripción y publicación gratuitas', 'Comisión sobre el precio de venta, acordada contigo antes de publicar cada obra', 'Pago en 7 días hábiles tras el pago del comprador y la entrega', 'Sin exclusividad; la obra queda contigo hasta la venta'].map(t => (
             <p key={t} className="flex gap-2"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-tinta" />{t}</p>
           ))}
         </div>

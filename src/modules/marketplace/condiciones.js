@@ -1,7 +1,9 @@
 // Condiciones comerciales para artistas (texto de Entre tu Arte).
 // Si cambia el texto, sube la VERSION: cada solicitud guarda la versión que aceptó el vendedor.
-export const CONDICIONES_VERSION = '2026-11-03'
-export const COMISION_PCT = 30   // % del precio de venta para Entre tu Arte (el artista recibe el resto)
+export const CONDICIONES_VERSION = '2026-11-03.2'
+export const CONDICIONES_FECHA = '2026-11-03'
+// La comisión se acuerda con cada artista; este es solo el valor que el panel sugiere al aprobar
+export const COMISION_SUGERIDA = 30
 
 export const CONDICIONES = [
   { titulo: 'Objeto del acuerdo', bloques: [
@@ -14,9 +16,10 @@ export const CONDICIONES = [
     'La aceptación de un artista no garantiza la publicación de todas sus obras.',
   ] },
   { titulo: 'Comisión comercial', bloques: [
-    'Entre tu Arte recibirá una comisión equivalente al 30% del precio de venta acordado de cada obra comercializada a través de la plataforma.',
-    'El artista recibirá el 70% restante.',
-    'Ejemplo de una venta de $500:',
+    'Entre tu Arte recibirá una comisión sobre el precio de venta acordado de cada obra comercializada a través de la plataforma.',
+    'El porcentaje de comisión se acordará con el artista para cada obra y se le informará antes de su publicación.',
+    'El artista recibirá el monto restante.',
+    'Ejemplo de una venta de $500 con una comisión acordada del 30%:',
     ['Artista: $350.', 'Entre tu Arte: $150.'],
     'Los descuentos, impuestos, cargos de procesamiento de pagos y otros costos extraordinarios deberán acordarse antes de aplicarse. Ningún descuento podrá reducir el monto correspondiente al artista sin su autorización.',
   ] },
@@ -46,7 +49,7 @@ export const CONDICIONES = [
     'Cualquier costo extraordinario deberá comunicarse y aprobarse previamente.',
   ] },
   { titulo: 'Pagos al artista', bloques: [
-    'Entre tu Arte liquidará al artista el 70% que le corresponda dentro de los 7 días hábiles posteriores a la confirmación del pago completo del comprador, siempre que se haya cumplido la entrega y no exista una reclamación pendiente que justifique retener temporalmente la liquidación.',
+    'Entre tu Arte liquidará al artista el monto que le corresponda dentro de los 7 días hábiles posteriores a la confirmación del pago completo del comprador, siempre que se haya cumplido la entrega y no exista una reclamación pendiente que justifique retener temporalmente la liquidación.',
     'El pago se realizará mediante transferencia bancaria u otro medio previamente acordado.',
     'La galería proporcionará un detalle de la operación que incluya precio de venta, comisión y monto liquidado.',
   ] },
@@ -101,6 +104,6 @@ export const CONDICIONES = [
   ] },
   { titulo: 'Aceptación de condiciones', bloques: [
     'Al seleccionar la casilla de aceptación y enviar su solicitud de registro, el artista declara que:',
-    ['Ha leído y comprendido estas condiciones.', 'Acepta la comisión comercial del 30%.', 'Autoriza la promoción de las obras aprobadas.', 'Confirma la autenticidad de la información proporcionada.', 'Se compromete a mantener actualizada la disponibilidad de sus obras.', 'Acepta las responsabilidades comerciales aquí establecidas.'],
+    ['Ha leído y comprendido estas condiciones.', 'Acepta que la comisión comercial se acuerde para cada obra antes de su publicación.', 'Autoriza la promoción de las obras aprobadas.', 'Confirma la autenticidad de la información proporcionada.', 'Se compromete a mantener actualizada la disponibilidad de sus obras.', 'Acepta las responsabilidades comerciales aquí establecidas.'],
   ] },
 ]
