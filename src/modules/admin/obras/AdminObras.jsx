@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Sparkles, Search, Star, Pencil, Trash2, ExternalLink } from 'lucide-react'
+import { Sparkles, Search, Star, Pencil, Trash2, ExternalLink, Combine } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { precio } from '../../../lib/formato.js'
@@ -15,6 +15,9 @@ export default function AdminObras() {
   const [filtro, setFiltro] = useState('')
   const [texto, setTexto] = useState('')
   const [editando, setEditando] = useState(null)
+  const [seleccion, setSeleccion] = useState(null)   // null = sin modo selección; [] = ids en el orden tocado
+  const [uniendo, setUniendo] = useState(false)
+  const marcar = id => setSeleccion(l => l.includes(id) ? l.filter(x => x !== id) : [...l, id])
 
   async function cargar() {
     const { data, error } = await supabase.from('fichas').select('*, artistas(id, nombre, slug)').order('created_at', { ascending: false })
@@ -59,9 +62,40 @@ export default function AdminObras() {
     cargar()
   }
 
+  // Une varias obras en una (p. ej. un lote que creó una obra por foto). Se conserva la primera
+  // que se tocó con sus textos; se le agregan las fotos principales de las demás y se borran.
+  async function unir() {
+    const elegidas = seleccion.map(id => obras.find(o => o.id === id)).filter(Boolean)
+    if (elegidas.length < 2) return
+    const [base, ...otras] = elegidas
+    if (!window.confirm(`Se unirán ${elegidas.length} obras en "${base.titulo}" (sus textos se conservan). Las otras ${otras.length} se eliminarán y sus fotos pasarán a esta obra. ¿Continuar?`)) return
+    setUniendo(true)
+    const urls = [base.fotos[0]?.url, ...otras.map(o => o.fotos[0]?.url), ...base.fotos.slice(1).map(f => f.url)].filter(Boolean)
+    const unicas = [...new Set(urls)].slice(0, 3)
+    const roles = ['principal', 'ambiente', 'detalle']
+    const { error } = await supabase.from('fichas').update({ fotos: unicas.map((url, i) => ({ url, rol: roles[i] })), imagen_url: unicas[0] || null }).eq('id', base.id)
+    if (error) { setUniendo(false); toast.error('No se pudo unir: ' + error.message); return }
+    const { error: e2 } = await supabase.from('fichas').delete().in('id', otras.map(o => o.id))
+    setUniendo(false)
+    if (e2) toast.error('Se agregaron las fotos, pero no se pudieron borrar las otras obras: ' + e2.message)
+    else toast.success(`Listo: ${elegidas.length} obras unidas en "${base.titulo}"`)
+    setSeleccion(null)
+    cargar()
+  }
+
+  async function eliminarSeleccion() {
+    if (!window.confirm(`¿Eliminar ${seleccion.length} obras? Esta acción no se puede deshacer.`)) return
+    const { error } = await supabase.from('fichas').delete().in('id', seleccion)
+    if (error) { toast.error('No se pudieron eliminar'); return }
+    toast.success(`${seleccion.length} obras eliminadas`)
+    setSeleccion(null)
+    cargar()
+  }
+
   return (
     <>
       <EncabezadoAdmin ruta="Catálogo" titulo="Obras">
+        <button onClick={() => setSeleccion(s => s ? null : [])} className={`btn-chico ${seleccion ? 'btn-oscuro' : 'btn-contorno'}`}><Combine size={17} />{seleccion ? 'Cancelar selección' : 'Seleccionar / unir'}</button>
         <Link to="/admin/lote" className="btn-contorno btn-chico">Subir varias</Link>
         <Link to="/admin/subir" className="btn-primario btn-chico"><Sparkles size={18} />Subir obra con IA</Link>
       </EncabezadoAdmin>
@@ -84,8 +118,9 @@ export default function AdminObras() {
         {/* Celular: tarjetas */}
         <ul className="space-y-3 md:hidden">
           {lista.map(o => (
-            <li key={o.id} className="rounded-[22px] bg-white p-3">
-              <div className="flex gap-3">
+            <li key={o.id} className={`rounded-[22px] bg-white p-3 ${seleccion?.includes(o.id) ? 'ring-2 ring-tinta' : ''}`}>
+              <div className="flex gap-3" onClick={seleccion ? () => marcar(o.id) : undefined}>
+                {seleccion && <CasillaSeleccion n={seleccion.indexOf(o.id)} />}
                 {o.foto ? <img src={o.foto} alt="" className="h-20 w-20 shrink-0 rounded-2xl bg-crema object-cover" /> : <span className="h-20 w-20 shrink-0 rounded-2xl bg-crema" />}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{o.titulo}</p>
@@ -94,7 +129,7 @@ export default function AdminObras() {
                   <p className="mt-1 text-sm"><span className="font-bold">{precio(o.precio) || 'Sin precio'}</span><span className="text-gris"> · {etiquetaExistencias(o)}</span></p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-2">
+              {!seleccion && <div className="mt-3 flex items-center gap-2">
                 <select aria-label={`Estado de ${o.titulo}`} value={o.estado || 'disponible'} onChange={e => cambiarEstado(o, e.target.value)}
                   className={`h-10 flex-1 rounded-full border-0 px-3 text-sm font-bold ${ESTADOS[o.estado || 'disponible'].clase} ring-1 ring-crema-borde`}>
                   {Object.entries(ESTADOS).map(([v, e]) => <option key={v} value={v}>{e.etiqueta}</option>)}
@@ -105,7 +140,7 @@ export default function AdminObras() {
                 </button>
                 <button onClick={() => setEditando(o)} className="flex h-10 items-center gap-1.5 rounded-full bg-tinta px-4 text-sm font-bold text-white"><Pencil size={15} />Editar</button>
                 <button onClick={() => eliminar(o)} aria-label="Eliminar" className="flex h-10 w-10 items-center justify-center rounded-full text-red-700"><Trash2 size={17} /></button>
-              </div>
+              </div>}
             </li>
           ))}
         </ul>
@@ -119,9 +154,10 @@ export default function AdminObras() {
               </tr></thead>
               <tbody>
                 {lista.map(o => (
-                  <tr key={o.id} className="border-t border-[#efebe4]">
+                  <tr key={o.id} className={`border-t border-[#efebe4] ${seleccion?.includes(o.id) ? 'bg-mostaza-fondo' : ''}`}>
                     <td className="px-5 py-3">
-                      <div className="flex items-center gap-3.5">
+                      <div className={`flex items-center gap-3.5 ${seleccion ? 'cursor-pointer' : ''}`} onClick={seleccion ? () => marcar(o.id) : undefined}>
+                        {seleccion && <CasillaSeleccion n={seleccion.indexOf(o.id)} />}
                         {o.foto ? <img src={o.foto} alt="" className="h-12 w-16 shrink-0 rounded-xl object-cover" /> : <span className="h-12 w-16 shrink-0 rounded-xl bg-crema" />}
                         <div className="min-w-0"><p className="truncate font-semibold">{o.titulo}</p><p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos (obra del sitio anterior)'}</p>
                           <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Original${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p></div>
@@ -156,7 +192,26 @@ export default function AdminObras() {
         </div>
         </>
       )}
+      {seleccion && <div aria-hidden="true" className="h-32" />}
+      {seleccion && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-crema-borde bg-white/95 p-3 backdrop-blur lg:left-64">
+          <p className="mx-auto max-w-3xl text-center text-xs text-gris">{seleccion.length < 2 ? 'Toca primero la obra que quieres conservar y luego sus fotos repetidas.' : `Se conserva la obra 1 con sus textos; las demás le pasan su foto y se eliminan.`}</p>
+          <div className="mx-auto mt-2 flex max-w-3xl gap-2">
+            <button onClick={unir} disabled={seleccion.length < 2 || uniendo} className="btn-primario h-12 flex-1"><Combine size={18} />{uniendo ? 'Uniendo…' : `Unir ${seleccion.length || ''} en una obra`}</button>
+            <button onClick={eliminarSeleccion} disabled={!seleccion.length} className="h-12 rounded-full px-4 text-sm font-bold text-red-700 ring-1 ring-red-200 disabled:opacity-40">Eliminar</button>
+          </div>
+        </div>
+      )}
       {editando && <EditarObra obra={editando} onCerrar={() => setEditando(null)} onGuardado={() => { setEditando(null); cargar() }} />}
     </>
+  )
+}
+
+// Casilla con el orden en que se tocó (la 1 es la obra que se conserva al unir)
+function CasillaSeleccion({ n }) {
+  return (
+    <span aria-hidden="true" className={`flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full text-sm font-bold ${n >= 0 ? 'bg-tinta text-white' : 'bg-crema ring-1 ring-crema-borde'}`}>
+      {n >= 0 ? n + 1 : ''}
+    </span>
   )
 }

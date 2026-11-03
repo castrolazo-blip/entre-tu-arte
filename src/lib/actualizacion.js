@@ -9,6 +9,12 @@ async function revisar() {
     if (!res.ok) return
     const { version } = await res.json()
     if (!version || version === VERSION) return
+    // En el panel no se recarga solo (se perdería una subida o un formulario a medias):
+    // se avisa y la persona actualiza cuando termine.
+    if (window.location.pathname.includes('/admin')) {
+      window.dispatchEvent(new CustomEvent('eta-version-nueva', { detail: version }))
+      return
+    }
     const clave = 'eta_recargado_' + version
     if (sessionStorage.getItem(clave)) return   // evita recargas en bucle
     sessionStorage.setItem(clave, '1')

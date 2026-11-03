@@ -26,7 +26,13 @@ export default function LayoutAdmin() {
   const [nuevas, setNuevas] = useState(0)
   const { pathname } = useLocation()
 
+  const [versionNueva, setVersionNueva] = useState(false)
   useEffect(() => { setAbierto(false) }, [pathname])
+  useEffect(() => {
+    const f = () => setVersionNueva(true)
+    window.addEventListener('eta-version-nueva', f)
+    return () => window.removeEventListener('eta-version-nueva', f)
+  }, [])
   useEffect(() => {
     supabase.from('consultas').select('id', { count: 'exact', head: true }).eq('estado', 'nueva')
       .then(({ count }) => setNuevas(count || 0))
@@ -71,7 +77,15 @@ export default function LayoutAdmin() {
         </div>
       )}
 
-      <main className="min-w-0 flex-1 p-4 pb-16 lg:p-0"><Outlet /></main>
+      <main className="min-w-0 flex-1 p-4 pb-16 lg:p-0">
+        {versionNueva && (
+          <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-mostaza-fondo p-3 text-sm ring-1 ring-mostaza lg:m-6 lg:mb-0">
+            <span><strong>Hay una versión nueva del panel.</strong> Actualiza cuando termines lo que estás haciendo.</span>
+            <button onClick={() => window.location.reload()} className="btn-oscuro btn-chico shrink-0 px-4">Actualizar</button>
+          </div>
+        )}
+        <Outlet />
+      </main>
     </div>
   )
 }

@@ -16,11 +16,13 @@ import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
 import { medidaConjunto, insigniaJuego } from '../../../lib/piezas.js'
 
 const MAX_OBRAS = 20
+const MAX_FOTOS = 3   // por obra
+const leerFotosPorObra = () => { try { return Number(localStorage.getItem('eta_fotos_por_obra')) || 1 } catch { return 1 } }
 const SIMULTANEAS = 2
 
 const ESTADOS = {
   cola: 'En espera',
-  subiendo: 'Subiendo foto…',
+  subiendo: 'Subiendo fotos…',
   ia: 'La IA está escribiendo…',
   procesando: 'Mejorando foto y armando ficha…',
   guardando: 'Guardando…',
@@ -31,7 +33,7 @@ const ESTADOS = {
 
 let siguienteId = 1
 
-// Sube varias obras de una vez: una foto por obra. Cada una pasa por la IA y queda como borrador;
+// Sube varias obras de una vez: 1 a 3 fotos por obra (se agrupan en el orden elegido). Cada una pasa por la IA y queda como borrador;
 // después se completa precio y medidas y se publica desde esta misma pantalla.
 export default function SubirLote() {
   const [items, setItems] = useState([])
@@ -39,6 +41,8 @@ export default function SubirLote() {
   const [artistas, setArtistas] = useState([])
   const [categorias, setCategorias] = useState([])
   const [trabajando, setTrabajando] = useState(false)
+  const [fotosPorObra, setFotosPorObra] = useState(leerFotosPorObra)
+  const elegirFotosPorObra = n => { setFotosPorObra(n); try { localStorage.setItem('eta_fotos_por_obra', String(n)) } catch { /* nada */ } }
   const lienzos = useRef({})   // id → { obra, ambiente } para rehacer la ficha al publicar
 
   useEffect(() => {
@@ -58,26 +62,54 @@ export default function SubirLote() {
   const actualizar = (id, cambios) => setItems(lista => lista.map(x => x.id === id ? { ...x, ...cambios } : x))
   const artista = artistas.find(a => a.id === comun.artista_id)
 
+  // Agrupa las fotos en el orden elegido: cada N fotos forman una obra
   function agregar(archivos) {
+    const grupos = []
+    for (let i = 0; i < archivos.length; i += fotosPorObra) grupos.push(archivos.slice(i, i + fotosPorObra))
     const libres = MAX_OBRAS - items.length
-    if (archivos.length > libres) toast(`Se agregaron ${libres}: máximo ${MAX_OBRAS} obras por vez`)
-    const nuevos = archivos.slice(0, libres).map(archivo => ({
-      id: siguienteId++, archivo, vista: URL.createObjectURL(archivo), estado: 'cola',
+    if (grupos.length > libres) toast(`Se agregaron ${libres} obras: máximo ${MAX_OBRAS} por vez`)
+    const nuevos = grupos.slice(0, libres).map(g => ({
+      id: siguienteId++, archivos: g, vistas: g.map(a => URL.createObjectURL(a)), estado: 'cola',
       precio: '', alto: '', ancho: '', piezas: 1,
     }))
     setItems(l => [...l, ...nuevos])
   }
 
+  // Ajustes de grupos antes de procesar
+  const editable = x => (x.estado === 'cola' || x.estado === 'error') && !trabajando
+  function hacerPrincipal(id, i) {
+    setItems(l => l.map(x => {
+      if (x.id !== id || i === 0) return x
+      const orden = [i, ...x.archivos.map((_, j) => j).filter(j => j !== i)]
+      return { ...x, archivos: orden.map(j => x.archivos[j]), vistas: orden.map(j => x.vistas[j]) }
+    }))
+  }
+  function unirConAnterior(id) {
+    setItems(l => {
+      const k = l.findIndex(x => x.id === id)
+      if (k < 1) return l
+      const a = l[k - 1], b = l[k]
+      const unido = { ...a, archivos: [...a.archivos, ...b.archivos].slice(0, MAX_FOTOS), vistas: [...a.vistas, ...b.vistas].slice(0, MAX_FOTOS), estado: 'cola', error: '' }
+      return [...l.slice(0, k - 1), unido, ...l.slice(k + 1)]
+    })
+  }
+  function separar(id) {
+    setItems(l => l.flatMap(x => x.id !== id ? [x] : x.archivos.map((archivo, j) => ({
+      ...x, id: j === 0 ? x.id : siguienteId++, archivos: [archivo], vistas: [x.vistas[j]], estado: 'cola', error: '',
+    }))))
+  }
+
   async function procesar(item, clave) {
     try {
       actualizar(item.id, { estado: 'subiendo', error: '' })
-      const reducido = await reducirImagen(item.archivo, 2000, 0.85)
-      const url = await subirArchivo('obras', reducido)
-      const img = await cargarImagen(URL.createObjectURL(reducido))
+      // Todas las fotos de la obra a la vez; la primera es la principal
+      const reducidos = await Promise.all(item.archivos.map(a => reducirImagen(a, 2000, 0.85)))
+      const urls = await Promise.all(reducidos.map(r => subirArchivo('obras', r)))
+      const img = await cargarImagen(URL.createObjectURL(reducidos[0]))
 
       actualizar(item.id, { estado: 'ia' })
       const notas = [artista && `artista: ${artista.nombre}`, notaTipoParaIA(comun.tipo_obra, comun.inspirada_en)].filter(Boolean).join('\n')
-      const trabajo = await iniciarTrabajoIA({ urls: [url], notas, clave })
+      const trabajo = await iniciarTrabajoIA({ urls, notas, clave })
       const r = await esperarTrabajoIA(trabajo, clave)
       if (!r) throw new Error('La IA no respondió')
 
@@ -91,7 +123,11 @@ export default function SubirLote() {
 
       actualizar(item.id, { estado: 'guardando' })
       const subirLienzo = async (c, carpeta) => subirArchivo(carpeta, new File([await aBlob(c, 0.9)], 'foto.jpg', { type: 'image/jpeg' }))
-      const [urlObra, urlAmbiente, urlFicha] = await Promise.all([subirLienzo(obra, 'obras'), subirLienzo(ambiente, 'obras'), subirLienzo(ficha, 'fichas')])
+      // Fotos de la obra: la principal mejorada + las otras fotos reales; si solo hay una, el ambiente dibujado
+      const extras = urls.slice(1)
+      const [urlObra, urlFicha, urlAmbiente] = await Promise.all([subirLienzo(obra, 'obras'), subirLienzo(ficha, 'fichas'), extras.length ? null : subirLienzo(ambiente, 'obras')])
+      const roles = ['ambiente', 'detalle']
+      const fotosObra = [{ url: urlObra, rol: 'principal' }, ...(extras.length ? extras.map((u, j) => ({ url: u, rol: roles[j] || 'detalle' })) : [{ url: urlAmbiente, rol: 'ambiente' }])]
       const tags = (r.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ')
       const cats = new Set(comun.categoria ? [comun.categoria] : [])
       categorias.forEach(c => { if ((r.espacios || []).some(e => e.toLowerCase() === c.nombre.toLowerCase())) cats.add(c.nombre) })
@@ -101,7 +137,7 @@ export default function SubirLote() {
         titulo: r.nombre || null, descripcion: r.descripcion || null, estilo: r.estilo || null, tecnica: r.tecnica || null,
         publicacion: (r.publicacion || '') + (tags ? '\n\n' + tags : ''), espacios: r.espacios || [], categorias: [...cats],
         artista_id: comun.artista_id || null, artista_nombre: artista?.nombre || null,
-        fotos: [{ url: urlObra, rol: 'principal' }, { url: urlAmbiente, rol: 'ambiente' }],
+        fotos: fotosObra,
         imagen_url: urlObra, ficha_url: urlFicha, estado: 'borrador', existencias: 1, anio: new Date().getFullYear(),
         tipo_obra: comun.tipo_obra, inspirada_en: comun.tipo_obra === 'interpretacion' ? (comun.inspirada_en.trim() || null) : null, certificado: !!comun.certificado,
       }
@@ -172,9 +208,17 @@ export default function SubirLote() {
       <div className="mx-auto max-w-3xl space-y-5">
         <section className="rounded-[26px] bg-white p-5">
           <h2 className="text-lg font-bold">1. Elige las fotos</h2>
-          <p className="mt-1 text-sm text-gris">Una foto por obra, de frente y con buena luz. Hasta {MAX_OBRAS} por vez.</p>
+          <p className="mt-1 text-sm text-gris">Elige las fotos <strong>en orden, obra por obra</strong> (primero la foto de frente). Hasta {MAX_OBRAS} obras por vez.</p>
+          <p className="etiqueta mt-4 mb-2">¿Cuántas fotos tiene cada obra?</p>
+          <div role="radiogroup" aria-label="Fotos por obra" className="grid grid-cols-3 rounded-full bg-crema-clara p-1 ring-1 ring-crema-borde">
+            {[1, 2, 3].map(n => (
+              <button key={n} type="button" role="radio" aria-checked={fotosPorObra === n} onClick={() => elegirFotosPorObra(n)} disabled={trabajando}
+                className={`h-10 rounded-full text-[13px] font-bold ${fotosPorObra === n ? 'bg-tinta text-white' : ''}`}>{n === 1 ? '1 foto' : `${n} fotos`}</button>
+            ))}
+          </div>
+          {fotosPorObra > 1 && <p className="mt-2 text-xs text-gris">Ej.: si eliges 9 fotos se arman 3 obras (fotos 1-3, 4-6 y 7-9). Abajo puedes revisar y corregir cada grupo.</p>}
           <BotonArchivo multiple disabled={trabajando || items.length >= MAX_OBRAS} onArchivos={agregar} className="btn-primario mt-4 h-14 w-full">
-            <Images size={20} />{items.length ? 'Agregar más fotos' : 'Elegir fotos de la galería'}
+            <Images size={20} />{items.length ? 'Agregar más obras' : 'Elegir fotos de la galería'}
           </BotonArchivo>
         </section>
 
@@ -214,9 +258,9 @@ export default function SubirLote() {
               {items.map(x => (
                 <li key={x.id} className="rounded-[20px] bg-crema-clara p-3 ring-1 ring-crema-borde">
                   <div className="flex items-center gap-3">
-                    <img src={x.miniatura || x.vista} alt="" className="h-16 w-16 shrink-0 rounded-xl bg-white object-cover" />
+                    <img src={x.miniatura || x.vistas[0]} alt="" className="h-16 w-16 shrink-0 rounded-xl bg-white object-cover" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-bold">{x.nombre || x.archivo.name}</p>
+                      <p className="truncate font-bold">{x.nombre || `Obra ${items.indexOf(x) + 1}`}<span className="ml-1.5 text-xs font-semibold text-gris">· {x.archivos.length} {x.archivos.length === 1 ? 'foto' : 'fotos'}</span></p>
                       <p className={`flex items-center gap-1.5 text-sm ${x.estado === 'error' ? 'text-red-700' : x.estado === 'publicada' ? 'font-semibold text-green-800' : 'text-gris'}`}>
                         {['subiendo', 'ia', 'procesando', 'guardando'].includes(x.estado) && <Loader2 size={14} className="animate-spin" />}
                         {x.estado === 'listo' && <Check size={14} />}{x.estado === 'error' && <AlertCircle size={14} />}
@@ -227,6 +271,26 @@ export default function SubirLote() {
                       <button onClick={() => quitar(x.id)} aria-label="Quitar de la lista" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"><X size={18} /></button>
                     )}
                   </div>
+                  {editable(x) && (
+                    <div className="mt-3">
+                      <div className="flex gap-2">
+                        {x.vistas.map((v, j) => (
+                          <button key={v} type="button" onClick={() => hacerPrincipal(x.id, j)} aria-label={j === 0 ? 'Foto principal' : 'Usar como foto principal'}
+                            className={`relative h-16 w-16 overflow-hidden rounded-xl ring-2 ${j === 0 ? 'ring-tinta' : 'ring-transparent'}`}>
+                            <img src={v} alt="" className="h-full w-full object-cover" />
+                            {j === 0 && <span className="absolute inset-x-0 bottom-0 bg-tinta py-0.5 text-center text-[10px] font-bold text-white">Principal</span>}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {items.indexOf(x) > 0 && editable(items[items.indexOf(x) - 1]) && items[items.indexOf(x) - 1].archivos.length + x.archivos.length <= MAX_FOTOS && (
+                          <button type="button" onClick={() => unirConAnterior(x.id)} className="h-9 rounded-full bg-white px-3.5 text-xs font-bold ring-1 ring-crema-borde">Es la misma obra de arriba: unir</button>
+                        )}
+                        {x.archivos.length > 1 && <button type="button" onClick={() => separar(x.id)} className="h-9 rounded-full bg-white px-3.5 text-xs font-bold ring-1 ring-crema-borde">Son obras distintas: separar</button>}
+                        {x.archivos.length > 1 && <span className="self-center text-xs text-gris">Toca una foto para hacerla principal</span>}
+                      </div>
+                    </div>
+                  )}
                   {x.estado === 'listo' && (
                     <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl bg-crema-clara px-3 py-1.5 text-sm">
                       <span className="font-semibold">{x.piezas > 1 ? insigniaJuego(x.piezas) : 'Una sola pieza'}</span>
