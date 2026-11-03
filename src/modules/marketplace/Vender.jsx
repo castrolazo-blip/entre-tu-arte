@@ -71,7 +71,7 @@ export default function Vender() {
       <h1 className="mt-2 text-[42px] font-medium leading-none tracking-[-0.045em] md:text-[64px]">Vende tus <em className="font-bold text-mostaza">cuadros</em></h1>
       <span aria-hidden="true" className="acento mb-6 mt-4" />
       <ol className="mb-8 grid max-w-3xl gap-2 text-[15px] md:grid-cols-2">
-        {['Nos envías fotos, medidas y el precio de venta que propones', 'Revisamos el cuadro y acordamos contigo el precio de publicación', `Lo publicamos, atendemos a los compradores y te pagamos el ${100 - COMISION_PCT}% al venderse`].map((t, n) => (
+        {['Nos envías fotos, medidas y el precio de venta que propones', 'Revisamos el cuadro y acordamos contigo el precio de publicación', 'Publicamos tu obra, atendemos a los compradores y te pagamos al concretarse la venta'].map((t, n) => (
           <li key={t} className="flex gap-3 rounded-[20px] bg-white p-4"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-tinta text-xs font-bold text-white">{n + 1}</span>{t}</li>
         ))}
         <li>
