@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Camera, ImagePlus, X, ChevronLeft, Check, Sparkles, Download, Copy, Loader2, Share2 } from 'lucide-react'
+import { Camera, ImagePlus, X, ChevronLeft, Check, Sparkles, Download, Copy, Loader2, Share2, Crop } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
@@ -8,7 +8,8 @@ import { subirArchivo, reducirImagen, cargarImagen } from '../adminService.js'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from './iaService.js'
 import { leerBorrador, guardarBorrador, borrarBorrador } from './borrador.js'
 import { encuadresDesdeIA } from './fichaCanvas.js'
-import { recortarObra, mejorarImagen, aBlob } from './imagenObra.js'
+import { recortarObra, mejorarImagen, aBlob, girarImagen } from './imagenObra.js'
+import AjustarFoto from '../../../components/admin/AjustarFoto.jsx'
 import { AMBIENTES, dibujarAmbiente } from './ambientes.js'
 import { FORMATOS, dibujarPublicacion, cargarFuentes } from './publicaciones.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
@@ -42,6 +43,9 @@ export default function SubirObraIA() {
   const [subiendo, setSubiendo] = useState([])     // ranuras subiéndose
   const [campos, setCampos] = useState(CAMPOS_INICIALES)
   const [caja, setCaja] = useState(null)             // encuadre de la obra en la foto principal
+  const [cajaIA, setCajaIA] = useState(null)         // el encuadre que propuso la IA (para volver a él)
+  const [giro, setGiro] = useState(0)                // giro manual de la foto principal (0/90/180/270)
+  const [ajustando, setAjustando] = useState(false)
   const [trabajo, setTrabajo] = useState(null)       // { id, estado, orden }
   const [errorIA, setErrorIA] = useState('')
   const [errorFoto, setErrorFoto] = useState('')
@@ -88,7 +92,7 @@ export default function SubirObraIA() {
     }))
     const cajas = encuadresDesdeIA(r.encuadres)
     const i = (orden || ['principal']).indexOf('principal')
-    if (cajas[i]) setCaja(cajas[i])
+    if (cajas[i]) { setCaja(cajas[i]); setCajaIA(cajas[i]); setGiro(0) }
   }, [categorias])
 
   const esperar = useCallback(async (t) => {
@@ -123,7 +127,7 @@ export default function SubirObraIA() {
         }
         setFotos(restauradas)
         setCampos({ ...CAMPOS_INICIALES, ...(b.campos || {}) })
-        setCaja(b.caja || null)
+        setCaja(b.caja || null); setCajaIA(b.cajaIA || null); setGiro(b.giro || 0)
         setTrabajo(b.trabajo || null)
         setPaso(b.paso || 1)
         toast('Retomamos la obra que estabas preparando')
@@ -141,17 +145,17 @@ export default function SubirObraIA() {
       if (!fotos.principal) return
       const f = {}
       Object.entries(fotos).forEach(([k, v]) => { if (v) f[k] = { url: v.url } })
-      guardarBorrador({ paso, fotos: f, campos, caja, trabajo })
+      guardarBorrador({ paso, fotos: f, campos, caja, cajaIA, giro, trabajo })
     }, 600)
     return () => clearTimeout(t)
-  }, [paso, fotos, campos, caja, trabajo, listo])
+  }, [paso, fotos, campos, caja, cajaIA, giro, trabajo, listo])
 
   // ── Imagen de la obra: recorte + mejora (se recalcula si cambia la foto o el encuadre) ──
   const obraCanvas = useMemo(() => {
     if (!fotos.principal?.img) return null
-    const recorte = recortarObra(fotos.principal.img, caja)
+    const recorte = recortarObra(girarImagen(fotos.principal.img, giro), caja)
     return { recorte, mejorada: mejorarImagen(recorte) }
-  }, [fotos.principal, caja])
+  }, [fotos.principal, caja, giro])
   const obraFinal = obraCanvas ? (campos.mejorar ? obraCanvas.mejorada : obraCanvas.recorte) : null
   const obraFinalURL = useMemo(() => aURL(obraFinal), [obraFinal])
   // Orientación detectada en la foto recortada y la que indican las medidas escritas
@@ -189,7 +193,7 @@ export default function SubirObraIA() {
       const url = await subirArchivo('obras', reducido)
       const img = await cargarImagen(URL.createObjectURL(reducido))
       setFotos(f => ({ ...f, [ranura]: { url, img } }))
-      if (ranura === 'principal') { setCaja(null); setTrabajo(null) }
+      if (ranura === 'principal') { setCaja(null); setCajaIA(null); setGiro(0); setTrabajo(null) }
     } catch (err) {
       setErrorFoto(err.message || String(err)); toast.error('No se pudo subir la foto')
     } finally { setSubiendo(l => l.filter(x => x !== ranura)) }
@@ -301,7 +305,7 @@ export default function SubirObraIA() {
   async function descartar() {
     if (fotos.principal && !window.confirm('¿Descartar esta obra?')) return
     await borrarBorrador()
-    setFotos({}); setCaja(null); setTrabajo(null); setPaso(1); setErrorIA('')
+    setFotos({}); setCaja(null); setCajaIA(null); setGiro(0); setTrabajo(null); setPaso(1); setErrorIA('')
     setCampos(f => ({ ...CAMPOS_INICIALES, artista_id: f.artista_id }))
   }
 
@@ -417,6 +421,12 @@ export default function SubirObraIA() {
           <div className="mt-3 flex justify-center overflow-hidden rounded-[24px] bg-[#e9e4dc] p-3">
             <img src={vistaMejorada ? obraFinalURL : fotos.principal.img.src} alt={vistaMejorada ? 'Obra recortada y mejorada' : 'Foto original'} className="max-h-[380px] rounded-lg object-contain shadow-lg" />
           </div>
+          <button type="button" onClick={() => setAjustando(true)} className="btn-oscuro mt-3 h-12 w-full text-[15px]"><Crop size={18} />Ajustar recorte a mano (acercar, mover, girar)</button>
+          {ajustando && (
+            <AjustarFoto imagen={fotos.principal.img} cajaInicial={caja} cajaIA={cajaIA} giroInicial={giro} titulo="Ajustar la obra"
+              onCancelar={() => setAjustando(false)}
+              onListo={({ caja: c, giro: g }) => { setGiro(g); setCaja(c); setAjustando(false); setVistaMejorada(true) }} />
+          )}
           {orientacionFoto && <p className="mt-3 text-center text-sm font-semibold">Obra <span className="rounded-full bg-mostaza px-3 py-1">{ORIENTACIONES[orientacionFoto].toLowerCase()}</span> · detectada en la foto</p>}
           <button type="button" role="switch" aria-checked={campos.mejorar} onClick={() => cambiar('mejorar', !campos.mejorar)}
             className="mt-3 flex w-full items-center justify-between rounded-[18px] bg-white px-4 py-3 text-left text-sm font-semibold">

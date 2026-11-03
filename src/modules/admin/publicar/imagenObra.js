@@ -63,3 +63,22 @@ export function mejorarImagen(origen) {
 export function aBlob(canvas, calidad = 0.9) {
   return new Promise(ok => canvas.toBlob(ok, 'image/jpeg', calidad))
 }
+
+// Gira una imagen en pasos de 90° (en sentido del reloj). Devuelve la misma imagen si giro = 0.
+export function girarImagen(img, giro = 0) {
+  const g = ((giro % 360) + 360) % 360
+  if (!g) return img
+  const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height
+  const c = lienzo(g === 180 ? W : H, g === 180 ? H : W)
+  const ctx = c.getContext('2d')
+  ctx.translate(c.width / 2, c.height / 2)
+  ctx.rotate(g * Math.PI / 180)
+  ctx.drawImage(img, -W / 2, -H / 2)
+  return c
+}
+
+// Recuadro {x, y, w, h} (fracciones) después de girar la imagen 90° en sentido del reloj
+export function girarCaja(caja) {
+  if (!caja) return caja
+  return { x: 1 - (caja.y + caja.h), y: caja.x, w: caja.h, h: caja.w }
+}

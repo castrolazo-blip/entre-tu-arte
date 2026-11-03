@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { X, ImagePlus, Trash2, Sparkles, Loader2 } from 'lucide-react'
+import { X, ImagePlus, Trash2, Sparkles, Loader2, Crop } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
-import { subirArchivo, reducirImagen } from '../adminService.js'
+import { subirArchivo, reducirImagen, cargarImagen } from '../adminService.js'
+import AjustarFoto from '../../../components/admin/AjustarFoto.jsx'
+import { recortarObra, girarImagen, aBlob } from '../publicar/imagenObra.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
 import SelectorTipoObra, { notaTipoParaIA, mensajeColumnasFaltantes, faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../../lib/orientacion.js'
@@ -97,6 +99,27 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     if (fallidas) toast.error(fallidas === 1 ? 'Una foto no se pudo subir; las demás sí' : `${fallidas} fotos no se pudieron subir`)
   }
 
+  // Ajuste manual de una foto ya subida: se recorta/gira y se sube como foto nueva
+  const [ajuste, setAjuste] = useState(null)   // { i, img } | { i, cargando: true }
+  async function abrirAjuste(i) {
+    setAjuste({ i, cargando: true })
+    try { setAjuste({ i, img: await cargarImagen(fotos[i].url) }) }
+    catch { setAjuste(null); toast.error('No se pudo abrir la foto para ajustarla') }
+  }
+  async function guardarAjuste({ caja, giro }) {
+    const { i, img } = ajuste
+    setAjuste(null)
+    const tarea = { id: 'ajuste' + i, vista: fotos[i].url, nota: 'Guardando ajuste…' }
+    setEnCurso(l => [...l, tarea])
+    try {
+      const lienzo = recortarObra(girarImagen(img, giro), caja)
+      const url = await subirArchivo('obras', new File([await aBlob(lienzo, 0.9)], 'foto.jpg', { type: 'image/jpeg' }))
+      setFotos(fs => fs.map((x, j) => j === i ? { ...x, url } : x))
+      toast.success('Foto ajustada. Toca "Guardar cambios" para conservarla.')
+    } catch (err) { setErrorFoto(err.message || String(err)) }
+    finally { setEnCurso(l => l.filter(x => x.id !== tarea.id)) }
+  }
+
   const formatoActual = orientacionPorMedidas({ ...camposPiezas(piezas, f.alto, f.ancho), diametro_cm: juego ? null : numero(f.diametro) })
 
   async function guardar(e) {
@@ -145,6 +168,9 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
               <div key={x.url} className="relative aspect-square overflow-hidden rounded-2xl">
                 <img src={x.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 <button type="button" onClick={() => setFotos(fs => fs.filter((_, n) => n !== i))} aria-label="Quitar foto" className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-white/95"><Trash2 size={15} /></button>
+                <button type="button" onClick={() => abrirAjuste(i)} disabled={!!ajuste} className="absolute inset-x-2 bottom-2 flex h-9 items-center justify-center gap-1 rounded-full bg-tinta/85 text-xs font-bold text-white">
+                  {ajuste?.i === i && ajuste.cargando ? <Loader2 size={14} className="animate-spin" /> : <Crop size={14} />}Ajustar
+                </button>
               </div>
             ))}
             {enCurso.map(t => (
@@ -163,6 +189,8 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
           {errorFoto && <p role="alert" className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-800">No se pudo subir la foto. {errorFoto}</p>}
           {obra.ficha_url && <a href={obra.ficha_url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Ver ficha para redes</a>}
         </section>
+
+        {ajuste?.img && <AjustarFoto imagen={ajuste.img} titulo={`Ajustar foto ${ajuste.i + 1}`} onCancelar={() => setAjuste(null)} onListo={guardarAjuste} />}
 
         <section className="mt-4 rounded-[24px] border-2 border-mostaza bg-white p-5">
           <button type="button" onClick={completarConIA} disabled={ia.estado === 'trabajando' || !fotos.length || subiendo} className="btn-oscuro h-14 w-full text-[15px]">

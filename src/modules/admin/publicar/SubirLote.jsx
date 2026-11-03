@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Images, Sparkles, Check, Loader2, AlertCircle, X, Minus, Plus } from 'lucide-react'
+import { Images, Sparkles, Check, Loader2, AlertCircle, X, Minus, Plus, Crop } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
 import { subirArchivo, reducirImagen, cargarImagen } from '../adminService.js'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from './iaService.js'
 import { encuadresDesdeIA } from './fichaCanvas.js'
-import { recortarObra, mejorarImagen, aBlob } from './imagenObra.js'
+import { recortarObra, mejorarImagen, aBlob, girarImagen } from './imagenObra.js'
+import AjustarFoto from '../../../components/admin/AjustarFoto.jsx'
 import { AMBIENTES, dibujarAmbiente } from './ambientes.js'
 import { dibujarPublicacion, cargarFuentes } from './publicaciones.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
@@ -42,6 +43,10 @@ export default function SubirLote() {
   const [categorias, setCategorias] = useState([])
   const [trabajando, setTrabajando] = useState(false)
   const [fotosPorObra, setFotosPorObra] = useState(leerFotosPorObra)
+  const [ajuste, setAjuste] = useState(null)   // { id, img } mientras se ajusta la foto principal de una obra
+  async function abrirAjuste(x) {
+    try { setAjuste({ id: x.id, img: await cargarImagen(x.vistas[0]) }) } catch { toast.error('No se pudo abrir la foto') }
+  }
   const elegirFotosPorObra = n => { setFotosPorObra(n); try { localStorage.setItem('eta_fotos_por_obra', String(n)) } catch { /* nada */ } }
   const lienzos = useRef({})   // id → { obra, ambiente } para rehacer la ficha al publicar
 
@@ -81,7 +86,7 @@ export default function SubirLote() {
     setItems(l => l.map(x => {
       if (x.id !== id || i === 0) return x
       const orden = [i, ...x.archivos.map((_, j) => j).filter(j => j !== i)]
-      return { ...x, archivos: orden.map(j => x.archivos[j]), vistas: orden.map(j => x.vistas[j]) }
+      return { ...x, archivos: orden.map(j => x.archivos[j]), vistas: orden.map(j => x.vistas[j]), ajuste: null }
     }))
   }
   function unirConAnterior(id) {
@@ -95,7 +100,7 @@ export default function SubirLote() {
   }
   function separar(id) {
     setItems(l => l.flatMap(x => x.id !== id ? [x] : x.archivos.map((archivo, j) => ({
-      ...x, id: j === 0 ? x.id : siguienteId++, archivos: [archivo], vistas: [x.vistas[j]], estado: 'cola', error: '',
+      ...x, id: j === 0 ? x.id : siguienteId++, archivos: [archivo], vistas: [x.vistas[j]], estado: 'cola', error: '', ajuste: j === 0 ? x.ajuste : null,
     }))))
   }
 
@@ -114,7 +119,8 @@ export default function SubirLote() {
       if (!r) throw new Error('La IA no respondió')
 
       actualizar(item.id, { estado: 'procesando' })
-      const recorte = recortarObra(img, encuadresDesdeIA(r.encuadres)[0])
+      // Si se ajustó a mano se usa ese recorte; si no, el que propone la IA
+      const recorte = item.ajuste ? recortarObra(girarImagen(img, item.ajuste.giro), item.ajuste.caja) : recortarObra(img, encuadresDesdeIA(r.encuadres)[0])
       const obra = comun.mejorar ? mejorarImagen(recorte) : recorte
       const ambiente = dibujarAmbiente(obra, AMBIENTES[0], {})
       lienzos.current[item.id] = { obra, ambiente }
@@ -205,6 +211,11 @@ export default function SubirLote() {
         <Link to="/admin/subir" className="btn-contorno btn-chico">Subir una sola</Link>
       </EncabezadoAdmin>
 
+      {ajuste && (
+        <AjustarFoto imagen={ajuste.img} cajaInicial={items.find(x => x.id === ajuste.id)?.ajuste?.caja} giroInicial={items.find(x => x.id === ajuste.id)?.ajuste?.giro || 0}
+          titulo="Ajustar foto principal" onCancelar={() => setAjuste(null)}
+          onListo={a => { actualizar(ajuste.id, { ajuste: a }); setAjuste(null) }} />
+      )}
       <div className="mx-auto max-w-3xl space-y-5">
         <section className="rounded-[26px] bg-white p-5">
           <h2 className="text-lg font-bold">1. Elige las fotos</h2>
@@ -287,6 +298,7 @@ export default function SubirLote() {
                           <button type="button" onClick={() => unirConAnterior(x.id)} className="h-9 rounded-full bg-white px-3.5 text-xs font-bold ring-1 ring-crema-borde">Es la misma obra de arriba: unir</button>
                         )}
                         {x.archivos.length > 1 && <button type="button" onClick={() => separar(x.id)} className="h-9 rounded-full bg-white px-3.5 text-xs font-bold ring-1 ring-crema-borde">Son obras distintas: separar</button>}
+                        <button type="button" onClick={() => abrirAjuste(x)} className={`flex h-9 items-center gap-1 rounded-full px-3.5 text-xs font-bold ring-1 ${x.ajuste ? 'bg-tinta text-white ring-tinta' : 'bg-white ring-crema-borde'}`}><Crop size={14} />{x.ajuste ? 'Recorte ajustado' : 'Ajustar foto principal'}</button>
                         {x.archivos.length > 1 && <span className="self-center text-xs text-gris">Toca una foto para hacerla principal</span>}
                       </div>
                     </div>
