@@ -11,7 +11,7 @@ export const MENU = [
   { to: '/', etiqueta: 'Inicio', fin: true },
   { to: '/obras', etiqueta: 'Obras' },
   { to: '/artistas', etiqueta: 'Artistas' },
-  { to: '/vendidas', etiqueta: 'Vendidas' },
+  { to: '/por-pedido', etiqueta: 'Por pedido' },
   { to: '/blog', etiqueta: 'Blog' },
   { to: '/asesoria', etiqueta: 'Asesoría' },
 ]
@@ -85,7 +85,7 @@ export default function LayoutPublico() {
         {[
           { to: '/', etiqueta: 'Inicio', Icono: Home, fin: true },
           { to: '/obras', etiqueta: 'Obras', Icono: Images },
-          { to: '/vendidas', etiqueta: 'Vendidas', Icono: Heart },
+          { to: '/por-pedido', etiqueta: 'Por pedido', Icono: Heart },
           { to: '/asesoria', etiqueta: 'Asesoría', Icono: MessageCircle },
         ].map(({ to, etiqueta, Icono, fin }) => (
           <NavLink key={to} to={to} end={fin} aria-label={etiqueta} className="flex items-center justify-center">

@@ -71,7 +71,7 @@ export default function AdminConsultas() {
                         <p className="font-bold">Pedido{c.datos.canal === 'whatsapp' ? ' · enviado por WhatsApp (el cliente te escribe ahí)' : ''}</p>
                         <ul className="mt-2 space-y-1">
                           {(c.datos.items || []).map(it => (
-                            <li key={it.id} className="flex justify-between gap-3"><Link to={`/obra/${it.id}`} target="_blank" className="underline">{it.titulo}{it.cantidad > 1 ? ` (x${it.cantidad})` : ''}</Link><span>{it.precio ? `$${Number(it.precio * (it.cantidad || 1)).toLocaleString('en-US')}` : '—'}</span></li>
+                            <li key={it.id} className="flex justify-between gap-3"><span><Link to={`/obra/${it.id}`} target="_blank" className="underline">{it.titulo}{it.cantidad > 1 ? ` (x${it.cantidad})` : ''}</Link>{it.porPedido && <span className="ml-1.5 rounded-full bg-mostaza px-2 py-0.5 text-[11px] font-bold">Por pedido</span>}</span><span>{it.precio ? `$${Number(it.precio * (it.cantidad || 1)).toLocaleString('en-US')}` : '—'}</span></li>
                           ))}
                         </ul>
                         <p className="mt-2 flex justify-between border-t border-black/10 pt-2 font-bold"><span>Total</span><span>${Number(c.datos.total || 0).toLocaleString('en-US')}</span></p>

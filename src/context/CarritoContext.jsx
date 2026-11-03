@@ -26,7 +26,10 @@ export function CarritoProvider({ children }) {
     tiene: id => items.some(x => String(x.id) === String(id)),
     agregar: obra => setItems(l => l.some(x => String(x.id) === String(obra.id)) ? l : [...l, {
       id: obra.id, titulo: obra.titulo, precio: obra.precio, foto: obra.foto, medidas: obra.medidasTexto || '',
-      artista: obra.artista || '', maximo: obra.edicion_total ? Math.max(1, obra.existencias || 1) : 1, cantidad: 1,
+      artista: obra.artista || '', cantidad: 1,
+      // Por pedido (obra vendida que se pinta de nuevo): se puede pedir más de una
+      porPedido: obra.estadoEfectivo === 'vendida',
+      maximo: obra.estadoEfectivo === 'vendida' ? 10 : obra.edicion_total ? Math.max(1, obra.existencias || 1) : 1,
     }]),
     cambiarCantidad: (id, n) => setItems(l => l.map(x => String(x.id) === String(id) ? { ...x, cantidad: Math.min(x.maximo || 1, Math.max(1, n)) } : x)),
     quitar: id => setItems(l => l.filter(x => String(x.id) !== String(id))),

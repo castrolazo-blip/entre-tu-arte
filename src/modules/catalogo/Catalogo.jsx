@@ -24,6 +24,7 @@ export default function Catalogo() {
   const formato = params.get('formato') || ''
   const tipo = params.get('tipo') || ''
   const piezas = params.get('piezas') || ''
+  const disp = params.get('disp') || ''   // '' todas · 'existencia' · 'pedido'
   const [texto, setTexto] = useState(q)
   const claveLista = JSON.stringify([coleccion, orden, q])
   const [obras, setObras] = useState(() => memoria.get(claveLista) || null)
@@ -34,11 +35,13 @@ export default function Catalogo() {
   useEffect(() => { if (params.get('buscar')) buscador.current?.focus() }, [params])
   useEffect(() => {
     setObras(memoria.get(claveLista) || null)
-    listarObras({ estado: 'en_venta', categoria: coleccion || undefined, orden, busqueda: q || undefined })
+    listarObras({ estado: 'publicas', categoria: coleccion || undefined, orden, busqueda: q || undefined })
       .then(l => { memoria.set(claveLista, l); setObras(l) }).catch(() => { if (!memoria.has(claveLista)) setObras([]) })
   }, [coleccion, orden, q])
 
-  const lista = (obras || []).filter(o => (!formato || orientacionPorMedidas(o) === formato) && (!tipo || o.tipo_obra === tipo) && (!piezas || (piezas === 'juego' ? o.piezas > 1 : o.piezas === 1)))
+ const porPedido = o => o.estadoEfectivo === 'vendida'
+  const lista = (obras || []).filter(o => (!disp || (disp === 'pedido' ? porPedido(o) : !porPedido(o))) && (!formato || orientacionPorMedidas(o) === formato) && (!tipo || o.tipo_obra === tipo) && (!piezas || (piezas === 'juego' ? o.piezas > 1 : o.piezas === 1)))
+    .sort((a, b) => porPedido(a) - porPedido(b))
 
   function cambiar(clave, valor) {
     const p = new URLSearchParams(params)
@@ -50,7 +53,7 @@ export default function Catalogo() {
   return (
     <div className="contenedor pb-24 pt-28 md:pt-36">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
-        <TituloSeccion titulo={coleccion || 'Obras disponibles'}>
+        <TituloSeccion titulo={coleccion || (disp === 'pedido' ? 'Por pedido' : disp === 'existencia' ? 'En existencia' : 'Obras')}>
           <p className="mt-4 text-gris">{obras ? `${lista.length} ${lista.length === 1 ? 'obra' : 'obras'}` : ' '}</p>
         </TituloSeccion>
         <form onSubmit={e => { e.preventDefault(); cambiar('q', texto.trim()) }} className="flex w-full max-w-md items-center gap-2 rounded-full bg-white px-5 shadow-sm">
@@ -59,6 +62,13 @@ export default function Catalogo() {
           <input id="buscar-obras" ref={buscador} value={texto} onChange={e => setTexto(e.target.value)} placeholder="Busca por nombre, estilo, técnica o artista" className="h-14 flex-1 bg-transparent outline-none" />
         </form>
       </div>
+      <div role="tablist" aria-label="Disponibilidad" className="mb-5 grid max-w-md grid-cols-3 rounded-full bg-white p-1 shadow-sm">
+        {[['', 'Todas'], ['existencia', 'En existencia'], ['pedido', 'Por pedido']].map(([v, t]) => (
+          <button key={v} role="tab" aria-selected={disp === v} onClick={() => cambiar('disp', v)}
+            className={`h-11 rounded-full text-[13px] font-bold ${disp === v ? 'bg-tinta text-white' : ''}`}>{t}</button>
+        ))}
+      </div>
+      {disp === 'pedido' && <p className="mb-6 max-w-xl text-gris">Estas obras ya se vendieron, pero el artista las vuelve a pintar para ti, también a tu medida o en tus colores.</p>}
       <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
         <div className="sin-scroll -mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
           <button onClick={() => cambiar('coleccion', '')} className={`chip ${!coleccion ? 'chip-on' : 'chip-off'}`}>Todas</button>

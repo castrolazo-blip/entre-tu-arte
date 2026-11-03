@@ -85,20 +85,20 @@ export default function Inicio() {
           <div className="contenedor">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="text-[34px] font-medium tracking-[-0.04em] md:text-[54px]">Ya tienen hogar</h2>
-                <p className="mt-2 text-gris md:text-lg">¿Te gustó una? El artista puede crear una similar a tu medida.</p>
+                <h2 className="text-[34px] font-medium tracking-[-0.04em] md:text-[54px]">También <em className="font-bold">por pedido</em></h2>
+                <p className="mt-2 text-gris md:text-lg">¿Te gustó una? El artista la vuelve a pintar para ti, también a tu medida.</p>
               </div>
-              <Link to="/vendidas" className="font-semibold underline decoration-mostaza decoration-[3px] underline-offset-[6px]">Ver todas las vendidas</Link>
+              <Link to="/por-pedido" className="font-semibold underline decoration-mostaza decoration-[3px] underline-offset-[6px]">Ver obras por pedido</Link>
             </div>
             <div className="sin-scroll -mx-5 flex gap-4 overflow-x-auto px-5 md:mx-0 md:grid md:grid-cols-4 md:px-0">
               {vendidas.map(o => (
                 <Link key={o.id} to={`/obra/${o.id}`} className="w-52 shrink-0 md:w-auto">
                   <span className="relative block aspect-[4/3] overflow-hidden rounded-3xl bg-[#ece7df]">
-                    {o.foto && <img src={o.foto} alt={`${o.titulo}, vendida`} loading="lazy" className="absolute inset-0 h-full w-full object-contain p-3" />}
-                    <span className="absolute left-3.5 top-3.5 rounded-full bg-tinta px-3 py-1.5 text-[11px] font-bold tracking-wider text-white">VENDIDA</span>
+                    {o.foto && <img src={o.foto} alt={`${o.titulo}, por pedido`} loading="lazy" className="absolute inset-0 h-full w-full object-contain p-3" />}
+                    <span className="absolute left-3.5 top-3.5 rounded-full bg-mostaza px-3 py-1.5 text-[11px] font-bold tracking-wider text-tinta">POR PEDIDO</span>
                   </span>
                   <span className="mt-3 block text-lg font-semibold">{o.titulo}</span>
-                  <span className="block text-sm text-gris">Pedir una similar →</span>
+                  <span className="block text-sm text-gris">{precio(o.precio) ? `${precio(o.precio)} · ` : ''}Pedir la mía →</span>
                 </Link>
               ))}
             </div>

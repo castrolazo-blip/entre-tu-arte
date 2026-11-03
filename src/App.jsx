@@ -52,6 +52,7 @@ export default function App() {
                   <Route path="obras" element={<Catalogo />} />
                   <Route path="obra/:id" element={<ObraDetalle />} />
                   <Route path="vendidas" element={<Vendidas />} />
+                  <Route path="por-pedido" element={<Vendidas />} />
                   <Route path="artistas" element={<Artistas />} />
                   <Route path="artistas/:slug" element={<ArtistaDetalle />} />
                   <Route path="blog" element={<Blog />} />

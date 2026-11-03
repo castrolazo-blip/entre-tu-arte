@@ -13,6 +13,9 @@ const GRUPOS = [
     ['instagram', 'Instagram', 'entretuarte'],
     ['facebook', 'Facebook (enlace)', 'https://facebook.com/entretuarte'],
   ]],
+  ['Obras por pedido (las vendidas)', [
+    ['pedido_tiempo', 'Tiempo de entrega de una obra por pedido', '3 a 4 semanas'],
+  ]],
   ['Sección "Nuestros artistas"', [
     ['nos_titulo', 'Título', ''],
     ['nos_texto', 'Texto', '', true],

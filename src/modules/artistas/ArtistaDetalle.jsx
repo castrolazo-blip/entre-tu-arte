@@ -38,12 +38,12 @@ export default function ArtistaDetalle() {
         </div>
       </section>
       <section className="contenedor py-14">
-        <h2 className="mb-8 text-[34px] font-medium tracking-[-0.04em]">Obras disponibles</h2>
+        <h2 className="mb-8 text-[34px] font-medium tracking-[-0.04em]">En existencia</h2>
         {disponibles.length
           ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{disponibles.map(o => <TarjetaObra key={o.id} obra={o} />)}</div>
-          : <p className="text-gris">No hay obras disponibles en este momento. Puedes pedir un encargo desde cualquiera de sus obras vendidas.</p>}
+          : <p className="text-gris">No hay obras disponibles en este momento. Puedes pedir cualquiera de sus obras por pedido.</p>}
         {vendidas.length > 0 && <>
-          <h2 className="mb-8 mt-16 text-[34px] font-medium tracking-[-0.04em]">Ya tienen hogar</h2>
+          <h2 className="mb-8 mt-16 text-[34px] font-medium tracking-[-0.04em]">Por pedido</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{vendidas.map(o => <TarjetaObra key={o.id} obra={o} />)}</div>
         </>}
       </section>

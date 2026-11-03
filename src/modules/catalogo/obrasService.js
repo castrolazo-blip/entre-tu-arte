@@ -31,9 +31,13 @@ export function estadoEfectivo(f) {
   return f.estado || 'disponible'
 }
 
+// En la tienda una obra vendida se ofrece "Por pedido": el artista la vuelve a pintar.
+export const POR_PEDIDO = 'Por pedido'
+export const esPorPedido = f => estadoEfectivo(f) === 'vendida'
+
 export function etiquetaExistencias(f) {
   const estado = estadoEfectivo(f)
-  if (estado === 'vendida') return 'Vendida'
+  if (estado === 'vendida') return POR_PEDIDO
   if (estado === 'reservada') return 'Reservada por 48 horas'
   if (f.edicion_total) return `${f.existencias ?? 0} de ${f.edicion_total} disponibles`
   if ((f.existencias ?? 1) <= 1) return 'Pieza única'
@@ -42,10 +46,11 @@ export function etiquetaExistencias(f) {
 
 export function insignia(f) {
   const estado = estadoEfectivo(f)
+  if (estado === 'vendida') return { texto: POR_PEDIDO, clase: 'bg-mostaza text-tinta' }
   if (estado !== 'disponible') return { texto: ESTADOS[estado].etiqueta, clase: ESTADOS[estado].clase }
   if (f.edicion_total && f.existencias === 1) return { texto: 'Última pieza', clase: 'bg-tinta text-white' }
   if (f.edicion_total) return { texto: 'Edición limitada', clase: 'bg-white text-tinta' }
-  return { texto: 'Disponible', clase: 'bg-white text-green-800' }
+  return { texto: 'En existencia', clase: 'bg-white text-green-800' }
 }
 
 export function normalizarObra(f) {
@@ -77,6 +82,7 @@ export async function listarObras({ estado, categoria, artistaId, destacadas, li
   let q = supabase.from('fichas').select(CAMPOS).neq('estado', 'borrador')
   if (estado === 'vendida') q = q.eq('estado', 'vendida')
   else if (estado === 'en_venta') q = q.in('estado', ['disponible', 'reservada'])
+  else if (estado === 'publicas') q = q.in('estado', ['disponible', 'reservada', 'vendida'])
   else if (estado) q = q.eq('estado', estado)
   if (categoria) q = q.contains('categorias', [categoria])
   if (artistaId) q = q.eq('artista_id', artistaId)

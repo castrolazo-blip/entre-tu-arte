@@ -12,6 +12,7 @@ export const CONFIG_POR_DEFECTO = {
   banner_etiqueta: 'Destacadas',
   banner_titulo: 'Obras de la semana',
   portada_segundos: '6',
+  pedido_tiempo: '3 a 4 semanas',
   nos_titulo: 'Detrás de cada obra hay una historia',
   nos_texto: 'Trabajamos con artistas salvadoreños seleccionados. Cada ficha indica si la obra es original o una interpretación, y si incluye certificado de autenticidad.',
 }

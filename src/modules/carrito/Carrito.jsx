@@ -27,10 +27,15 @@ export default function Carrito() {
     if (!items.length) return
     supabase.from('fichas').select('id, estado, reservada_hasta, precio, existencias').in('id', items.map(x => x.id)).then(({ data }) => {
       if (!data) return
-      const fuera = items.filter(x => { const f = data.find(d => String(d.id) === String(x.id)); return !f || estadoEfectivo(f) === 'vendida' || f.estado === 'borrador' })
+      const fuera = items.filter(x => { const f = data.find(d => String(d.id) === String(x.id)); return !f || f.estado === 'borrador' })
       setNoDisponibles(fuera.map(x => x.id))
-      // Actualizar precios por si cambiaron
-      reemplazar(l => l.map(x => { const f = data.find(d => String(d.id) === String(x.id)); return f && f.precio != null ? { ...x, precio: f.precio } : x }))
+      // Actualizar precios por si cambiaron; si se vendió mientras tanto, pasa a "por pedido"
+      reemplazar(l => l.map(x => {
+        const f = data.find(d => String(d.id) === String(x.id))
+        if (!f) return x
+        const porPedido = estadoEfectivo(f) === 'vendida'
+        return { ...x, precio: f.precio != null ? f.precio : x.precio, porPedido, maximo: porPedido ? 10 : x.maximo }
+      }))
     })
   }, [items.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -39,7 +44,7 @@ export default function Carrito() {
   function mensajePedido(validos, totalValidos) {
     const lineas = validos.map((x, i) => {
       const pr = precio((Number(x.precio) || 0) * (x.cantidad || 1)) || 'precio a consultar'
-      return `${i + 1}. ${x.titulo}${x.cantidad > 1 ? ` (x${x.cantidad})` : ''}${x.medidas ? ` · ${x.medidas}` : ''} · ${pr}\n   ${enlaceObra(x.id)}`
+      return `${i + 1}. ${x.titulo}${x.cantidad > 1 ? ` (x${x.cantidad})` : ''}${x.porPedido ? ' · POR PEDIDO' : ''}${x.medidas ? ` · ${x.medidas}` : ''} · ${pr}\n   ${enlaceObra(x.id)}`
     })
     const entrega = form.entrega === 'envio'
       ? `Envío a domicilio${form.direccion.trim() ? `: ${form.direccion.trim()}` : ''}`
@@ -49,7 +54,7 @@ export default function Carrito() {
       '',
       ...lineas,
       '',
-      `Total: ${precio(totalValidos) || 'a consultar'}`,
+      `Total: ${precio(totalValidos) || 'a consultar'}${validos.some(x => x.porPedido) ? ' (las obras por pedido son precio referencial)' : ''}`,
       `Entrega: ${entrega}`,
       form.instalacion ? 'Quiero instalación.' : null,
       form.notas.trim() ? `Notas: ${form.notas.trim()}` : null,
@@ -81,7 +86,7 @@ export default function Carrito() {
       mensaje: form.notas.trim() || null,
       datos: {
         pedido: true, canal: 'whatsapp',
-        items: validos.map(x => ({ id: x.id, titulo: x.titulo, precio: Number(x.precio) || null, cantidad: x.cantidad || 1, medidas: x.medidas })),
+        items: validos.map(x => ({ id: x.id, titulo: x.titulo, precio: Number(x.precio) || null, cantidad: x.cantidad || 1, medidas: x.medidas, porPedido: !!x.porPedido })),
         total: totalValidos, entrega: form.entrega, direccion: form.entrega === 'envio' ? form.direccion.trim() || null : null,
         instalacion: form.instalacion,
       },
@@ -130,10 +135,11 @@ export default function Carrito() {
                   <div className="min-w-0 flex-1">
                     <Link to={`/obra/${x.id}`} className="block truncate text-lg font-semibold">{x.titulo}</Link>
                     <p className="truncate text-sm text-gris">{[x.artista, x.medidas].filter(Boolean).join(' · ')}</p>
+                    {x.porPedido && !fuera && <p className="mt-0.5 inline-block rounded-full bg-mostaza px-2.5 py-0.5 text-xs font-bold">Por pedido · entrega en {cfg.pedido_tiempo}</p>}
                     {fuera ? <p className="mt-1 text-sm font-semibold text-red-700">Ya no está disponible</p> : (
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="text-lg font-bold">{precio((Number(x.precio) || 0) * (x.cantidad || 1)) || 'Precio a consultar'}</span>
-                        {x.maximo > 1 && (
+                        {(x.maximo > 1) && (
                           <span className="flex items-center gap-1 rounded-full bg-crema px-1">
                             <button onClick={() => cambiarCantidad(x.id, x.cantidad - 1)} aria-label="Menos" className="flex h-9 w-9 items-center justify-center"><Minus size={15} /></button>
                             <span className="w-5 text-center text-sm font-bold">{x.cantidad}</span>

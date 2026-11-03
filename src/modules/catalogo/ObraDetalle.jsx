@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check, MessageCircle, Paintbrush } from 'lucide-react'
 import { obtenerObra, listarObras, etiquetaExistencias, textoTipo } from './obrasService.js'
 import { precio } from '../../lib/formato.js'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
@@ -11,12 +11,14 @@ import TarjetaObra from '../../components/obras/TarjetaObra.jsx'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
 import FondoImagen from '../../components/FondoImagen.jsx'
 import { useCarrito } from '../../context/CarritoContext.jsx'
+import { useConfig, enlaceWhatsApp } from '../../context/ConfigContext.jsx'
 import toast from 'react-hot-toast'
 
 const ROLES = { principal: 'Vista de la obra', ambiente: 'En un ambiente', detalle: 'Detalle de textura' }
 
 export default function ObraDetalle() {
   const { id } = useParams()
+  const { cfg } = useConfig()
   const [obra, setObra] = useState(undefined)
   const [similares, setSimilares] = useState([])
   const [foto, setFoto] = useState(0)
@@ -55,7 +57,7 @@ export default function ObraDetalle() {
     ['Tipo', textoTipo(obra)], ['Certificado', obra.certificado ? 'Incluye certificado de autenticidad' : ''],
     ['Piezas', obra.piezas > 1 ? `${nombreJuego(obra.piezas)} · se vende como juego completo` : ''],
     ['Medidas', obra.medidasTexto], ['Formato', ORIENTACIONES[orientacionPorMedidas(obra)]], ['Técnica', obra.tecnica], ['Soporte', obra.soporte],
-    ['Estilo', obra.estilo], ['Año', obra.anio], ['Existencias', vendida ? 'Vendida' : etiquetaExistencias(obra)],
+    ['Estilo', obra.estilo], ['Año', obra.anio], ['Disponibilidad', vendida ? `Por pedido · entrega en ${cfg.pedido_tiempo}` : etiquetaExistencias(obra)],
   ].filter(f => f[1])
   const palabras = obra.titulo.split(' ')
   const ultima = palabras.length > 1 ? palabras.pop() : null
@@ -91,8 +93,8 @@ export default function ObraDetalle() {
 
         <div className="min-w-0 flex-[1_1_400px]">
           <span className="inline-flex items-center gap-2 rounded-full bg-tinta px-3.5 py-2 text-[13px] font-bold text-white">
-            <span aria-hidden="true" className={`h-2 w-2 rounded-full ${vendida ? 'bg-white' : 'bg-mostaza'}`} />
-            {vendida ? 'Vendida' : reservada ? 'Reservada' : etiquetaExistencias(obra)}
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-mostaza" />
+            {vendida ? 'Por pedido' : reservada ? 'Reservada' : `En existencia · ${etiquetaExistencias(obra)}`}
           </span>
           <h1 className="mt-5 text-[48px] font-medium leading-[0.98] tracking-[-0.045em] md:text-[72px]">
             {palabras.join(' ')}{ultima && <> <em className="bg-[linear-gradient(transparent_62%,#e8b627_62%)] font-bold">{ultima}</em></>}
@@ -100,13 +102,32 @@ export default function ObraDetalle() {
           {obra.artista && <p className="mt-4 text-gris">por {obra.artistaSlug ? <Link to={`/artistas/${obra.artistaSlug}`} className="font-semibold text-tinta">{obra.artista}</Link> : <span className="font-semibold text-tinta">{obra.artista}</span>}{obra.anio ? ` · ${obra.anio}` : ''}</p>}
           {obra.descripcion && <p className="mt-6 text-[17px] leading-relaxed text-[#3c3a36] md:text-lg">{obra.descripcion}</p>}
 
-          {!vendida && (
-            <p className="mt-7 text-[44px] font-bold tracking-[-0.03em]">{precio(obra.precio) || 'Precio a consultar'}</p>
+          <p className="mt-7 text-[44px] font-bold tracking-[-0.03em]">{precio(obra.precio) || 'Precio a consultar'}</p>
+          {vendida && (
+            <div className="mt-3 flex gap-3 rounded-[22px] bg-mostaza-fondo p-4 text-[15px] leading-relaxed ring-1 ring-mostaza">
+              <Paintbrush size={20} className="mt-0.5 shrink-0" />
+              <p><strong>Se pinta para ti.</strong> {obra.artista ? `${obra.artista} la vuelve` : 'El artista la vuelve'} a pintar a mano, también a tu medida o en tus colores. Entrega en {cfg.pedido_tiempo}. Cada pieza es única y puede variar ligeramente; el precio es referencial.</p>
+            </div>
           )}
 
           <div className="mt-6 flex flex-col gap-3">
             {vendida ? (
-              <button onClick={() => setConsulta('encargo')} className="btn-primario h-16 text-[17px]">Pedir una obra similar <ArrowRight size={20} /></button>
+              <>
+                {carrito.tiene(obra.id) ? (
+                  <Link to="/carrito" className="btn-oscuro h-16 text-[17px]"><Check size={20} className="text-mostaza" />En tu carrito · Ver carrito</Link>
+                ) : (
+                  <div className="grid grid-cols-[1fr_auto] gap-3">
+                    <button onClick={() => { carrito.agregar(obra); toast.success('Agregada al carrito por pedido') }} className="btn-primario h-16 text-[17px]"><ShoppingBag size={20} />Pedir esta obra</button>
+                    <button onClick={() => { carrito.agregar(obra); navigate('/carrito') }} className="btn-oscuro h-16 px-5 text-[15px]">Pedir ya</button>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setConsulta('encargo')} className="btn-contorno px-3 text-[15px]">A mi medida</button>
+                  {enlaceWhatsApp(cfg.whatsapp, '') ? (
+                    <a href={enlaceWhatsApp(cfg.whatsapp, `Hola, quiero pedir la obra "${obra.titulo}" de Entre tu Arte${obra.medidasTexto ? ` (${obra.medidasTexto})` : ''}. ${window.location.href}`)} target="_blank" rel="noreferrer" className="btn-contorno px-3 text-[15px]"><MessageCircle size={18} />WhatsApp</a>
+                  ) : <Link to={`/asesoria?obra=${obra.id}`} className="btn-contorno px-3 text-[15px]"><Frame size={18} />En mi pared</Link>}
+                </div>
+              </>
             ) : (
               <>
 {reservada ? (
