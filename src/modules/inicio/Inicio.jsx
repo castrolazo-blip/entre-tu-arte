@@ -37,7 +37,7 @@ export default function Inicio() {
         .map(o => ({ id: o.id, imagen_url: o.foto, boton_texto: 'Ver las obras', boton_enlace: '/obras' }))
 
   const ambiente = enVenta.find(o => o.fotos?.some(f => f.rol === 'ambiente'))?.fotos.find(f => f.rol === 'ambiente')
-  const fotoAmbiente = ambiente?.mini || ambiente?.url || conFotoReal[0]?.fotoMini || enVenta[0]?.fotoMini
+  const fotoAmbiente = ambiente?.url || conFotoReal[0]?.foto || enVenta[0]?.foto
 
   return (
     <>

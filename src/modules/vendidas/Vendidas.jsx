@@ -19,7 +19,7 @@ export default function Vendidas() {
     listarCategorias().then(setCategorias).catch(() => {})
   }, [])
   const lista = useMemo(() => (obras || []).filter(o => !filtro || (o.categorias || []).includes(filtro)), [obras, filtro])
-  const fondo = obras?.[0]?.fotoMini || obras?.[0]?.foto
+  const fondo = obras?.[0]?.foto
 
   return (
     <>

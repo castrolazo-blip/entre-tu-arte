@@ -82,9 +82,9 @@ export async function leerConfig(claves) {
 }
 
 // ── Miniaturas ────────────────────────────────────────────────────────────────
-// Versión liviana (800 px de ancho, ~60-120 KB) para tarjetas, galerías y fondos. La foto
+// Versión liviana (1000 px de ancho, ~80-180 KB) para tarjetas, galerías y fondos. La foto
 // grande solo se carga al abrir la obra. Acepta un canvas, una imagen, un archivo o una URL.
-export const ANCHO_MINIATURA = 800
+export const ANCHO_MINIATURA = 1000
 export async function crearMiniatura(origen, ancho = ANCHO_MINIATURA) {
   let fuente = origen
   if (typeof origen === 'string') fuente = await cargarImagen(origen)
