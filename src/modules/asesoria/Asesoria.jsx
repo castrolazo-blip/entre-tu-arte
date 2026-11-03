@@ -8,6 +8,7 @@ import { registrarEvento } from '../../lib/analytics.js'
 import { useConfig, enlaceWhatsApp } from '../../context/ConfigContext.jsx'
 
 const ESTILOS = ['Moderno', 'Minimalista', 'Japandi', 'Clásico', 'Industrial', 'Bohemio', 'No estoy seguro']
+export const ESPACIOS = ['Sala', 'Comedor', 'Habitación principal', 'Habitación', 'Oficina', 'Recibidor o entrada', 'Pasillo', 'Otro']
 
 // Asesoría para elegir la obra: el cliente sube la foto de su pared y sus medidas, y el equipo
 // le responde con recomendaciones. Se guarda como consulta de tipo "asesoria" o "contacto".
@@ -18,7 +19,7 @@ export default function Asesoria() {
   const [obra, setObra] = useState(null)
   const [foto, setFoto] = useState(null)
   const [vista, setVista] = useState('')
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', ancho: '', alto: '', estilo: '', mensaje: '' })
+  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', espacio: '', ancho: '', alto: '', estilo: '', colores: '', mensaje: '' })
   const [enviando, setEnviando] = useState(false)
   const [listo, setListo] = useState(false)
 
@@ -51,7 +52,7 @@ export default function Asesoria() {
         ficha_id: obra ? String(obra.id) : null, ficha_titulo: obra?.titulo || null,
         nombre: form.nombre.trim(), email: form.email.trim() || null, telefono: form.telefono.trim() || null,
         mensaje: form.mensaje.trim() || null,
-        datos: soloContacto ? {} : { foto_url: fotoUrl, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, estilo: form.estilo || null },
+        datos: soloContacto ? {} : { foto_url: fotoUrl, espacio: form.espacio || null, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, estilo: form.estilo || null, colores: form.colores.trim() || null },
       })
       registrarEvento(soloContacto ? 'contacto' : 'asesoria', '/asesoria', obra?.id, obra?.titulo)
       setListo(true)
@@ -109,11 +110,15 @@ export default function Asesoria() {
               )}
               {!soloContacto && (
                 <div className="grid grid-cols-2 gap-4">
+                  <label className="etiqueta col-span-2">¿En qué espacio irá el cuadro?
+                    <select value={form.espacio} onChange={cambiar('espacio')} className="campo mt-1.5"><option value="">Elegir…</option>{ESPACIOS.map(s => <option key={s}>{s}</option>)}</select>
+                  </label>
                   <label className="etiqueta">Ancho de la pared (cm)<input inputMode="decimal" value={form.ancho} onChange={cambiar('ancho')} className="campo mt-1.5" /></label>
                   <label className="etiqueta">Alto de la pared (cm)<input inputMode="decimal" value={form.alto} onChange={cambiar('alto')} className="campo mt-1.5" /></label>
                   <label className="etiqueta col-span-2">Estilo del espacio
                     <select value={form.estilo} onChange={cambiar('estilo')} className="campo mt-1.5"><option value="">Elegir…</option>{ESTILOS.map(s => <option key={s}>{s}</option>)}</select>
                   </label>
+                  <label className="etiqueta col-span-2">Colores que te gustan (opcional)<input value={form.colores} onChange={cambiar('colores')} placeholder="Ej. tonos tierra, beige, verde oliva" className="campo mt-1.5" /></label>
                 </div>
               )}
               <label className="etiqueta">Tu nombre<input required value={form.nombre} onChange={cambiar('nombre')} autoComplete="name" className="campo mt-1.5" /></label>

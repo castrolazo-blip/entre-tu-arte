@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Mail, Phone, ExternalLink } from 'lucide-react'
+import { Mail, Phone, ExternalLink, Sparkles, Copy, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { fechaCorta } from '../../../lib/formato.js'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
+import { promptMontaje } from './promptMontaje.js'
 
 const TIPOS = { compra: 'Compra', reserva: 'Reserva', encargo: 'Encargo', asesoria: 'Asesoría', contacto: 'Contacto' }
 const ESTADOS = [['nueva', 'Nueva'], ['en_proceso', 'En proceso'], ['cerrada', 'Cerrada']]
@@ -83,12 +84,15 @@ export default function AdminConsultas() {
                       <div className="mt-4 flex flex-wrap items-start gap-4">
                         {c.datos.foto_url && <a href={c.datos.foto_url} target="_blank" rel="noreferrer"><img src={c.datos.foto_url} alt="Foto del espacio del cliente" className="h-40 rounded-2xl object-cover" /></a>}
                         <dl className="text-sm">
+                          {c.datos.espacio && <p><span className="text-gris">Espacio:</span> {c.datos.espacio}</p>}
                           {c.datos.pared_ancho_cm && <p><span className="text-gris">Ancho de pared:</span> {c.datos.pared_ancho_cm} cm</p>}
                           {c.datos.pared_alto_cm && <p><span className="text-gris">Alto de pared:</span> {c.datos.pared_alto_cm} cm</p>}
                           {c.datos.estilo && <p><span className="text-gris">Estilo:</span> {c.datos.estilo}</p>}
+                          {c.datos.colores && <p><span className="text-gris">Colores:</span> {c.datos.colores}</p>}
                         </dl>
                       </div>
                     )}
+                    {c.tipo === 'asesoria' && <PromptMontaje consulta={c} />}
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <label className="text-sm font-semibold">Estado
                         <select value={c.estado} onChange={e => cambiarEstado(c, e.target.value)} className="ml-2 h-10 rounded-full border border-crema-borde px-3">{ESTADOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>
@@ -103,5 +107,31 @@ export default function AdminConsultas() {
         </div>
       )}
     </>
+  )
+}
+
+// Prompt listo para que una IA de imágenes haga el montaje del cuadro en la foto del cliente
+function PromptMontaje({ consulta }) {
+  const texto = promptMontaje(consulta)
+  const [abierto, setAbierto] = useState(false)
+  async function copiar() {
+    try { await navigator.clipboard.writeText(texto); toast.success('Prompt copiado') } catch { setAbierto(true); toast('Selecciona el texto y cópialo') }
+  }
+  return (
+    <div className="mt-4 rounded-2xl bg-mostaza-fondo p-4 ring-1 ring-mostaza">
+      <p className="flex items-center gap-2 font-bold"><Sparkles size={17} />Montaje con IA</p>
+      <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-sm">
+        <li>Copia el prompt{consulta.datos?.foto_url ? ' y descarga la foto del cliente' : ''}.</li>
+        <li>Abre ChatGPT o Gemini, adjunta la foto{consulta.ficha_id ? ' y la foto de la obra' : ''}, y pega el prompt.</li>
+        <li>Envía la imagen al cliente por WhatsApp con tu propuesta.</li>
+      </ol>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={copiar} className="btn-oscuro btn-chico"><Copy size={15} />Copiar prompt</button>
+        {consulta.datos?.foto_url && <a href={consulta.datos.foto_url} target="_blank" rel="noreferrer" download className="btn-contorno btn-chico"><Download size={15} />Foto del cliente</a>}
+        {consulta.ficha_id && <Link to={`/obra/${consulta.ficha_id}`} target="_blank" className="btn-contorno btn-chico"><ExternalLink size={15} />Foto de la obra</Link>}
+        <button type="button" onClick={() => setAbierto(a => !a)} className="text-sm font-semibold underline">{abierto ? 'Ocultar' : 'Ver'} prompt</button>
+      </div>
+      {abierto && <textarea readOnly value={texto} rows={14} className="campo mt-3 text-[13px] leading-relaxed" onFocus={e => e.target.select()} />}
+    </div>
   )
 }
