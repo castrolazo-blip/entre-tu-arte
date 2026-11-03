@@ -11,7 +11,7 @@ export default function Footer() {
     <footer className="bg-tinta pb-28 text-white md:pb-0">
       <div className="contenedor flex flex-wrap justify-between gap-12 py-16">
         <div className="max-w-sm">
-          <Logo claro />
+          <Logo claro tamano="lg" />
           <p className="mt-5 text-[15px] leading-relaxed text-white/70">Arte decorativo pintado a mano, en el tamaño y el estilo que tu espacio necesita. San Salvador, El Salvador.</p>
           <div className="mt-6 flex gap-2">
             {ig && <a href={ig} target="_blank" rel="noreferrer" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10"><Instagram size={19} /></a>}
