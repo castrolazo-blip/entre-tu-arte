@@ -11,4 +11,5 @@
   <url><loc>https://entretuarte.com/asesoria</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://entretuarte.com/blog</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://entretuarte.com/vender</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://entretuarte.com/condiciones-artistas</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

@@ -4,6 +4,10 @@ import { ImagePlus, Plus, Trash2, Check, Loader2, Palette, Frame } from 'lucide-
 import toast from 'react-hot-toast'
 import BotonArchivo from '../../components/admin/BotonArchivo.jsx'
 import { enviarSolicitudes } from './marketplaceService.js'
+import { COMISION_PCT } from './condiciones.js'
+import { precio as formatoPrecio } from '../../lib/formato.js'
+
+const numeroPrecio = v => Number(String(v).replace(/[^0-9.]/g, '')) || 0
 
 const cuadroVacio = () => ({ id: Math.random().toString(36).slice(2), archivos: [], vistas: [], titulo: '', autor: '', anonimo: false, tecnica: '', alto: '', ancho: '', precio: '', descripcion: '', notas: '' })
 
@@ -36,9 +40,9 @@ export default function Vender() {
     if (sinFoto >= 0) { toast.error(`Agrega al menos una foto del cuadro ${sinFoto + 1}`); return }
     const sinArtista = vendedor.tipo === 'coleccionista' ? cuadros.findIndex(c => !c.anonimo && !c.autor.trim()) : -1
     if (sinArtista >= 0) { toast.error(`Cuadro ${sinArtista + 1}: escribe el artista o marca "No sé quién es el artista"`); return }
-    const sinPrecio = cuadros.findIndex(c => !Number(String(c.precio).replace(/[^0-9.]/g, '')))
-    if (sinPrecio >= 0) { toast.error(`Cuadro ${sinPrecio + 1}: escribe el precio que deseas recibir`); return }
-    if (!acepto) { toast.error('Marca que estás de acuerdo con cómo funciona la venta'); return }
+    const sinPrecio = cuadros.findIndex(c => !numeroPrecio(c.precio))
+    if (sinPrecio >= 0) { toast.error(`Cuadro ${sinPrecio + 1}: escribe el precio de venta que propones`); return }
+    if (!acepto) { toast.error('Para enviar, acepta las Condiciones comerciales'); return }
     setEnviando(1)
     try {
       await enviarSolicitudes(vendedor, cuadros, n => setEnviando(Math.min(n + 1, cuadros.length)))
@@ -54,7 +58,7 @@ export default function Vender() {
       <div className="max-w-md rounded-[30px] bg-white p-8 text-center">
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-mostaza"><Check size={32} /></span>
         <h1 className="mt-6 text-3xl font-semibold tracking-tight">¡Recibimos tus cuadros!</h1>
-        <p className="mt-3 text-gris">Gracias, {vendedor.nombre.split(' ')[0]}. Vamos a revisarlos y te escribiremos por WhatsApp para acordar el precio de venta antes de publicarlos.</p>
+        <p className="mt-3 text-gris">Gracias, {vendedor.nombre.split(' ')[0]}. Vamos a revisarlos y te escribiremos por WhatsApp para confirmar el precio de publicación antes de publicarlos.</p>
         <button onClick={() => { setCuadros([cuadroVacio()]); setListo(false); setAcepto(false) }} className="btn-primario mt-6 w-full">Enviar más cuadros</button>
         <Link to="/marketplace" className="mt-4 inline-block text-sm font-semibold underline">Ver el Marketplace</Link>
       </div>
@@ -67,7 +71,7 @@ export default function Vender() {
       <h1 className="mt-2 text-[42px] font-medium leading-none tracking-[-0.045em] md:text-[64px]">Vende tus <em className="font-bold text-mostaza">cuadros</em></h1>
       <span aria-hidden="true" className="acento mb-6 mt-4" />
       <ol className="mb-8 grid max-w-3xl gap-2 text-[15px] md:grid-cols-3">
-        {['Nos envías fotos, medidas y el precio que deseas recibir', 'Revisamos el cuadro y acordamos contigo el precio de venta', 'Lo publicamos, atendemos a los compradores y te pagamos al venderse'].map((t, n) => (
+        {['Nos envías fotos, medidas y el precio de venta que propones', 'Revisamos el cuadro y acordamos contigo el precio de publicación', `Lo publicamos, atendemos a los compradores y te pagamos el ${100 - COMISION_PCT}% al venderse`].map((t, n) => (
           <li key={t} className="flex gap-3 rounded-[20px] bg-white p-4"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-tinta text-xs font-bold text-white">{n + 1}</span>{t}</li>
         ))}
       </ol>
@@ -132,7 +136,9 @@ export default function Vender() {
               <label className="etiqueta">Técnica (opcional)<input value={c.tecnica} onChange={e => cambiar(c.id, 'tecnica', e.target.value)} placeholder="Óleo, acrílico…" className="campo mt-1.5" /></label>
               <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={c.alto} onChange={e => cambiar(c.id, 'alto', e.target.value)} className="campo mt-1.5" /></label>
               <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={c.ancho} onChange={e => cambiar(c.id, 'ancho', e.target.value)} className="campo mt-1.5" /></label>
-              <label className="etiqueta sm:col-span-2">Precio que deseas recibir (USD)<input inputMode="decimal" value={c.precio} onChange={e => cambiar(c.id, 'precio', e.target.value)} placeholder="Ej. 250" className="campo mt-1.5 text-lg font-bold" /></label>
+              <label className="etiqueta sm:col-span-2">Precio de venta que propones (USD)<input inputMode="decimal" value={c.precio} onChange={e => cambiar(c.id, 'precio', e.target.value)} placeholder="Ej. 500" className="campo mt-1.5 text-lg font-bold" />
+                {numeroPrecio(c.precio) > 0 && <span className="mt-1.5 block text-sm font-normal text-gris">Si se vende a {formatoPrecio(numeroPrecio(c.precio))}, recibes <strong className="text-tinta">{formatoPrecio(Math.round(numeroPrecio(c.precio) * (100 - COMISION_PCT)) / 100)}</strong> ({100 - COMISION_PCT}%). Comisión de Entre tu Arte: {COMISION_PCT}%.</span>}
+              </label>
               <label className="etiqueta sm:col-span-2">Cuéntanos del cuadro (opcional)<textarea rows={3} value={c.descripcion} onChange={e => cambiar(c.id, 'descripcion', e.target.value)} placeholder="Año, estado, si tiene marco, firma…" className="campo mt-1.5" /></label>
             </div>
           </section>
@@ -140,9 +146,22 @@ export default function Vender() {
 
         <button type="button" onClick={() => setCuadros(l => [...l, cuadroVacio()])} className="btn-contorno h-14 w-full"><Plus size={18} />Agregar otro cuadro</button>
 
+        <section className="rounded-[22px] bg-mostaza-fondo p-5 text-[15px] ring-1 ring-mostaza">
+          <h2 className="font-bold">Condiciones comerciales, en resumen</h2>
+          <ul className="mt-2 space-y-1.5">
+            {['Inscripción y publicación gratuitas; Entre tu Arte selecciona las obras que publica.',
+              `Comisión del ${COMISION_PCT}% sobre el precio de venta acordado: tú recibes el ${100 - COMISION_PCT}%.`,
+              'Te pagamos dentro de 7 días hábiles después del pago completo del comprador y la entrega.',
+              'Sin exclusividad. La obra queda contigo hasta la venta; avísanos si deja de estar disponible.',
+              'El transporte lo paga el comprador. Los compradores tratan solo con Entre tu Arte y tus datos no se publican.'].map(t => (
+              <li key={t} className="flex gap-2"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-tinta" />{t}</li>
+            ))}
+          </ul>
+          <Link to="/condiciones-artistas" target="_blank" className="mt-3 inline-block font-semibold underline decoration-tinta/40 underline-offset-4">Leer las condiciones completas</Link>
+        </section>
         <label className="flex cursor-pointer gap-3 rounded-[22px] bg-white p-4 text-sm leading-relaxed">
           <input type="checkbox" checked={acepto} onChange={e => setAcepto(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#17181b]" />
-          <span>Entiendo que Entre tu Arte revisa el cuadro, acuerda conmigo el precio de venta y lo vende a través de su página: los compradores tratan solo con Entre tu Arte y mis datos no se publican. Recibiré el pago acordado cuando el cuadro se venda.</span>
+          <span>He leído y acepto las <Link to="/condiciones-artistas" target="_blank" className="font-semibold underline">Condiciones comerciales para artistas</Link>, incluida la comisión del {COMISION_PCT}%, y confirmo que la información y las fotos que envío son verdaderas y que puedo vender estas obras.</span>
         </label>
         <button disabled={!!enviando} className="btn-primario h-16 w-full text-[17px]">
           {enviando ? <><Loader2 size={20} className="animate-spin" />Enviando cuadro {enviando} de {cuadros.length}…</> : `Enviar ${cuadros.length === 1 ? 'mi cuadro' : `mis ${cuadros.length} cuadros`}`}

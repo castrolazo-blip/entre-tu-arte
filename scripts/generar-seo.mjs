@@ -26,6 +26,7 @@ const PAGINAS = [
   { ruta: '/nosotros', prioridad: '0.7', frecuencia: 'monthly', titulo: 'Nuestra historia', descripcion: 'Arte decorativo pintado a mano que se adapta a tu estilo y a tu espacio. Conoce Entre tu Arte.' },
   { ruta: '/asesoria', prioridad: '0.6', frecuencia: 'monthly', titulo: 'Asesoría para tu espacio', descripcion: 'Envíanos una foto de tu pared y te recomendamos la obra y el tamaño ideal.' },
   { ruta: '/blog', prioridad: '0.6', frecuencia: 'weekly', titulo: 'Ideas para decorar', descripcion: 'Ideas y consejos para decorar con arte tu hogar u oficina.' },
+  { ruta: '/condiciones-artistas', prioridad: '0.3', frecuencia: 'yearly', titulo: 'Condiciones comerciales para artistas', descripcion: 'Condiciones del programa de comercialización de obras de Entre tu Arte: comisión, pagos, entrega, promoción y responsabilidades.' },
   { ruta: '/vender', prioridad: '0.5', frecuencia: 'monthly', titulo: 'Vende tus cuadros', descripcion: 'Artistas y coleccionistas: publica tus cuadros en el Marketplace de Entre tu Arte. Nosotros atendemos a los compradores.' },
 ]
 

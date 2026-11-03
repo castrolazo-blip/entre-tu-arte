@@ -36,6 +36,9 @@ create table if not exists public.marketplace_solicitudes (
 -- Artista de cada cuadro (el vendedor puede tener cuadros de distintos artistas; null = anónimo)
 alter table public.marketplace_solicitudes add column if not exists autor text;
 alter table public.marketplace_solicitudes add column if not exists autor_anonimo boolean not null default false;
+-- Registro de la aceptación de las Condiciones comerciales para artistas
+alter table public.marketplace_solicitudes add column if not exists condiciones_version text;
+alter table public.marketplace_solicitudes add column if not exists condiciones_aceptadas_en timestamptz;
 
 alter table public.marketplace_solicitudes enable row level security;
 drop policy if exists mkt_enviar on public.marketplace_solicitudes;

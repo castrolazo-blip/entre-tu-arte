@@ -13,9 +13,6 @@ const GRUPOS = [
     ['instagram', 'Instagram', 'entretuarte'],
     ['facebook', 'Facebook (enlace)', 'https://facebook.com/entretuarte'],
   ]],
-  ['Marketplace (privado, no se muestra al público)', [
-    ['marketplace_comision', 'Comisión sugerida sobre lo que pide el vendedor (%)', '30'],
-  ]],
   ['Obras por pedido (las vendidas)', [
     ['pedido_tiempo', 'Tiempo de entrega de una obra por pedido', '3 a 4 semanas'],
   ]],

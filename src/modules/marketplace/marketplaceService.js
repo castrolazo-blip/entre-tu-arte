@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase.js'
 import { subirArchivo, reducirImagen } from '../admin/adminService.js'
+import { CONDICIONES_VERSION } from './condiciones.js'
 
 // Envía uno o varios cuadros de un vendedor. Las fotos van a la carpeta marketplace/ (la única
 // donde un visitante puede subir) y cada cuadro queda como solicitud pendiente de revisión.
@@ -24,6 +25,7 @@ export async function enviarSolicitudes(vendedor, cuadros, alAvanzar) {
       precio_deseado: Number(String(c.precio).replace(/[^0-9.]/g, '')) || null,
       fotos: urls.map((url, i) => ({ url, rol: ['principal', 'ambiente', 'detalle'][i] || 'detalle' })),
       notas: c.notas?.trim() || null,
+      condiciones_version: CONDICIONES_VERSION, condiciones_aceptadas_en: new Date().toISOString(),
     })
     if (error) {
       if (/marketplace_solicitudes|schema cache|does not exist/i.test(error.message)) throw new Error('El marketplace aún no está activo. Escríbenos por WhatsApp y te ayudamos.')

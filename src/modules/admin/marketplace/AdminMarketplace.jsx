@@ -4,20 +4,21 @@ import { ExternalLink, MessageCircle, Mail, Check, X, Copy, Pencil, Loader2 } fr
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { precio, medidasTexto, fechaCorta } from '../../../lib/formato.js'
-import { useConfig } from '../../../context/ConfigContext.jsx'
 import { faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
+import { COMISION_PCT } from '../../marketplace/condiciones.js'
+
+// Lo que se paga al vendedor: el precio de venta menos la comisión (30 % según las condiciones)
+const pagoVendedor = s => s.precio_publicado ? Math.round(Number(s.precio_publicado) * (100 - (s.comision_pct ?? COMISION_PCT))) / 100 : Number(s.precio_deseado) || 0
 
 const PESTANAS = [['pendiente', 'Por revisar'], ['publicada', 'Publicadas'], ['rechazada', 'Rechazadas'], ['', 'Todas']]
 const enPestana = (s, p) => !p || (p === 'publicada' ? ['aprobada', 'pagada'].includes(s.estado) : s.estado === p)
 const waVendedor = tel => { const n = String(tel || '').replace(/\D/g, ''); return n ? `https://wa.me/${n.length === 8 ? '503' + n : n}` : null }
-const redondear = v => Math.ceil(v / 5) * 5
 
 // Cuadros que mandan artistas y coleccionistas desde /vender. Se revisan, se les pone precio de
 // venta (precio deseado + comisión) y se publican en el Marketplace. Los datos del vendedor y lo
 // que recibe nunca se publican.
 export default function AdminMarketplace() {
-  const { cfg } = useConfig()
   const [solicitudes, setSolicitudes] = useState(null)
   const [fichas, setFichas] = useState({})
   const [pestana, setPestana] = useState('pendiente')
@@ -64,7 +65,7 @@ export default function AdminMarketplace() {
       {error && <p role="alert" className="mb-4 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-800">{error}</p>}
       {porPagar.length > 0 && (
         <p className="mb-4 rounded-2xl bg-mostaza-fondo p-4 text-sm ring-1 ring-mostaza">
-          <strong>{porPagar.length} {porPagar.length === 1 ? 'cuadro vendido' : 'cuadros vendidos'} por pagar al vendedor</strong> ({precio(porPagar.reduce((t, s) => t + (Number(s.precio_deseado) || 0), 0))}). Están en "Publicadas".
+          <strong>{porPagar.length} {porPagar.length === 1 ? 'cuadro vendido' : 'cuadros vendidos'} por pagar al vendedor</strong> ({precio(porPagar.reduce((t, s) => t + pagoVendedor(s), 0))}). Están en "Publicadas".
         </p>
       )}
 
@@ -83,15 +84,16 @@ export default function AdminMarketplace() {
         </div>
       ) : (
         <ul className="space-y-4">
-          {lista.map(s => <Solicitud key={s.id} s={s} ficha={fichas[s.ficha_id]} comision={Number(cfg.marketplace_comision) || 0} actualizar={actualizar} recargar={cargar} />)}
+          {lista.map(s => <Solicitud key={s.id} s={s} ficha={fichas[s.ficha_id]} actualizar={actualizar} recargar={cargar} />)}
         </ul>
       )}
     </>
   )
 }
 
-function Solicitud({ s, ficha, comision, actualizar, recargar }) {
-  const sugerido = s.precio_deseado ? redondear(Number(s.precio_deseado) * (1 + comision / 100)) : ''
+function Solicitud({ s, ficha, actualizar, recargar }) {
+  // El vendedor propone el precio de venta; se publica a ese precio salvo que se acuerde otro
+  const sugerido = s.precio_deseado ? Number(s.precio_deseado) : ''
   const [f, setF] = useState({
     titulo: s.titulo || '', precio: sugerido,
     // Crédito público: el artista del cuadro; si no se sabe, "Artista anónimo"
@@ -99,7 +101,8 @@ function Solicitud({ s, ficha, comision, actualizar, recargar }) {
   })
   const [publicando, setPublicando] = useState(false)
   const medidas = medidasTexto({ alto_cm: s.alto_cm, ancho_cm: s.ancho_cm, piezas: s.piezas })
-  const ganancia = Number(f.precio) && s.precio_deseado ? Number(f.precio) - Number(s.precio_deseado) : null
+  const venta = Number(String(f.precio).replace(/[^0-9.]/g, '')) || 0
+  const alVendedor = Math.round(venta * (100 - COMISION_PCT)) / 100
   const wa = waVendedor(s.telefono)
   const vendida = ficha?.estado === 'vendida'
 
@@ -120,8 +123,7 @@ function Solicitud({ s, ficha, comision, actualizar, recargar }) {
       toast.error(/origen/.test(error.message) ? 'Falta activar el Marketplace: ejecuta docs/ACTUALIZAR_BASE.sql en Supabase.' : 'No se pudo publicar: ' + error.message, { duration: 8000 })
       return
     }
-    const pct = s.precio_deseado ? Math.round((precioVenta / Number(s.precio_deseado) - 1) * 1000) / 10 : null
-    await actualizar(s, { estado: 'aprobada', ficha_id: String(data.id), precio_publicado: precioVenta, comision_pct: pct }, 'Publicado en el Marketplace. Puedes completarlo con IA en Obras › Editar.')
+    await actualizar(s, { estado: 'aprobada', ficha_id: String(data.id), precio_publicado: precioVenta, comision_pct: COMISION_PCT }, 'Publicado en el Marketplace. Puedes completarlo con IA en Obras › Editar.')
     setPublicando(false)
   }
 
@@ -159,9 +161,10 @@ function Solicitud({ s, ficha, comision, actualizar, recargar }) {
           </div>
         </div>
         <div>
-          <p className="text-xs font-semibold text-gris">Quiere recibir</p>
+          <p className="text-xs font-semibold text-gris">Precio de venta que propone</p>
           <p className="text-xl font-bold">{precio(s.precio_deseado) || 'No indicó'}</p>
-          {s.precio_publicado && <p className="text-xs text-gris">Publicado a {precio(s.precio_publicado)}{s.comision_pct != null ? ` · comisión ${s.comision_pct}%` : ''}</p>}
+          {s.precio_publicado && <p className="text-xs text-gris">Publicado a {precio(s.precio_publicado)} · al vendedor {precio(pagoVendedor(s))} ({100 - (s.comision_pct ?? COMISION_PCT)}%)</p>}
+          <p className="mt-1 text-xs text-gris">{s.condiciones_version ? `Aceptó las condiciones (versión ${s.condiciones_version}) el ${fechaCorta(s.condiciones_aceptadas_en || s.created_at)}` : 'Sin registro de aceptación de condiciones'}</p>
         </div>
       </div>
 
@@ -170,9 +173,9 @@ function Solicitud({ s, ficha, comision, actualizar, recargar }) {
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="etiqueta">Nombre público<input value={f.titulo} onChange={e => setF(x => ({ ...x, titulo: e.target.value }))} placeholder="Puedes completarlo con IA después" className="campo mt-1.5" /></label>
             <label className="etiqueta">Crédito público<input value={f.credito} onChange={e => setF(x => ({ ...x, credito: e.target.value }))} className="campo mt-1.5" /></label>
-            <label className="etiqueta">Precio de venta (USD)<input inputMode="decimal" value={f.precio} onChange={e => setF(x => ({ ...x, precio: e.target.value }))} className="campo mt-1.5 font-bold" /></label>
+            <label className="etiqueta">Precio de publicación (USD)<input inputMode="decimal" value={f.precio} onChange={e => setF(x => ({ ...x, precio: e.target.value }))} className="campo mt-1.5 font-bold" /></label>
           </div>
-          {ganancia != null && <p className="text-sm">Tu ganancia: <strong>{precio(ganancia)}</strong>{s.precio_deseado ? ` (${Math.round(ganancia / Number(s.precio_deseado) * 100)}% sobre lo que pide)` : ''}. El público solo ve el precio de venta.</p>}
+          {venta > 0 && <p className="text-sm">Al vendedor ({100 - COMISION_PCT}%): <strong>{precio(alVendedor)}</strong> · Entre tu Arte ({COMISION_PCT}%): <strong>{precio(venta - alVendedor)}</strong>. Si cambias el precio, acuérdalo antes con el vendedor (condición 4).</p>}
           <div className="flex flex-wrap gap-2">
             <button onClick={publicar} disabled={publicando} className="btn-primario h-12 flex-1">{publicando ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}Aprobar y publicar</button>
             <button onClick={() => actualizar(s, { estado: 'rechazada' }, 'Solicitud rechazada')} className="h-12 rounded-full px-5 text-sm font-bold text-red-700 ring-1 ring-red-200"><X size={16} className="mr-1 inline" />Rechazar</button>
@@ -182,7 +185,7 @@ function Solicitud({ s, ficha, comision, actualizar, recargar }) {
 
       {s.estado === 'aprobada' && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {vendida && <button onClick={() => actualizar(s, { estado: 'pagada' }, 'Marcado como pagado al vendedor')} className="btn-oscuro h-11 px-4 text-sm"><Check size={16} />Ya le pagué {precio(s.precio_deseado)}</button>}
+          {vendida && <button onClick={() => actualizar(s, { estado: 'pagada' }, 'Marcado como pagado al vendedor')} className="btn-oscuro h-11 px-4 text-sm"><Check size={16} />Ya le pagué {precio(pagoVendedor(s))}</button>}
           {s.ficha_id && <Link to={`/obra/${s.ficha_id}`} target="_blank" className="btn-contorno btn-chico"><ExternalLink size={15} />Ver en la tienda</Link>}
           <Link to="/admin/obras" className="btn-contorno btn-chico"><Pencil size={15} />Editar en Obras</Link>
         </div>
