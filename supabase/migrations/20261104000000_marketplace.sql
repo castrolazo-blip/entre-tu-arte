@@ -33,6 +33,10 @@ create table if not exists public.marketplace_solicitudes (
   actualizado      timestamptz
 );
 
+-- Artista de cada cuadro (el vendedor puede tener cuadros de distintos artistas; null = anónimo)
+alter table public.marketplace_solicitudes add column if not exists autor text;
+alter table public.marketplace_solicitudes add column if not exists autor_anonimo boolean not null default false;
+
 alter table public.marketplace_solicitudes enable row level security;
 drop policy if exists mkt_enviar on public.marketplace_solicitudes;
 drop policy if exists mkt_admin_leer on public.marketplace_solicitudes;

@@ -109,7 +109,7 @@ export default function ObraDetalle() {
           {marketplace && (
             <div className="mt-3 flex gap-3 rounded-[22px] bg-white p-4 text-[15px] leading-relaxed ring-1 ring-crema-borde">
               <ShieldCheck size={20} className="mt-0.5 shrink-0" />
-              <p><strong>Cuadro del Marketplace.</strong> Lo vende {obra.artista && obra.artista !== 'Colección privada' ? 'su artista' : 'un coleccionista'} a través de Entre tu Arte. Tú tratas solo con nosotros: coordinamos el pago y la entrega, y te acompañamos en toda la compra.</p>
+              <p><strong>Cuadro del Marketplace.</strong> Se vende a través de Entre tu Arte. Tú tratas solo con nosotros: coordinamos el pago y la entrega, y te acompañamos en toda la compra.</p>
             </div>
           )}
           {vendida && (

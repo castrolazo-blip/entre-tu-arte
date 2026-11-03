@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import BotonArchivo from '../../components/admin/BotonArchivo.jsx'
 import { enviarSolicitudes } from './marketplaceService.js'
 
-const cuadroVacio = () => ({ id: Math.random().toString(36).slice(2), archivos: [], vistas: [], titulo: '', tecnica: '', alto: '', ancho: '', precio: '', descripcion: '', notas: '' })
+const cuadroVacio = () => ({ id: Math.random().toString(36).slice(2), archivos: [], vistas: [], titulo: '', autor: '', anonimo: false, tecnica: '', alto: '', ancho: '', precio: '', descripcion: '', notas: '' })
 
 // Formulario para artistas y personas que quieren vender sus cuadros a través de Entre tu Arte.
 // Los datos del vendedor nunca se publican; el comprador solo trata con la página.
@@ -34,6 +34,10 @@ export default function Vender() {
     if (!vendedor.telefono.trim()) { toast.error('Déjanos tu WhatsApp para contactarte'); return }
     const sinFoto = cuadros.findIndex(c => !c.archivos.length)
     if (sinFoto >= 0) { toast.error(`Agrega al menos una foto del cuadro ${sinFoto + 1}`); return }
+    const sinArtista = vendedor.tipo === 'coleccionista' ? cuadros.findIndex(c => !c.anonimo && !c.autor.trim()) : -1
+    if (sinArtista >= 0) { toast.error(`Cuadro ${sinArtista + 1}: escribe el artista o marca "No sé quién es el artista"`); return }
+    const sinPrecio = cuadros.findIndex(c => !Number(String(c.precio).replace(/[^0-9.]/g, '')))
+    if (sinPrecio >= 0) { toast.error(`Cuadro ${sinPrecio + 1}: escribe el precio que deseas recibir`); return }
     if (!acepto) { toast.error('Marca que estás de acuerdo con cómo funciona la venta'); return }
     setEnviando(1)
     try {
@@ -109,13 +113,27 @@ export default function Vender() {
                 )}
               </div>
             </div>
+            {vendedor.tipo === 'artista' ? (
+              <p className="rounded-2xl bg-crema-clara px-4 py-3 text-sm">Artista: <strong>{vendedor.nombre.trim() || 'tu nombre'}</strong></p>
+            ) : (
+              <div className="space-y-2">
+                <label className="etiqueta">Artista que lo pintó
+                  <input value={c.anonimo ? '' : c.autor} disabled={c.anonimo} onChange={e => cambiar(c.id, 'autor', e.target.value)}
+                    placeholder={c.anonimo ? 'Anónimo' : 'Nombre del artista'} className="campo mt-1.5 disabled:opacity-60" />
+                </label>
+                <label className="flex items-center gap-2.5 text-sm font-semibold">
+                  <input type="checkbox" checked={c.anonimo} onChange={e => cambiar(c.id, 'anonimo', e.target.checked)} className="h-5 w-5 accent-[#17181b]" />
+                  No sé quién es el artista (anónimo)
+                </label>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="etiqueta">Nombre del cuadro (opcional)<input value={c.titulo} onChange={e => cambiar(c.id, 'titulo', e.target.value)} className="campo mt-1.5" /></label>
               <label className="etiqueta">Técnica (opcional)<input value={c.tecnica} onChange={e => cambiar(c.id, 'tecnica', e.target.value)} placeholder="Óleo, acrílico…" className="campo mt-1.5" /></label>
               <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={c.alto} onChange={e => cambiar(c.id, 'alto', e.target.value)} className="campo mt-1.5" /></label>
               <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={c.ancho} onChange={e => cambiar(c.id, 'ancho', e.target.value)} className="campo mt-1.5" /></label>
               <label className="etiqueta sm:col-span-2">Precio que deseas recibir (USD)<input inputMode="decimal" value={c.precio} onChange={e => cambiar(c.id, 'precio', e.target.value)} placeholder="Ej. 250" className="campo mt-1.5 text-lg font-bold" /></label>
-              <label className="etiqueta sm:col-span-2">Cuéntanos del cuadro (opcional)<textarea rows={3} value={c.descripcion} onChange={e => cambiar(c.id, 'descripcion', e.target.value)} placeholder="Autor, año, estado, si tiene marco…" className="campo mt-1.5" /></label>
+              <label className="etiqueta sm:col-span-2">Cuéntanos del cuadro (opcional)<textarea rows={3} value={c.descripcion} onChange={e => cambiar(c.id, 'descripcion', e.target.value)} placeholder="Año, estado, si tiene marco, firma…" className="campo mt-1.5" /></label>
             </div>
           </section>
         ))}

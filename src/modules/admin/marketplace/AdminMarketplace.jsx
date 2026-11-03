@@ -93,7 +93,9 @@ export default function AdminMarketplace() {
 function Solicitud({ s, ficha, comision, actualizar, recargar }) {
   const sugerido = s.precio_deseado ? redondear(Number(s.precio_deseado) * (1 + comision / 100)) : ''
   const [f, setF] = useState({
-    titulo: s.titulo || '', precio: sugerido, credito: s.tipo_vendedor === 'artista' ? s.nombre : 'Colección privada',
+    titulo: s.titulo || '', precio: sugerido,
+    // Crédito público: el artista del cuadro; si no se sabe, "Artista anónimo"
+    credito: s.autor || (s.autor_anonimo ? 'Artista anónimo' : s.tipo_vendedor === 'artista' ? s.nombre : 'Colección privada'),
   })
   const [publicando, setPublicando] = useState(false)
   const medidas = medidasTexto({ alto_cm: s.alto_cm, ancho_cm: s.ancho_cm, piezas: s.piezas })
@@ -143,6 +145,7 @@ function Solicitud({ s, ficha, comision, actualizar, recargar }) {
         ))}
       </div>
       <h3 className="mt-3 text-lg font-bold">{s.titulo || 'Sin nombre'}</h3>
+      <p className="text-sm font-semibold">Artista: {s.autor || (s.autor_anonimo ? 'anónimo (el vendedor no lo sabe)' : 'no indicado')}</p>
       <p className="text-sm text-gris">{[s.tecnica, medidas].filter(Boolean).join(' · ') || 'Sin medidas'}</p>
       {s.descripcion && <p className="mt-2 whitespace-pre-line text-sm">{s.descripcion}</p>}
 
