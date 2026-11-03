@@ -1,4 +1,8 @@
+# Entre tu Arte · https://entretuarte.com
 User-agent: *
+Allow: /
 Disallow: /admin
 Disallow: /login
-Allow: /
+Disallow: /carrito
+
+Sitemap: https://entretuarte.com/sitemap.xml

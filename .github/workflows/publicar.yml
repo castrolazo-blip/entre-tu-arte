@@ -31,7 +31,10 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE: ${{ vars.VITE_BASE || '/' }}
-      # GitHub Pages no conoce las rutas de la app (/obra/12…): 404.html carga la misma app.
+      # Para Google: sitemap.xml con obras, artistas y artículos, y una página por cada dirección
+      # pública (responde 200 con su título y descripción). Si Supabase falla, sigue con las fijas.
+      - run: node scripts/generar-seo.mjs
+      # Rutas que no tienen página propia: 404.html carga la misma app.
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -46,3 +49,27 @@ jobs:
     steps:
       - id: despliegue
         uses: actions/deploy-pages@v4
+
+  # Comprueba en el sitio publicado que sitemap.xml y robots.txt llegan como archivos (no como la app)
+  verificar:
+    needs: publicar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Revisar sitemap.xml, robots.txt y páginas en https://entretuarte.com
+        run: |
+          SITIO=https://entretuarte.com
+          for intento in 1 2 3 4 5 6 7 8 9 10; do
+            tipo=$(curl -s -o sitemap.xml -w '%{content_type}' "$SITIO/sitemap.xml?v=$GITHUB_SHA")
+            if echo "$tipo" | grep -qi xml && head -c 100 sitemap.xml | grep -q '<?xml'; then break; fi
+            echo "Intento $intento: sitemap aún no disponible ($tipo), esperando…"; sleep 15
+          done
+          echo "sitemap.xml -> $tipo"; head -c 300 sitemap.xml; echo
+          echo "$tipo" | grep -qi xml || { echo "ERROR: sitemap.xml no llega como XML"; exit 1; }
+          grep -q 'github.io' sitemap.xml && { echo "ERROR: el sitemap tiene direcciones de github.io"; exit 1; }
+          echo "Direcciones en el sitemap: $(grep -c '<loc>' sitemap.xml)"
+          echo "robots.txt -> $(curl -s -o robots.txt -w '%{http_code} %{content_type}' $SITIO/robots.txt)"; cat robots.txt
+          primera_obra=$(grep -o "$SITIO/obra/[^<]*" sitemap.xml | head -1)
+          for u in $SITIO/ $SITIO/obras $SITIO/por-pedido $SITIO/marketplace $SITIO/nosotros $SITIO/artistas $SITIO/blog $primera_obra; do
+            echo "$(curl -s -o /dev/null -w '%{http_code}' "$u") $u"
+          done
+
