@@ -70,10 +70,16 @@ export default function Vender() {
       <p className="text-[13px] font-bold uppercase tracking-[0.16em] text-gris">Marketplace</p>
       <h1 className="mt-2 text-[42px] font-medium leading-none tracking-[-0.045em] md:text-[64px]">Vende tus <em className="font-bold text-mostaza">cuadros</em></h1>
       <span aria-hidden="true" className="acento mb-6 mt-4" />
-      <ol className="mb-8 grid max-w-3xl gap-2 text-[15px] md:grid-cols-3">
+      <ol className="mb-8 grid max-w-3xl gap-2 text-[15px] md:grid-cols-2">
         {['Nos envías fotos, medidas y el precio de venta que propones', 'Revisamos el cuadro y acordamos contigo el precio de publicación', `Lo publicamos, atendemos a los compradores y te pagamos el ${100 - COMISION_PCT}% al venderse`].map((t, n) => (
           <li key={t} className="flex gap-3 rounded-[20px] bg-white p-4"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-tinta text-xs font-bold text-white">{n + 1}</span>{t}</li>
         ))}
+        <li>
+          <Link to="/condiciones-artistas" target="_blank" className="flex h-full gap-3 rounded-[20px] bg-mostaza-fondo p-4 ring-1 ring-mostaza">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-mostaza text-xs font-bold text-tinta">4</span>
+            <span>Conoce las <strong className="underline decoration-tinta/40 underline-offset-4">condiciones comerciales</strong>: comisión, pagos, entrega y responsabilidades</span>
+          </Link>
+        </li>
       </ol>
 
       <form onSubmit={enviar} className="max-w-3xl space-y-5">
