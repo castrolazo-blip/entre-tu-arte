@@ -19,7 +19,7 @@ export async function subirArchivo(carpeta, archivo, nombre, { alReintentar, ups
   for (const [n, pausa] of pausas.entries()) {
     if (pausa) { alReintentar?.(n + 1, pausas.length); await esperar(pausa) }
     try {
-      ;({ error } = await supabase.storage.from(BUCKET).upload(ruta, archivo, { contentType: archivo.type || 'image/jpeg', upsert }))
+      ;({ error } = await supabase.storage.from(BUCKET).upload(ruta, archivo, { contentType: archivo.type || 'image/jpeg', upsert, cacheControl: '31536000' }))
     } catch (e) { error = e }
     if (!error || !esPasajero(error)) break
   }
@@ -79,4 +79,35 @@ export async function leerConfig(claves) {
   const r = {}
   ;(data || []).forEach(f => { r[f.clave] = f.valor })
   return r
+}
+
+// ── Miniaturas ────────────────────────────────────────────────────────────────
+// Versión liviana (800 px de ancho, ~60-120 KB) para tarjetas, galerías y fondos. La foto
+// grande solo se carga al abrir la obra. Acepta un canvas, una imagen, un archivo o una URL.
+export const ANCHO_MINIATURA = 800
+export async function crearMiniatura(origen, ancho = ANCHO_MINIATURA) {
+  let fuente = origen
+  if (typeof origen === 'string') fuente = await cargarImagen(origen)
+  else if (origen instanceof Blob) {
+    const url = URL.createObjectURL(origen)
+    try { fuente = await cargarImagen(url) } finally { setTimeout(() => URL.revokeObjectURL(url), 1000) }
+  }
+  const w = fuente.naturalWidth || fuente.width, h = fuente.naturalHeight || fuente.height
+  const escala = Math.min(1, ancho / w)
+  const c = document.createElement('canvas')
+  c.width = Math.max(1, Math.round(w * escala)); c.height = Math.max(1, Math.round(h * escala))
+  const ctx = c.getContext('2d')
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(fuente, 0, 0, c.width, c.height)
+  const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.8))
+  if (!blob) throw new Error('No se pudo crear la miniatura')
+  return subirArchivo('miniaturas', new File([blob], 'mini.jpg', { type: 'image/jpeg' }))
+}
+
+// Agrega miniatura a cada foto que no la tenga ([{url, rol, mini?}]). Si una falla, sigue sin ella.
+export async function conMiniaturas(fotos, fuentes = []) {
+  return Promise.all((fotos || []).map(async (f, i) => {
+    if (!f?.url || f.mini) return f
+    try { return { ...f, mini: await crearMiniatura(fuentes[i] || f.url) } } catch { return f }
+  }))
 }

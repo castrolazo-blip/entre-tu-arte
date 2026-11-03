@@ -25,7 +25,7 @@ export default function Artistas() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {artistas.map(a => {
             const suyas = obras.filter(o => o.artista_id === a.id)
-            const portada = a.foto_url || suyas.find(o => o.foto)?.foto
+            const portada = a.foto_url || suyas.find(o => o.foto)?.fotoMini
             return (
               <Link key={a.id} to={`/artistas/${a.slug}`} className="tarjeta overflow-hidden">
                 <span className="relative block aspect-[4/3] bg-tinta">

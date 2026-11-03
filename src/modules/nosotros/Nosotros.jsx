@@ -21,7 +21,7 @@ export default function Nosotros() {
   useEffect(() => {
     listarObras({ estado: 'publicas', limite: 12 }).then(l => {
       const amb = l.flatMap(o => o.fotos || []).find(f => f.rol === 'ambiente')
-      setFondo(amb?.url || l.find(o => o.fotoReal)?.foto || l[0]?.foto || '')
+      setFondo(amb?.mini || amb?.url || l.find(o => o.fotoReal)?.fotoMini || l[0]?.fotoMini || '')
     }).catch(() => {})
   }, [])
   const parrafos = [cfg.nos_p1, cfg.nos_p2, cfg.nos_p3, cfg.nos_p4].filter(Boolean)

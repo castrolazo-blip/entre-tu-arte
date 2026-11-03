@@ -36,7 +36,8 @@ export default function Inicio() {
         : enVenta).filter(o => o.foto).slice(0, 3)
         .map(o => ({ id: o.id, imagen_url: o.foto, boton_texto: 'Ver las obras', boton_enlace: '/obras' }))
 
-  const fotoAmbiente = (enVenta.find(o => o.fotos?.some(f => f.rol === 'ambiente'))?.fotos.find(f => f.rol === 'ambiente')?.url) || conFotoReal[0]?.foto || enVenta[0]?.foto
+  const ambiente = enVenta.find(o => o.fotos?.some(f => f.rol === 'ambiente'))?.fotos.find(f => f.rol === 'ambiente')
+  const fotoAmbiente = ambiente?.mini || ambiente?.url || conFotoReal[0]?.fotoMini || enVenta[0]?.fotoMini
 
   return (
     <>
@@ -57,7 +58,7 @@ export default function Inicio() {
             {recientes.map(o => (
               <Link key={o.id} to={`/obra/${o.id}`} className="w-[72vw] max-w-[320px] shrink-0 snap-start md:w-[300px]">
                 <span className="relative block aspect-[4/5] overflow-hidden rounded-[22px] bg-[#ece7df]">
-                  {o.foto && <img src={o.foto} alt={o.titulo} loading="lazy" className="absolute inset-0 h-full w-full object-contain p-5 drop-shadow-[0_12px_16px_rgba(23,22,20,0.25)]" />}
+                  {o.foto && <img src={o.fotoMini || o.foto} alt={o.titulo} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-contain p-5 drop-shadow-[0_12px_16px_rgba(23,22,20,0.25)]" />}
                 </span>
                 <span className="mt-3 block truncate text-lg font-semibold tracking-tight">{o.titulo}</span>
                 <span className="block text-sm text-gris">{[precio(o.precio), o.medidasTexto].filter(Boolean).join(' · ') || 'Ver detalles'}</span>
@@ -71,7 +72,7 @@ export default function Inicio() {
 
         <div className="contenedor">
           <Link to="/asesoria" className="relative mt-10 block h-56 overflow-hidden rounded-[26px] text-white shadow-[0_24px_44px_-28px_rgba(23,22,20,0.8)] md:mt-14 md:h-80 md:rounded-[34px]">
-            {fotoAmbiente && <img src={fotoAmbiente} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+            {fotoAmbiente && <img src={fotoAmbiente} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />}
             <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#3a2c1e]/95 via-[#3a2c1e]/70 to-transparent md:via-[#3a2c1e]/60" />
             <span className="absolute left-6 top-8 max-w-xs md:left-14 md:top-14 md:max-w-md">
               <span className="block text-[30px] font-medium leading-none tracking-[-0.035em] md:text-[48px]">Arte en tu espacio</span>
@@ -105,7 +106,7 @@ export default function Inicio() {
       </section>
 
       {vendidas.length > 0 && (
-        <FondoImagen imagen={vendidas[0]?.foto} velo="claro" difuminado={20} className="py-16 md:py-24">
+        <FondoImagen imagen={vendidas[0]?.fotoMini || vendidas[0]?.foto} velo="claro" difuminado={20} className="py-16 md:py-24">
           <div className="contenedor">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -118,7 +119,7 @@ export default function Inicio() {
               {vendidas.map(o => (
                 <Link key={o.id} to={`/obra/${o.id}`} className="w-52 shrink-0 md:w-auto">
                   <span className="relative block aspect-[4/3] overflow-hidden rounded-3xl bg-[#ece7df]">
-                    {o.foto && <img src={o.foto} alt={`${o.titulo}, por pedido`} loading="lazy" className="absolute inset-0 h-full w-full object-contain p-3" />}
+                    {o.foto && <img src={o.fotoMini || o.foto} alt={`${o.titulo}, por pedido`} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-contain p-3" />}
                     <span className="absolute left-3.5 top-3.5 rounded-full bg-mostaza px-3 py-1.5 text-[11px] font-bold tracking-wider text-tinta">POR PEDIDO</span>
                   </span>
                   <span className="mt-3 block text-lg font-semibold">{o.titulo}</span>

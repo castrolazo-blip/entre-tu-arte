@@ -87,7 +87,7 @@ export default function ObraDetalle() {
               {obra.fotos.map((f, n) => (
                 <button key={f.url} role="tab" aria-selected={n === foto} aria-label={ROLES[f.rol] || `Foto ${n + 1}`} onClick={() => setFoto(n)}
                   className={`relative aspect-[4/3] overflow-hidden rounded-[18px] border-[3px] ${n === foto ? 'border-mostaza' : 'border-transparent'}`}>
-                  <img src={f.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <img src={f.mini || f.url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                 </button>
               ))}
             </div>
@@ -178,7 +178,7 @@ export default function ObraDetalle() {
       </section>
 
       {similares.length > 0 && (
-        <FondoImagen imagen={obra.foto} velo="claro" difuminado={22} className="py-16 md:py-20">
+        <FondoImagen imagen={obra.fotoMini || obra.foto} velo="claro" difuminado={22} className="py-16 md:py-20">
           <div className="contenedor">
             <h2 className="text-[34px] font-medium tracking-[-0.04em] md:text-[44px]">También te puede gustar</h2>
             <span aria-hidden="true" className="acento mb-8 mt-4" />

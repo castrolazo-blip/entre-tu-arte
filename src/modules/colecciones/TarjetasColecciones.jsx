@@ -6,7 +6,7 @@ export default function TarjetasColecciones({ categorias, obras, limite }) {
   const tarjetas = categorias.map(c => {
     const suyas = obras.filter(o => (o.categorias || []).includes(c.nombre))
     const portada = suyas.find(o => o.estadoEfectivo !== 'vendida' && o.foto) || suyas.find(o => o.foto)
-    return { ...c, foto: portada?.foto, cantidad: suyas.filter(o => o.estadoEfectivo !== 'vendida').length }
+    return { ...c, foto: portada?.fotoMini || portada?.foto, cantidad: suyas.filter(o => o.estadoEfectivo !== 'vendida').length }
   }).filter(c => c.foto)
   const lista = limite ? tarjetas.slice(0, limite) : tarjetas
   if (!lista.length) return null

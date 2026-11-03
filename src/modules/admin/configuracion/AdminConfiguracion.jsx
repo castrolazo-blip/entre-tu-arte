@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { guardarConfig, subirArchivo } from '../adminService.js'
+import { guardarConfig, subirArchivo, conMiniaturas } from '../adminService.js'
 import { supabase, BUCKET } from '../../../lib/supabase.js'
 import { useConfig } from '../../../context/ConfigContext.jsx'
 import { leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
@@ -40,6 +40,33 @@ export default function AdminConfiguracion() {
   const [diag, setDiag] = useState(null)
 
   // Revisa paso a paso lo necesario para subir obras y muestra el resultado en pantalla.
+  // Crea miniaturas livianas para las fotos de obras que aún no las tienen (la tienda carga más rápido)
+  const [optimizando, setOptimizando] = useState(null)   // { hechas, total, fallidas } | null
+  async function optimizarFotos() {
+    const { data, error } = await supabase.from('fichas').select('id, fotos')
+    if (error) { toast.error('No se pudieron leer las obras: ' + error.message); return }
+    const pendientes = (data || []).filter(f => Array.isArray(f.fotos) && f.fotos.some(x => x?.url && !x.mini))
+    if (!pendientes.length) { toast.success('Todas las fotos ya están optimizadas'); return }
+    let hechas = 0, fallidas = 0
+    setOptimizando({ hechas, total: pendientes.length, fallidas })
+    const cola = [...pendientes]
+    await Promise.all([0, 1].map(async () => {
+      while (cola.length) {
+        const f = cola.shift()
+        try {
+          const fotos = await conMiniaturas(f.fotos)
+          if (!fotos.some((x, i) => x.mini && !f.fotos[i].mini)) throw new Error('sin miniaturas')
+          const { error: e } = await supabase.from('fichas').update({ fotos }).eq('id', f.id)
+          if (e) throw e
+        } catch { fallidas++ }
+        hechas++
+        setOptimizando({ hechas, total: pendientes.length, fallidas })
+      }
+    }))
+    toast.success(fallidas ? `Listo: ${hechas - fallidas} obras optimizadas, ${fallidas} con error (puedes volver a intentarlo)` : `Listo: ${hechas} obras optimizadas`)
+    setOptimizando(null)
+  }
+
   async function diagnosticar() {
     const r = []
     const anotar = (t, ok, detalle) => { r.push({ t, ok, detalle }); setDiag([...r]) }
@@ -97,6 +124,15 @@ export default function AdminConfiguracion() {
         ))}
         <button disabled={guardando} className="btn-primario">{guardando ? 'Guardando…' : 'Guardar configuración'}</button>
       </form>
+
+      <section className="mt-5 max-w-3xl rounded-[28px] bg-white p-5 md:p-6">
+        <h2 className="text-lg font-bold">Velocidad de la tienda</h2>
+        <p className="mt-1 text-sm text-gris">Crea una versión liviana de cada foto para las tarjetas y galerías. Las fotos nuevas ya se suben así; esto es para las que ya estaban. Se puede repetir sin problema.</p>
+        <button type="button" onClick={optimizarFotos} disabled={!!optimizando} className="btn-primario mt-3 h-12">
+          {optimizando ? `Optimizando… ${optimizando.hechas} de ${optimizando.total} obras` : 'Optimizar fotos'}
+        </button>
+        {optimizando && <div className="mt-3 h-2 rounded-full bg-crema"><div className="h-2 rounded-full bg-tinta transition-all" style={{ width: `${Math.round(optimizando.hechas / optimizando.total * 100)}%` }} /></div>}
+      </section>
 
       <section className="mt-5 max-w-3xl rounded-[28px] bg-white p-5 md:p-6">
         <h2 className="text-lg font-bold">Diagnóstico</h2>

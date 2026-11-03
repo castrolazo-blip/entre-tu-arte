@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase.js'
 import { precio, medidasTexto, fechaCorta } from '../../../lib/formato.js'
 import { faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
+import { conMiniaturas } from '../adminService.js'
 import { COMISION_SUGERIDA } from '../../marketplace/condiciones.js'
 
 // Lo que se paga al vendedor: el precio de venta menos la comisión acordada para esa obra
@@ -114,7 +115,7 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
     const registro = {
       titulo: f.titulo.trim() || null, descripcion: s.descripcion || null, tecnica: s.tecnica || null,
       alto_cm: s.alto_cm, ancho_cm: s.ancho_cm, piezas: s.piezas || 1, medidas: medidas || null,
-      precio: precioVenta, fotos: s.fotos || [], imagen_url: s.fotos?.[0]?.url || null,
+      precio: precioVenta, fotos: await conMiniaturas(s.fotos || []), imagen_url: s.fotos?.[0]?.url || null,
       artista_nombre: f.credito.trim() || null, origen: 'marketplace', estado: 'disponible', existencias: 1, categorias: [],
     }
     let { data, error } = await supabase.from('fichas').insert(registro).select('id').single()

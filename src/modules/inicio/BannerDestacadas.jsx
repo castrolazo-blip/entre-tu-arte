@@ -21,7 +21,7 @@ export default function BannerDestacadas({ obras }) {
           {obras.slice(0, 8).map(o => (
             <Link key={o.id} to={`/obra/${o.id}`} className="w-44 shrink-0 overflow-hidden rounded-[20px] bg-white/[0.07] md:flex md:w-auto md:items-center md:gap-3 md:p-2.5">
               <span className="relative block h-28 md:h-[70px] md:w-[84px] md:shrink-0 md:overflow-hidden md:rounded-[14px]">
-                {o.foto && <img src={o.foto} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+                {o.foto && <img src={o.fotoMini || o.foto} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />}
               </span>
               <span className="block p-3 md:p-0">
                 <span className="block text-[11px] font-bold text-mostaza">{insignia(o).texto}</span>

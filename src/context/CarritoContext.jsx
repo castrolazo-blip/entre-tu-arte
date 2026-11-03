@@ -26,7 +26,7 @@ export function CarritoProvider({ children }) {
     total: items.reduce((s, x) => s + (Number(x.precio) || 0) * (x.cantidad || 1), 0),
     tiene: id => items.some(x => String(x.id) === String(id)),
     agregar: obra => { if (!items.some(x => String(x.id) === String(obra.id))) registrarEvento('agregar_carrito', '/obra', obra.id, obra.titulo); setItems(l => l.some(x => String(x.id) === String(obra.id)) ? l : [...l, {
-      id: obra.id, titulo: obra.titulo, precio: obra.precio, foto: obra.foto, medidas: obra.medidasTexto || '',
+      id: obra.id, titulo: obra.titulo, precio: obra.precio, foto: obra.fotoMini || obra.foto, medidas: obra.medidasTexto || '',
       artista: obra.artista || '', cantidad: 1,
       // Por pedido (obra vendida que se pinta de nuevo): se puede pedir más de una
       porPedido: obra.estadoEfectivo === 'vendida' && obra.origen !== 'marketplace',

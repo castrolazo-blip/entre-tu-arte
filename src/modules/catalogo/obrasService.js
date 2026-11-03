@@ -69,6 +69,8 @@ export function normalizarObra(f) {
     titulo: f.titulo || 'Obra sin título',
     fotos,
     foto: fotos[0]?.url || f.imagen_url || '',
+    // Versión liviana para tarjetas y galerías (si la foto aún no tiene miniatura, la grande)
+    fotoMini: fotos[0]?.mini || fotos[0]?.url || f.imagen_url || '',
     fotoReal: Array.isArray(f.fotos) && f.fotos.some(x => x && x.url),
     medidasTexto: f.piezas == null && deTexto ? f.medidas : medidasTexto(f),
     artista: f.artistas?.nombre || f.artista_nombre || '',

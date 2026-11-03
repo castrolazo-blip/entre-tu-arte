@@ -4,7 +4,7 @@ import { Camera, ImagePlus, X, ChevronLeft, Check, Sparkles, Download, Copy, Loa
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
-import { subirArchivo, reducirImagen, cargarImagen } from '../adminService.js'
+import { subirArchivo, reducirImagen, cargarImagen, conMiniaturas } from '../adminService.js'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from './iaService.js'
 import { leerBorrador, guardarBorrador, borrarBorrador } from './borrador.js'
 import { encuadresDesdeIA } from './fichaCanvas.js'
@@ -262,8 +262,10 @@ export default function SubirObraIA() {
       const urlAmbiente = campos.ambienteId === 'propia' && fotos.ambiente ? fotos.ambiente.url
         : await subir(lienzos.current.ambientes[campos.ambienteId] || lienzos.current.ambientes.sala, 'obras')
       const urlFicha = await subir(lienzos.current.posts.catalogo, 'fichas')
-      const lista = [{ url: urlObra, rol: 'principal' }, { url: urlAmbiente, rol: 'ambiente' }]
-      if (fotos.detalle) lista.push({ url: fotos.detalle.url, rol: 'detalle' })
+      const base = [{ url: urlObra, rol: 'principal' }, { url: urlAmbiente, rol: 'ambiente' }]
+      if (fotos.detalle) base.push({ url: fotos.detalle.url, rol: 'detalle' })
+      const ambienteLienzo = campos.ambienteId === 'propia' && fotos.ambiente ? fotos.ambiente.img : (lienzos.current.ambientes[campos.ambienteId] || lienzos.current.ambientes.sala)
+      const lista = await conMiniaturas(base, [obraFinal, ambienteLienzo, fotos.detalle?.img])
       const registro = {
         titulo: campos.nombre.trim() || null,
         descripcion: campos.descripcion.trim() || null,

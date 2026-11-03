@@ -4,7 +4,7 @@ import { Images, Sparkles, Check, Loader2, AlertCircle, X, Minus, Plus, Crop } f
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
-import { subirArchivo, reducirImagen, cargarImagen } from '../adminService.js'
+import { subirArchivo, reducirImagen, cargarImagen, conMiniaturas } from '../adminService.js'
 import { iniciarTrabajoIA, esperarTrabajoIA, leerClaveIA, guardarClaveIA } from './iaService.js'
 import { encuadresDesdeIA } from './fichaCanvas.js'
 import { recortarObra, mejorarImagen, aBlob, girarImagen } from './imagenObra.js'
@@ -133,7 +133,9 @@ export default function SubirLote() {
       const extras = urls.slice(1)
       const [urlObra, urlFicha, urlAmbiente] = await Promise.all([subirLienzo(obra, 'obras'), subirLienzo(ficha, 'fichas'), extras.length ? null : subirLienzo(ambiente, 'obras')])
       const roles = ['ambiente', 'detalle']
-      const fotosObra = [{ url: urlObra, rol: 'principal' }, ...(extras.length ? extras.map((u, j) => ({ url: u, rol: roles[j] || 'detalle' })) : [{ url: urlAmbiente, rol: 'ambiente' }])]
+      const fotosObra = await conMiniaturas(
+        [{ url: urlObra, rol: 'principal' }, ...(extras.length ? extras.map((u, j) => ({ url: u, rol: roles[j] || 'detalle' })) : [{ url: urlAmbiente, rol: 'ambiente' }])],
+        [obra, ...(extras.length ? reducidos.slice(1) : [ambiente])])
       const tags = (r.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ')
       const cats = new Set(comun.categoria ? [comun.categoria] : [])
       categorias.forEach(c => { if ((r.espacios || []).some(e => e.toLowerCase() === c.nombre.toLowerCase())) cats.add(c.nombre) })

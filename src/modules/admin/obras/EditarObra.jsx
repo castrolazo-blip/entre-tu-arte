@@ -3,7 +3,7 @@ import { X, ImagePlus, Trash2, Sparkles, Loader2, Crop } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { numero, medidasTexto } from '../../../lib/formato.js'
-import { subirArchivo, reducirImagen, cargarImagen } from '../adminService.js'
+import { subirArchivo, reducirImagen, cargarImagen, crearMiniatura } from '../adminService.js'
 import AjustarFoto from '../../../components/admin/AjustarFoto.jsx'
 import { recortarObra, girarImagen, aBlob } from '../publicar/imagenObra.js'
 import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
@@ -89,10 +89,12 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     let fallidas = 0
     await Promise.all(tareas.map(async t => {
       try {
-        const url = await subirArchivo('obras', await reducirImagen(t.archivo, 1800, 0.82), null, {
+        const reducida = await reducirImagen(t.archivo, 1800, 0.82)
+        const url = await subirArchivo('obras', reducida, null, {
           alReintentar: (n, total) => setEnCurso(l => l.map(x => x.id === t.id ? { ...x, nota: `Reintentando ${n} de ${total}…` } : x)),
         })
-        setFotos(fs => [...fs, { url }].slice(0, 3).map((x, j) => ({ ...x, rol: ROLES[j] || 'detalle' })))
+        const mini = await crearMiniatura(reducida).catch(() => null)
+        setFotos(fs => [...fs, mini ? { url, mini } : { url }].slice(0, 3).map((x, j) => ({ ...x, rol: ROLES[j] || 'detalle' })))
       } catch (err) { fallidas++; setErrorFoto(err.message || String(err)) }
       finally { setEnCurso(l => l.filter(x => x.id !== t.id)); URL.revokeObjectURL(t.vista) }
     }))
@@ -114,7 +116,8 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     try {
       const lienzo = recortarObra(girarImagen(img, giro), caja)
       const url = await subirArchivo('obras', new File([await aBlob(lienzo, 0.9)], 'foto.jpg', { type: 'image/jpeg' }))
-      setFotos(fs => fs.map((x, j) => j === i ? { ...x, url } : x))
+      const mini = await crearMiniatura(lienzo).catch(() => null)
+      setFotos(fs => fs.map((x, j) => j === i ? { ...x, url, mini: mini || undefined } : x))
       toast.success('Foto ajustada. Toca "Guardar cambios" para conservarla.')
     } catch (err) { setErrorFoto(err.message || String(err)) }
     finally { setEnCurso(l => l.filter(x => x.id !== tarea.id)) }
@@ -134,7 +137,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
       existencias: Math.max(0, parseInt(f.existencias, 10) || 0), edicion_total: parseInt(f.edicion_total, 10) || null,
       artista_id: f.artista_id || null, artista_nombre: artista?.nombre || null,
       categorias: f.categorias, publicacion: f.publicacion || null,
-      fotos: fotos.map((x, i) => ({ url: x.url, rol: ROLES[i] || x.rol })),
+      fotos: fotos.map((x, i) => ({ url: x.url, rol: ROLES[i] || x.rol, ...(x.mini ? { mini: x.mini } : {}) })),
     }
     if (f.tipo_obra) Object.assign(cambios, { tipo_obra: f.tipo_obra, inspirada_en: f.tipo_obra === 'interpretacion' ? (f.inspirada_en.trim() || null) : null, certificado: !!f.certificado })
     Object.assign(cambios, camposPiezas(piezas, f.alto, f.ancho))

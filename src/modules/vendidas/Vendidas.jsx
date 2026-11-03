@@ -19,7 +19,7 @@ export default function Vendidas() {
     listarCategorias().then(setCategorias).catch(() => {})
   }, [])
   const lista = useMemo(() => (obras || []).filter(o => !filtro || (o.categorias || []).includes(filtro)), [obras, filtro])
-  const fondo = obras?.[0]?.foto
+  const fondo = obras?.[0]?.fotoMini || obras?.[0]?.foto
 
   return (
     <>
@@ -44,7 +44,7 @@ export default function Vendidas() {
             {lista.map(o => (
               <article key={o.id} className="tarjeta overflow-hidden">
                 <Link to={`/obra/${o.id}`} className="relative block aspect-[4/3] bg-[#ece7df]">
-                  {o.foto && <img src={o.foto} alt={`${o.titulo}, por pedido`} loading="lazy" className="absolute inset-0 h-full w-full object-contain p-3" />}
+                  {o.foto && <img src={o.fotoMini || o.foto} alt={`${o.titulo}, por pedido`} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-contain p-3" />}
                   <span className="absolute left-4 top-4 rounded-full bg-mostaza px-3.5 py-2 text-xs font-bold tracking-wider text-tinta">POR PEDIDO</span>
                 </Link>
                 <div className="p-6">

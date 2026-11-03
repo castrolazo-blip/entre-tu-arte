@@ -13,7 +13,7 @@ export default function Marketplace() {
     document.title = 'Marketplace · Entre tu Arte'
     listarObras({ estado: 'en_venta', origen: 'marketplace' }).then(setObras).catch(() => setObras([]))
   }, [])
-  const fondo = obras?.find(o => o.foto)?.foto
+  const fondo = obras?.find(o => o.foto)?.fotoMini
 
   return (
     <>

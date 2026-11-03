@@ -71,10 +71,10 @@ export default function AdminObras() {
     const [base, ...otras] = elegidas
     if (!window.confirm(`Se unirán ${elegidas.length} obras en "${base.titulo}" (sus textos se conservan). Las otras ${otras.length} se eliminarán y sus fotos pasarán a esta obra. ¿Continuar?`)) return
     setUniendo(true)
-    const urls = [base.fotos[0]?.url, ...otras.map(o => o.fotos[0]?.url), ...base.fotos.slice(1).map(f => f.url)].filter(Boolean)
-    const unicas = [...new Set(urls)].slice(0, 3)
+    const todas = [base.fotos[0], ...otras.map(o => o.fotos[0]), ...base.fotos.slice(1)].filter(f => f?.url)
+    const unicas = todas.filter((f, i) => todas.findIndex(x => x.url === f.url) === i).slice(0, 3)
     const roles = ['principal', 'ambiente', 'detalle']
-    const { error } = await supabase.from('fichas').update({ fotos: unicas.map((url, i) => ({ url, rol: roles[i] })), imagen_url: unicas[0] || null }).eq('id', base.id)
+    const { error } = await supabase.from('fichas').update({ fotos: unicas.map((f, i) => ({ url: f.url, rol: roles[i], ...(f.mini ? { mini: f.mini } : {}) })), imagen_url: unicas[0]?.url || null }).eq('id', base.id)
     if (error) { setUniendo(false); toast.error('No se pudo unir: ' + error.message); return }
     const { error: e2 } = await supabase.from('fichas').delete().in('id', otras.map(o => o.id))
     setUniendo(false)
