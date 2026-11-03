@@ -4,6 +4,7 @@ import { ArrowRight, Camera } from 'lucide-react'
 import { PILARES } from '../nosotros/concepto.js'
 import HeroPortadas from './HeroPortadas.jsx'
 import BannerDestacadas from './BannerDestacadas.jsx'
+import AccesosRapidos from './AccesosRapidos.jsx'
 import { listarPortadasPublicas } from './portadasService.js'
 import { listarObras } from '../catalogo/obrasService.js'
 import TituloSeccion from '../../components/TituloSeccion.jsx'
@@ -40,6 +41,7 @@ export default function Inicio() {
   return (
     <>
       <HeroPortadas portadas={slides} />
+      <AccesosRapidos />
       <BannerDestacadas obras={destacadas} />
 
       {/* Disponibles: galería limpia que se desliza, solo las obras */}
