@@ -16,6 +16,7 @@ const Colecciones    = lazy(() => import('./modules/colecciones/Colecciones.jsx'
 const Catalogo       = lazy(() => import('./modules/catalogo/Catalogo.jsx'))
 const ObraDetalle    = lazy(() => import('./modules/catalogo/ObraDetalle.jsx'))
 const Vendidas       = lazy(() => import('./modules/vendidas/Vendidas.jsx'))
+const Nosotros       = lazy(() => import('./modules/nosotros/Nosotros.jsx'))
 const Artistas       = lazy(() => import('./modules/artistas/Artistas.jsx'))
 const ArtistaDetalle = lazy(() => import('./modules/artistas/ArtistaDetalle.jsx'))
 const Blog           = lazy(() => import('./modules/blog/Blog.jsx'))
@@ -53,6 +54,7 @@ export default function App() {
                   <Route path="obra/:id" element={<ObraDetalle />} />
                   <Route path="vendidas" element={<Vendidas />} />
                   <Route path="por-pedido" element={<Vendidas />} />
+                  <Route path="nosotros" element={<Nosotros />} />
                   <Route path="artistas" element={<Artistas />} />
                   <Route path="artistas/:slug" element={<ArtistaDetalle />} />
                   <Route path="blog" element={<Blog />} />

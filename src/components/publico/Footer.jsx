@@ -12,7 +12,7 @@ export default function Footer() {
       <div className="contenedor flex flex-wrap justify-between gap-12 py-16">
         <div className="max-w-sm">
           <Logo claro />
-          <p className="mt-5 text-[15px] leading-relaxed text-white/70">Arte hecho a mano para hogares, oficinas y proyectos especiales. San Salvador, El Salvador.</p>
+          <p className="mt-5 text-[15px] leading-relaxed text-white/70">Arte decorativo pintado a mano, en el tamaño y el estilo que tu espacio necesita. San Salvador, El Salvador.</p>
           <div className="mt-6 flex gap-2">
             {ig && <a href={ig} target="_blank" rel="noreferrer" aria-label="Instagram" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10"><Instagram size={19} /></a>}
             {cfg.facebook && <a href={cfg.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10"><Facebook size={19} /></a>}
@@ -22,7 +22,7 @@ export default function Footer() {
         </div>
         <div className="flex flex-wrap gap-16 text-[15px] leading-[2.1] text-white/75">
           <div><p className="mb-1.5 font-bold text-white">Comprar</p><Link to="/obras?disp=existencia" className="block">En existencia</Link><Link to="/por-pedido" className="block">Por pedido</Link></div>
-          <div><p className="mb-1.5 font-bold text-white">Conócenos</p><Link to="/artistas" className="block">Artistas</Link><Link to="/blog" className="block">Blog</Link><Link to="/asesoria" className="block">Encargos a medida</Link></div>
+          <div><p className="mb-1.5 font-bold text-white">Conócenos</p><Link to="/nosotros" className="block">Nuestra historia</Link><Link to="/artistas" className="block">Artistas</Link><Link to="/blog" className="block">Blog</Link><Link to="/asesoria" className="block">Encargos a medida</Link></div>
           <div><p className="mb-1.5 font-bold text-white">Ayuda</p><Link to="/asesoria" className="block">Asesoría para tu espacio</Link><Link to="/asesoria?tipo=contacto" className="block">Contacto</Link></div>
         </div>
       </div>

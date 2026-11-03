@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Camera } from 'lucide-react'
+import { PILARES } from '../nosotros/concepto.js'
 import HeroPortadas from './HeroPortadas.jsx'
 import BannerDestacadas from './BannerDestacadas.jsx'
 import { listarPortadasPublicas } from './portadasService.js'
@@ -80,6 +81,27 @@ export default function Inicio() {
         </div>
       </section>
 
+      {/* Nuestra historia: el concepto en pocas palabras */}
+      <section className="contenedor py-16 md:py-24">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-2xl">
+            <p className="text-[13px] font-bold uppercase tracking-[0.16em] text-gris">Nuestra historia</p>
+            <h2 className="mt-3 text-[34px] font-medium leading-[1.02] tracking-[-0.04em] md:text-[54px]">Arte decorativo que <em className="font-bold">se adapta a ti</em></h2>
+            <p className="mt-4 text-[17px] leading-relaxed text-gris md:text-lg">{cfg.nos_resumen}</p>
+          </div>
+          <Link to="/nosotros" className="font-semibold underline decoration-mostaza decoration-[3px] underline-offset-[6px]">Conoce nuestra historia</Link>
+        </div>
+        <div className="mt-8 grid gap-3 md:grid-cols-3">
+          {PILARES.map(({ Icono, titulo, texto }) => (
+            <div key={titulo} className="flex gap-4 rounded-[24px] bg-white p-5 md:block md:p-7">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-mostaza text-tinta"><Icono size={22} /></span>
+              <span className="block md:mt-4"><span className="block text-lg font-semibold md:text-xl">{titulo}</span><span className="mt-1 block text-[15px] text-gris">{texto}</span></span>
+            </div>
+          ))}
+        </div>
+        {cfg.nos_cierre && <p className="mt-8 text-center text-[22px] font-semibold italic tracking-tight md:text-[28px]"><span className="bg-[linear-gradient(transparent_60%,#e8b627_60%)]">{cfg.nos_cierre}</span></p>}
+      </section>
+
       {vendidas.length > 0 && (
         <FondoImagen imagen={vendidas[0]?.foto} velo="claro" difuminado={20} className="py-16 md:py-24">
           <div className="contenedor">
@@ -115,7 +137,7 @@ export default function Inicio() {
           </div>
           <div className="min-w-0 flex-[1.3_1_520px] rounded-[26px] bg-tinta p-7 text-white md:rounded-[34px] md:p-12">
             <p className="text-[13px] font-bold uppercase tracking-[0.14em] text-mostaza">Nuestros artistas</p>
-            <h2 className="mt-3 text-[30px] font-medium leading-[1.02] tracking-[-0.035em] md:text-[44px]">{cfg.nos_titulo}</h2>
+            <h2 className="mt-3 text-[30px] font-medium leading-[1.02] tracking-[-0.035em] md:text-[44px]">{cfg.art_titulo}</h2>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/80 md:text-[17px]">{cfg.nos_texto}</p>
             <Link to="/artistas" className="btn-primario mt-7">Conocer a los artistas <ArrowRight size={20} /></Link>
           </div>

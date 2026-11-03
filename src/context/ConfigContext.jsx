@@ -13,8 +13,18 @@ export const CONFIG_POR_DEFECTO = {
   banner_titulo: 'Obras de la semana',
   portada_segundos: '6',
   pedido_tiempo: '3 a 4 semanas',
-  nos_titulo: 'Detrás de cada obra hay una historia',
-  nos_texto: 'Trabajamos con artistas salvadoreños seleccionados. Cada ficha indica si la obra es original o una interpretación, y si incluye certificado de autenticidad.',
+  // Nuestra historia (mismas claves que la página anterior)
+  nos_titulo: 'Nuestra historia',
+  nos_lema: 'Arte que transforma espacios, conecta emociones.',
+  nos_p1: 'Bienvenido a la galería virtual de Entre tu Arte, un espacio donde cada obra está pensada para transformar ambientes y conectar emocionalmente con quienes los habitan.',
+  nos_p2: 'Aquí encontrarás una selección de piezas disponibles listas para darle identidad a tus espacios: salas que inspiran, habitaciones que transmiten calma y rincones que cuentan una historia.',
+  nos_p3: 'Además, creamos obras personalizadas que se adaptan a tu estilo, tus medidas y la esencia de tu hogar, logrando que cada cuadro encaje de manera natural y armónica en tu ambiente.',
+  nos_p4: 'Somos una galería conformada por artistas exclusivos de nuestro staff, lo que nos permite cuidar cada detalle en el diseño, la técnica y la calidad de cada pieza.',
+  nos_resumen: 'Pintamos a mano cuadros decorativos y los adaptamos a tu estilo, tus medidas y la esencia de tu hogar, para que cada pieza encaje de manera natural y armónica en tu ambiente.',
+  nos_cierre: 'Si no encuentras la pieza ideal, la creamos para vos.',
+  // Tarjeta "Nuestros artistas" del inicio
+  art_titulo: 'Detrás de cada obra hay un artista',
+  nos_texto: 'Arte decorativo pintado a mano por artistas de nuestro equipo, en el tamaño y el estilo que tu espacio necesita.',
 }
 
 export function ConfigProvider({ children }) {

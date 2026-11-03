@@ -16,8 +16,18 @@ const GRUPOS = [
   ['Obras por pedido (las vendidas)', [
     ['pedido_tiempo', 'Tiempo de entrega de una obra por pedido', '3 a 4 semanas'],
   ]],
-  ['Sección "Nuestros artistas"', [
-    ['nos_titulo', 'Título', ''],
+  ['Página "Nuestra historia"', [
+    ['nos_titulo', 'Título', 'Nuestra historia'],
+    ['nos_lema', 'Frase principal', ''],
+    ['nos_resumen', 'Resumen que sale en el inicio', '', true],
+    ['nos_p1', 'Párrafo 1', '', true],
+    ['nos_p2', 'Párrafo 2', '', true],
+    ['nos_p3', 'Párrafo 3', '', true],
+    ['nos_p4', 'Párrafo 4', '', true],
+    ['nos_cierre', 'Frase de cierre', ''],
+  ]],
+  ['Tarjeta "Nuestros artistas" (inicio y página de artistas)', [
+    ['art_titulo', 'Título', ''],
     ['nos_texto', 'Texto', '', true],
   ]],
 ]

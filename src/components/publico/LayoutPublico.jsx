@@ -10,6 +10,7 @@ import { useRestaurarScroll } from '../../lib/scroll.js'
 export const MENU = [
   { to: '/', etiqueta: 'Inicio', fin: true },
   { to: '/obras', etiqueta: 'Obras' },
+  { to: '/nosotros', etiqueta: 'Nosotros' },
   { to: '/artistas', etiqueta: 'Artistas' },
   { to: '/por-pedido', etiqueta: 'Por pedido' },
   { to: '/blog', etiqueta: 'Blog' },
