@@ -9,7 +9,8 @@ function esPasajero(error) {
 }
 const esperar = ms => new Promise(ok => setTimeout(ok, ms))
 
-export async function subirArchivo(carpeta, archivo, nombre, { alReintentar } = {}) {
+// upsert=false para visitantes (solo pueden crear archivos nuevos, no reemplazar)
+export async function subirArchivo(carpeta, archivo, nombre, { alReintentar, upsert = true } = {}) {
   const ext = (nombre || archivo.name || 'foto.jpg').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
   const ruta = `${carpeta}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
   let error = null
@@ -18,7 +19,7 @@ export async function subirArchivo(carpeta, archivo, nombre, { alReintentar } = 
   for (const [n, pausa] of pausas.entries()) {
     if (pausa) { alReintentar?.(n + 1, pausas.length); await esperar(pausa) }
     try {
-      ;({ error } = await supabase.storage.from(BUCKET).upload(ruta, archivo, { contentType: archivo.type || 'image/jpeg', upsert: true }))
+      ;({ error } = await supabase.storage.from(BUCKET).upload(ruta, archivo, { contentType: archivo.type || 'image/jpeg', upsert }))
     } catch (e) { error = e }
     if (!error || !esPasajero(error)) break
   }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom'
-import { LayoutDashboard, Images, Sparkles, Layers, MonitorPlay, Star, Inbox, Palette, Tags, BookOpen, Settings, LogOut, Menu, X, ExternalLink } from 'lucide-react'
+import { LayoutDashboard, Images, Sparkles, Layers, MonitorPlay, Star, Inbox, Palette, Tags, BookOpen, Settings, LogOut, Menu, X, ExternalLink, Store } from 'lucide-react'
 import Logo from '../../components/Logo.jsx'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { supabase } from '../../lib/supabase.js'
@@ -14,6 +14,7 @@ export const MENU_ADMIN = [
   { to: '/admin/portadas', etiqueta: 'Portada dinámica', Icono: MonitorPlay },
   { to: '/admin/destacadas', etiqueta: 'Banner destacadas', Icono: Star },
   { to: '/admin/consultas', etiqueta: 'Consultas', Icono: Inbox, contador: 'consultas' },
+  { to: '/admin/marketplace', etiqueta: 'Marketplace', Icono: Store, contador: 'marketplace' },
   { to: '/admin/artistas', etiqueta: 'Artistas', Icono: Palette },
   { to: '/admin/colecciones', etiqueta: 'Colecciones', Icono: Tags },
   { to: '/admin/blog', etiqueta: 'Blog', Icono: BookOpen },
@@ -23,7 +24,7 @@ export const MENU_ADMIN = [
 export default function LayoutAdmin() {
   const { usuario, salir } = useAuth()
   const [abierto, setAbierto] = useState(false)
-  const [nuevas, setNuevas] = useState(0)
+  const [contadores, setContadores] = useState({ consultas: 0, marketplace: 0 })
   const { pathname } = useLocation()
 
   const [versionNueva, setVersionNueva] = useState(false)
@@ -35,7 +36,9 @@ export default function LayoutAdmin() {
   }, [])
   useEffect(() => {
     supabase.from('consultas').select('id', { count: 'exact', head: true }).eq('estado', 'nueva')
-      .then(({ count }) => setNuevas(count || 0))
+      .then(({ count }) => setContadores(c => ({ ...c, consultas: count || 0 })))
+    supabase.from('marketplace_solicitudes').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente')
+      .then(({ count }) => setContadores(c => ({ ...c, marketplace: count || 0 })))
   }, [pathname])
 
   const menu = (
@@ -44,7 +47,7 @@ export default function LayoutAdmin() {
         <NavLink key={to} to={to} end={fin}
           className={({ isActive }) => `flex h-12 items-center gap-3 rounded-full px-4 text-sm font-semibold transition ${isActive ? 'bg-mostaza text-tinta' : 'text-white hover:bg-white/10'}`}>
           <Icono size={18} /><span className="flex-1">{etiqueta}</span>
-          {contador && nuevas > 0 && <span className="rounded-full bg-white px-2 py-0.5 text-xs text-tinta">{nuevas}</span>}
+          {contador && contadores[contador] > 0 && <span className="rounded-full bg-white px-2 py-0.5 text-xs text-tinta">{contadores[contador]}</span>}
         </NavLink>
       ))}
     </nav>

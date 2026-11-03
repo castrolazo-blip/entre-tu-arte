@@ -33,11 +33,13 @@ export function estadoEfectivo(f) {
 
 // En la tienda una obra vendida se ofrece "Por pedido": el artista la vuelve a pintar.
 export const POR_PEDIDO = 'Por pedido'
-export const esPorPedido = f => estadoEfectivo(f) === 'vendida'
+export const esMarketplace = f => f?.origen === 'marketplace'
+// Solo las obras de Entre tu Arte se pueden volver a pintar por pedido
+export const esPorPedido = f => estadoEfectivo(f) === 'vendida' && !esMarketplace(f)
 
 export function etiquetaExistencias(f) {
   const estado = estadoEfectivo(f)
-  if (estado === 'vendida') return POR_PEDIDO
+  if (estado === 'vendida') return esMarketplace(f) ? 'Vendida' : POR_PEDIDO
   if (estado === 'reservada') return 'Reservada por 48 horas'
   if (f.edicion_total) return `${f.existencias ?? 0} de ${f.edicion_total} disponibles`
   if ((f.existencias ?? 1) <= 1) return 'Pieza única'
@@ -46,7 +48,7 @@ export function etiquetaExistencias(f) {
 
 export function insignia(f) {
   const estado = estadoEfectivo(f)
-  if (estado === 'vendida') return { texto: POR_PEDIDO, clase: 'bg-mostaza text-tinta' }
+  if (estado === 'vendida') return esMarketplace(f) ? { texto: 'Vendida', clase: 'bg-tinta text-white' } : { texto: POR_PEDIDO, clase: 'bg-mostaza text-tinta' }
   if (estado !== 'disponible') return { texto: ESTADOS[estado].etiqueta, clase: ESTADOS[estado].clase }
   if (f.edicion_total && f.existencias === 1) return { texto: 'Última pieza', clase: 'bg-tinta text-white' }
   if (f.edicion_total) return { texto: 'Edición limitada', clase: 'bg-white text-tinta' }
@@ -78,7 +80,9 @@ export function normalizarObra(f) {
 const CAMPOS = '*, artistas(id, nombre, slug)'
 
 // ── Consultas ───────────────────────────────────────────────────────────────
-export async function listarObras({ estado, categoria, artistaId, destacadas, limite, orden = 'recientes', busqueda } = {}) {
+// origen: 'entre_tu_arte' (por defecto: las obras de la marca), 'marketplace' o 'todas'.
+// Se filtra después de leer para que funcione aunque la base aún no tenga la columna "origen".
+export async function listarObras({ estado, categoria, artistaId, destacadas, limite, orden = 'recientes', busqueda, origen = 'entre_tu_arte' } = {}) {
   let q = supabase.from('fichas').select(CAMPOS).neq('estado', 'borrador')
   if (estado === 'vendida') q = q.eq('estado', 'vendida')
   else if (estado === 'en_venta') q = q.in('estado', ['disponible', 'reservada'])
@@ -94,10 +98,12 @@ export async function listarObras({ estado, categoria, artistaId, destacadas, li
   else if (orden === 'precio_desc') q = q.order('precio', { ascending: false, nullsFirst: false })
   else if (estado === 'vendida') q = q.order('vendida_en', { ascending: false, nullsFirst: false })
   q = q.order('created_at', { ascending: false })
-  if (limite) q = q.limit(limite)
+  if (limite && origen === 'todas') q = q.limit(limite)
   const { data, error } = await q
   if (error) throw error
-  return (data || []).map(normalizarObra)
+  const lista = (data || []).map(normalizarObra)
+    .filter(o => origen === 'todas' || (origen === 'marketplace' ? esMarketplace(o) : !esMarketplace(o)))
+  return limite ? lista.slice(0, limite) : lista
 }
 
 export async function obtenerObra(id) {

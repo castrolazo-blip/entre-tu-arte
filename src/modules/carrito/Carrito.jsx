@@ -25,15 +25,16 @@ export default function Carrito() {
   // Revisar que las obras del carrito sigan disponibles
   useEffect(() => {
     if (!items.length) return
-    supabase.from('fichas').select('id, estado, reservada_hasta, precio, existencias').in('id', items.map(x => x.id)).then(({ data }) => {
+    supabase.from('fichas').select('*').in('id', items.map(x => x.id)).then(({ data }) => {
       if (!data) return
-      const fuera = items.filter(x => { const f = data.find(d => String(d.id) === String(x.id)); return !f || f.estado === 'borrador' })
+      // Fuera: borradas, en borrador o del marketplace ya vendidas (esas no se repiten)
+      const fuera = items.filter(x => { const f = data.find(d => String(d.id) === String(x.id)); return !f || f.estado === 'borrador' || (f.origen === 'marketplace' && estadoEfectivo(f) === 'vendida') })
       setNoDisponibles(fuera.map(x => x.id))
       // Actualizar precios por si cambiaron; si se vendió mientras tanto, pasa a "por pedido"
       reemplazar(l => l.map(x => {
         const f = data.find(d => String(d.id) === String(x.id))
         if (!f) return x
-        const porPedido = estadoEfectivo(f) === 'vendida'
+        const porPedido = estadoEfectivo(f) === 'vendida' && f.origen !== 'marketplace'
         return { ...x, precio: f.precio != null ? f.precio : x.precio, porPedido, maximo: porPedido ? 10 : x.maximo }
       }))
     })

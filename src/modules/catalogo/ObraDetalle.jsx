@@ -36,7 +36,7 @@ export default function ObraDetalle() {
       document.title = `${o.titulo} · Entre tu Arte`
       registrarEvento('ver_obra', '/obra', o.id, o.titulo)
       const cat = (o.categorias || [])[0]
-      listarObras({ estado: 'en_venta', categoria: cat, limite: 5 }).then(l => setSimilares(l.filter(x => x.id !== o.id).slice(0, 4))).catch(() => {})
+      listarObras({ estado: 'en_venta', categoria: o.origen === 'marketplace' ? undefined : cat, limite: 5, origen: o.origen === 'marketplace' ? 'marketplace' : 'entre_tu_arte' }).then(l => setSimilares(l.filter(x => x.id !== o.id).slice(0, 4))).catch(() => {})
     }).catch(() => setObra(null))
     return () => { document.title = 'Entre tu Arte · Arte que transforma espacios' }
   }, [id])
@@ -49,7 +49,10 @@ export default function ObraDetalle() {
     </div>
   )
 
-  const vendida = obra.estadoEfectivo === 'vendida'
+  const marketplace = obra.origen === 'marketplace'
+  const vendidaReal = obra.estadoEfectivo === 'vendida'
+  // "vendida" = obra de Entre tu Arte vendida, que se ofrece por pedido
+  const vendida = vendidaReal && !marketplace
   const proporcion = Math.min(1.5, Math.max(0.72, proporciones[(obra.fotos[foto] || obra.fotos[0])?.url] || 1.25))
   const reservada = obra.estadoEfectivo === 'reservada'
   const actual = obra.fotos[foto] || obra.fotos[0]
@@ -65,7 +68,7 @@ export default function ObraDetalle() {
   return (
     <>
       <div className="contenedor pt-24 text-sm text-gris md:pt-32">
-        <Link to="/">Inicio</Link> / <Link to="/obras">Obras</Link> / <span className="font-semibold text-tinta">{obra.titulo}</span>
+        <Link to="/">Inicio</Link> / {marketplace ? <Link to="/marketplace">Marketplace</Link> : <Link to="/obras">Obras</Link>} / <span className="font-semibold text-tinta">{obra.titulo}</span>
       </div>
       <section className="contenedor flex flex-wrap items-start gap-10 pb-20 pt-6 md:gap-14">
         <div className="flex min-w-0 flex-[1.2_1_560px] flex-col gap-4">
@@ -94,15 +97,21 @@ export default function ObraDetalle() {
         <div className="min-w-0 flex-[1_1_400px]">
           <span className="inline-flex items-center gap-2 rounded-full bg-tinta px-3.5 py-2 text-[13px] font-bold text-white">
             <span aria-hidden="true" className="h-2 w-2 rounded-full bg-mostaza" />
-            {vendida ? 'Por pedido' : reservada ? 'Reservada' : `En existencia · ${etiquetaExistencias(obra)}`}
+            {marketplace && vendidaReal ? 'Vendida' : vendida ? 'Por pedido' : reservada ? 'Reservada' : marketplace ? 'Marketplace · pieza única' : `En existencia · ${etiquetaExistencias(obra)}`}
           </span>
           <h1 className="mt-5 text-[48px] font-medium leading-[0.98] tracking-[-0.045em] md:text-[72px]">
             {palabras.join(' ')}{ultima && <> <em className="bg-[linear-gradient(transparent_62%,#e8b627_62%)] font-bold">{ultima}</em></>}
           </h1>
-          {obra.artista && <p className="mt-4 text-gris">por {obra.artistaSlug ? <Link to={`/artistas/${obra.artistaSlug}`} className="font-semibold text-tinta">{obra.artista}</Link> : <span className="font-semibold text-tinta">{obra.artista}</span>}{obra.anio ? ` · ${obra.anio}` : ''}</p>}
+          {marketplace && /colecci[oó]n privada/i.test(obra.artista) ? <p className="mt-4 text-gris">De una <span className="font-semibold text-tinta">colección privada</span></p> : obra.artista && <p className="mt-4 text-gris">por {obra.artistaSlug ? <Link to={`/artistas/${obra.artistaSlug}`} className="font-semibold text-tinta">{obra.artista}</Link> : <span className="font-semibold text-tinta">{obra.artista}</span>}{obra.anio ? ` · ${obra.anio}` : ''}</p>}
           {obra.descripcion && <p className="mt-6 text-[17px] leading-relaxed text-[#3c3a36] md:text-lg">{obra.descripcion}</p>}
 
           <p className="mt-7 text-[44px] font-bold tracking-[-0.03em]">{precio(obra.precio) || 'Precio a consultar'}</p>
+          {marketplace && (
+            <div className="mt-3 flex gap-3 rounded-[22px] bg-white p-4 text-[15px] leading-relaxed ring-1 ring-crema-borde">
+              <ShieldCheck size={20} className="mt-0.5 shrink-0" />
+              <p><strong>Cuadro del Marketplace.</strong> Lo vende {obra.artista && obra.artista !== 'Colección privada' ? 'su artista' : 'un coleccionista'} a través de Entre tu Arte. Tú tratas solo con nosotros: coordinamos el pago y la entrega, y te acompañamos en toda la compra.</p>
+            </div>
+          )}
           {vendida && (
             <div className="mt-3 flex gap-3 rounded-[22px] bg-mostaza-fondo p-4 text-[15px] leading-relaxed ring-1 ring-mostaza">
               <Paintbrush size={20} className="mt-0.5 shrink-0" />
@@ -111,7 +120,9 @@ export default function ObraDetalle() {
           )}
 
           <div className="mt-6 flex flex-col gap-3">
-            {vendida ? (
+            {marketplace && vendidaReal ? (
+              <Link to="/marketplace" className="btn-primario h-16 text-[17px]">Ver otros cuadros del Marketplace <ArrowRight size={20} /></Link>
+            ) : vendida ? (
               <>
                 {carrito.tiene(obra.id) ? (
                   <Link to="/carrito" className="btn-oscuro h-16 text-[17px]"><Check size={20} className="text-mostaza" />En tu carrito · Ver carrito</Link>

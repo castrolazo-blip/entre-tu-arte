@@ -8,7 +8,8 @@ import { normalizarObra, ESTADOS, etiquetaExistencias } from '../../catalogo/obr
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
 import EditarObra from './EditarObra.jsx'
 
-const FILTROS = [['', 'Todas'], ['disponible', 'Disponibles'], ['reservada', 'Reservadas'], ['vendida', 'Vendidas'], ['borrador', 'Borradores']]
+const FILTROS = [['', 'Todas'], ['disponible', 'Disponibles'], ['reservada', 'Reservadas'], ['vendida', 'Vendidas'], ['borrador', 'Borradores'], ['marketplace', 'Marketplace']]
+const cumple = (o, f) => !f || (f === 'marketplace' ? o.origen === 'marketplace' : o.estado === f)
 
 export default function AdminObras() {
   const [obras, setObras] = useState(null)
@@ -27,7 +28,7 @@ export default function AdminObras() {
   useEffect(() => { cargar() }, [])
 
   const lista = useMemo(() => (obras || []).filter(o =>
-    (!filtro || o.estado === filtro) &&
+    cumple(o, filtro) &&
     (!texto || `${o.titulo} ${o.artista} ${o.tecnica || ''}`.toLowerCase().includes(texto.toLowerCase()))
   ), [obras, filtro, texto])
 
@@ -103,7 +104,7 @@ export default function AdminObras() {
         <div className="sin-scroll flex gap-2 overflow-x-auto">
           {FILTROS.map(([v, t]) => (
             <button key={v} onClick={() => setFiltro(v)} className={`chip ${filtro === v ? 'chip-on' : 'chip-off'}`}>
-              {t}{obras && <span className="ml-1.5 opacity-60">{v ? obras.filter(o => o.estado === v).length : obras.length}</span>}
+              {t}{obras && <span className="ml-1.5 opacity-60">{obras.filter(o => cumple(o, v)).length}</span>}
             </button>
           ))}
         </div>
@@ -123,7 +124,7 @@ export default function AdminObras() {
                 {seleccion && <CasillaSeleccion n={seleccion.indexOf(o.id)} />}
                 {o.foto ? <img src={o.foto} alt="" className="h-20 w-20 shrink-0 rounded-2xl bg-crema object-cover" /> : <span className="h-20 w-20 shrink-0 rounded-2xl bg-crema" />}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold">{o.titulo}</p>
+                  <p className="truncate font-bold">{o.titulo}{o.origen === 'marketplace' && <span className="ml-1.5 rounded-full bg-mostaza px-2 py-0.5 align-middle text-[10px] font-bold">Marketplace</span>}</p>
                   <p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos'}</p>
                   <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Original${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p>
                   <p className="mt-1 text-sm"><span className="font-bold">{precio(o.precio) || 'Sin precio'}</span><span className="text-gris"> · {etiquetaExistencias(o)}</span></p>
@@ -159,7 +160,7 @@ export default function AdminObras() {
                       <div className={`flex items-center gap-3.5 ${seleccion ? 'cursor-pointer' : ''}`} onClick={seleccion ? () => marcar(o.id) : undefined}>
                         {seleccion && <CasillaSeleccion n={seleccion.indexOf(o.id)} />}
                         {o.foto ? <img src={o.foto} alt="" className="h-12 w-16 shrink-0 rounded-xl object-cover" /> : <span className="h-12 w-16 shrink-0 rounded-xl bg-crema" />}
-                        <div className="min-w-0"><p className="truncate font-semibold">{o.titulo}</p><p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos (obra del sitio anterior)'}</p>
+                        <div className="min-w-0"><p className="truncate font-semibold">{o.titulo}{o.origen === 'marketplace' && <span className="ml-1.5 rounded-full bg-mostaza px-2 py-0.5 align-middle text-[10px] font-bold">Marketplace</span>}</p><p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos (obra del sitio anterior)'}</p>
                           <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Original${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p></div>
                       </div>
                     </td>

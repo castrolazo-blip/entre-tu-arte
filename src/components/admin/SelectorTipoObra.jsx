@@ -50,6 +50,6 @@ export function sinCamposTipo(datos) {
 export function mensajeColumnasFaltantes(error) {
   const m = String(error?.message || error || '')
   if (/tipo_obra|inspirada_en|certificado|piezas/.test(m) && /column|schema cache/i.test(m))
-    return 'Falta actualizar la base de datos: ejecuta docs/ACTUALIZAR_TIPO_OBRA.sql en Supabase › SQL Editor.'
+    return 'Falta actualizar la base de datos: ejecuta docs/ACTUALIZAR_BASE.sql en Supabase › SQL Editor.'
   return m
 }

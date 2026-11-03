@@ -282,7 +282,7 @@ export default function SubirObraIA() {
       let { data, error } = await supabase.from('fichas').insert(registro).select('id').single()
       if (error && faltanColumnasTipo(error)) {
         ({ data, error } = await supabase.from('fichas').insert(sinCamposTipo(registro)).select('id').single())
-        if (!error) toast('Obra guardada. El tipo (original/interpretación) y el número de piezas quedarán pendientes hasta ejecutar docs/ACTUALIZAR_TIPO_OBRA.sql en Supabase.', { icon: '⚠️', duration: 9000 })
+        if (!error) toast('Obra guardada. El tipo (original/interpretación) y el número de piezas quedarán pendientes hasta ejecutar docs/ACTUALIZAR_BASE.sql en Supabase.', { icon: '⚠️', duration: 9000 })
       }
       if (error) throw error
       if (campos.usarPortada && estado === 'disponible') {

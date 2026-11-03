@@ -13,6 +13,7 @@ export const MENU = [
   { to: '/nosotros', etiqueta: 'Nosotros' },
   { to: '/artistas', etiqueta: 'Artistas' },
   { to: '/por-pedido', etiqueta: 'Por pedido' },
+  { to: '/marketplace', etiqueta: 'Marketplace' },
   { to: '/blog', etiqueta: 'Blog' },
   { to: '/asesoria', etiqueta: 'Asesoría' },
 ]

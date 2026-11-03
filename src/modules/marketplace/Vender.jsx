@@ -1,0 +1,135 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ImagePlus, Plus, Trash2, Check, Loader2, Palette, Frame } from 'lucide-react'
+import toast from 'react-hot-toast'
+import BotonArchivo from '../../components/admin/BotonArchivo.jsx'
+import { enviarSolicitudes } from './marketplaceService.js'
+
+const cuadroVacio = () => ({ id: Math.random().toString(36).slice(2), archivos: [], vistas: [], titulo: '', tecnica: '', alto: '', ancho: '', precio: '', descripcion: '', notas: '' })
+
+// Formulario para artistas y personas que quieren vender sus cuadros a través de Entre tu Arte.
+// Los datos del vendedor nunca se publican; el comprador solo trata con la página.
+export default function Vender() {
+  const [vendedor, setVendedor] = useState({ tipo: 'artista', nombre: '', telefono: '', email: '' })
+  const [cuadros, setCuadros] = useState([cuadroVacio()])
+  const [acepto, setAcepto] = useState(false)
+  const [enviando, setEnviando] = useState(0)   // 0 = no; n = cuadro que se está enviando
+  const [listo, setListo] = useState(false)
+  useEffect(() => { document.title = 'Vende tus cuadros · Entre tu Arte' }, [])
+
+  const v = k => e => setVendedor(x => ({ ...x, [k]: e.target.value }))
+  const cambiar = (id, k, valor) => setCuadros(l => l.map(c => c.id === id ? { ...c, [k]: valor } : c))
+  function agregarFotos(id, archivos) {
+    setCuadros(l => l.map(c => {
+      if (c.id !== id) return c
+      const nuevos = archivos.slice(0, 3 - c.archivos.length)
+      return { ...c, archivos: [...c.archivos, ...nuevos], vistas: [...c.vistas, ...nuevos.map(a => URL.createObjectURL(a))] }
+    }))
+  }
+  const quitarFoto = (id, i) => setCuadros(l => l.map(c => c.id === id ? { ...c, archivos: c.archivos.filter((_, j) => j !== i), vistas: c.vistas.filter((_, j) => j !== i) } : c))
+
+  async function enviar(e) {
+    e.preventDefault()
+    if (!vendedor.nombre.trim()) { toast.error('Escribe tu nombre'); return }
+    if (!vendedor.telefono.trim()) { toast.error('Déjanos tu WhatsApp para contactarte'); return }
+    const sinFoto = cuadros.findIndex(c => !c.archivos.length)
+    if (sinFoto >= 0) { toast.error(`Agrega al menos una foto del cuadro ${sinFoto + 1}`); return }
+    if (!acepto) { toast.error('Marca que estás de acuerdo con cómo funciona la venta'); return }
+    setEnviando(1)
+    try {
+      await enviarSolicitudes(vendedor, cuadros, n => setEnviando(Math.min(n + 1, cuadros.length)))
+      setListo(true)
+      window.scrollTo(0, 0)
+    } catch (err) {
+      toast.error(err.message || 'No se pudo enviar. Inténtalo otra vez.')
+    } finally { setEnviando(0) }
+  }
+
+  if (listo) return (
+    <div className="contenedor flex min-h-[70vh] items-center justify-center pb-28 pt-28">
+      <div className="max-w-md rounded-[30px] bg-white p-8 text-center">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-mostaza"><Check size={32} /></span>
+        <h1 className="mt-6 text-3xl font-semibold tracking-tight">¡Recibimos tus cuadros!</h1>
+        <p className="mt-3 text-gris">Gracias, {vendedor.nombre.split(' ')[0]}. Vamos a revisarlos y te escribiremos por WhatsApp para acordar el precio de venta antes de publicarlos.</p>
+        <button onClick={() => { setCuadros([cuadroVacio()]); setListo(false); setAcepto(false) }} className="btn-primario mt-6 w-full">Enviar más cuadros</button>
+        <Link to="/marketplace" className="mt-4 inline-block text-sm font-semibold underline">Ver el Marketplace</Link>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="contenedor pb-28 pt-28 md:pt-36">
+      <p className="text-[13px] font-bold uppercase tracking-[0.16em] text-gris">Marketplace</p>
+      <h1 className="mt-2 text-[42px] font-medium leading-none tracking-[-0.045em] md:text-[64px]">Vende tus <em className="font-bold text-mostaza">cuadros</em></h1>
+      <span aria-hidden="true" className="acento mb-6 mt-4" />
+      <ol className="mb-8 grid max-w-3xl gap-2 text-[15px] md:grid-cols-3">
+        {['Nos envías fotos, medidas y el precio que deseas recibir', 'Revisamos el cuadro y acordamos contigo el precio de venta', 'Lo publicamos, atendemos a los compradores y te pagamos al venderse'].map((t, n) => (
+          <li key={t} className="flex gap-3 rounded-[20px] bg-white p-4"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-tinta text-xs font-bold text-white">{n + 1}</span>{t}</li>
+        ))}
+      </ol>
+
+      <form onSubmit={enviar} className="max-w-3xl space-y-5">
+        <section className="space-y-4 rounded-[26px] bg-white p-5 md:p-6">
+          <h2 className="text-lg font-bold">Tus datos</h2>
+          <div role="radiogroup" aria-label="Quién vende" className="grid grid-cols-2 gap-2">
+            {[['artista', 'Soy artista', Palette], ['coleccionista', 'Tengo cuadros para vender', Frame]].map(([val, t, Icono]) => (
+              <button key={val} type="button" role="radio" aria-checked={vendedor.tipo === val} onClick={() => setVendedor(x => ({ ...x, tipo: val }))}
+                className={`flex min-h-[56px] items-center justify-center gap-2 rounded-2xl px-3 text-center text-sm font-bold ring-1 ${vendedor.tipo === val ? 'bg-tinta text-white ring-tinta' : 'bg-crema-clara ring-crema-borde'}`}>
+                <Icono size={18} />{t}
+              </button>
+            ))}
+          </div>
+          <label className="etiqueta">{vendedor.tipo === 'artista' ? 'Tu nombre de artista' : 'Tu nombre'}<input value={vendedor.nombre} onChange={v('nombre')} autoComplete="name" className="campo mt-1.5" /></label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="etiqueta">WhatsApp<input type="tel" value={vendedor.telefono} onChange={v('telefono')} autoComplete="tel" placeholder="7777-7777" className="campo mt-1.5" /></label>
+            <label className="etiqueta">Correo (opcional)<input type="email" value={vendedor.email} onChange={v('email')} autoComplete="email" className="campo mt-1.5" /></label>
+          </div>
+          <p className="text-xs text-gris">Tus datos no se publican. Solo Entre tu Arte los usa para contactarte.</p>
+        </section>
+
+        {cuadros.map((c, n) => (
+          <section key={c.id} className="space-y-4 rounded-[26px] bg-white p-5 md:p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold">Cuadro {n + 1}</h2>
+              {cuadros.length > 1 && <button type="button" onClick={() => setCuadros(l => l.filter(x => x.id !== c.id))} aria-label={`Quitar cuadro ${n + 1}`} className="flex h-10 w-10 items-center justify-center rounded-full text-red-700"><Trash2 size={18} /></button>}
+            </div>
+            <div>
+              <p className="etiqueta mb-2">Fotos (1 a 3): de frente, con buena luz</p>
+              <div className="grid grid-cols-3 gap-3">
+                {c.vistas.map((src, i) => (
+                  <div key={src} className="relative aspect-square overflow-hidden rounded-2xl">
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    <button type="button" onClick={() => quitarFoto(c.id, i)} aria-label="Quitar foto" className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/95"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                {c.archivos.length < 3 && (
+                  <BotonArchivo multiple onArchivos={a => agregarFotos(c.id, a)} className="flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-crema-borde text-xs font-semibold text-gris">
+                    <ImagePlus size={22} />Agregar fotos
+                  </BotonArchivo>
+                )}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="etiqueta">Nombre del cuadro (opcional)<input value={c.titulo} onChange={e => cambiar(c.id, 'titulo', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta">Técnica (opcional)<input value={c.tecnica} onChange={e => cambiar(c.id, 'tecnica', e.target.value)} placeholder="Óleo, acrílico…" className="campo mt-1.5" /></label>
+              <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={c.alto} onChange={e => cambiar(c.id, 'alto', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={c.ancho} onChange={e => cambiar(c.id, 'ancho', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta sm:col-span-2">Precio que deseas recibir (USD)<input inputMode="decimal" value={c.precio} onChange={e => cambiar(c.id, 'precio', e.target.value)} placeholder="Ej. 250" className="campo mt-1.5 text-lg font-bold" /></label>
+              <label className="etiqueta sm:col-span-2">Cuéntanos del cuadro (opcional)<textarea rows={3} value={c.descripcion} onChange={e => cambiar(c.id, 'descripcion', e.target.value)} placeholder="Autor, año, estado, si tiene marco…" className="campo mt-1.5" /></label>
+            </div>
+          </section>
+        ))}
+
+        <button type="button" onClick={() => setCuadros(l => [...l, cuadroVacio()])} className="btn-contorno h-14 w-full"><Plus size={18} />Agregar otro cuadro</button>
+
+        <label className="flex cursor-pointer gap-3 rounded-[22px] bg-white p-4 text-sm leading-relaxed">
+          <input type="checkbox" checked={acepto} onChange={e => setAcepto(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#17181b]" />
+          <span>Entiendo que Entre tu Arte revisa el cuadro, acuerda conmigo el precio de venta y lo vende a través de su página: los compradores tratan solo con Entre tu Arte y mis datos no se publican. Recibiré el pago acordado cuando el cuadro se venda.</span>
+        </label>
+        <button disabled={!!enviando} className="btn-primario h-16 w-full text-[17px]">
+          {enviando ? <><Loader2 size={20} className="animate-spin" />Enviando cuadro {enviando} de {cuadros.length}…</> : `Enviar ${cuadros.length === 1 ? 'mi cuadro' : `mis ${cuadros.length} cuadros`}`}
+        </button>
+      </form>
+    </div>
+  )
+}

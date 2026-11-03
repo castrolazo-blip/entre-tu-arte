@@ -6,6 +6,7 @@ import { insigniaJuego } from '../../lib/piezas.js'
 
 export default function TarjetaObra({ obra, compacta = false }) {
   const tag = insignia(obra)
+  const marketplace = obra.origen === 'marketplace'
   const vendida = obra.estadoEfectivo === 'vendida'
   return (
     <article className="tarjeta overflow-hidden">
@@ -23,7 +24,7 @@ export default function TarjetaObra({ obra, compacta = false }) {
         <div className="mt-4 flex items-center justify-between gap-3">
           <div>
             <span className="text-[24px] font-bold tracking-tight md:text-[26px]">{precio(obra.precio) || 'Consultar precio'}</span>
-            <span className="block text-[13px] text-gris">{vendida ? 'Por pedido · se pinta para ti' : etiquetaExistencias(obra)}</span>
+            <span className="block text-[13px] text-gris">{marketplace ? (vendida ? 'Vendida' : 'Marketplace · pieza única') : vendida ? 'Por pedido · se pinta para ti' : etiquetaExistencias(obra)}</span>
           </div>
           <Link to={`/obra/${obra.id}`} aria-label={`Ver ${obra.titulo}`} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-tinta text-white">
             <ArrowRight size={20} />

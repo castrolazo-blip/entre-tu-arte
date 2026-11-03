@@ -144,7 +144,7 @@ export default function EditarObra({ obra, onCerrar, onGuardado }) {
     let { error } = await supabase.from('fichas').update(cambios).eq('id', obra.id)
     if (error && faltanColumnasTipo(error)) {
       ({ error } = await supabase.from('fichas').update(sinCamposTipo(cambios)).eq('id', obra.id))
-      if (!error) toast('Se guardó la obra, pero el tipo (original/interpretación) y el número de piezas quedarán pendientes hasta ejecutar docs/ACTUALIZAR_TIPO_OBRA.sql en Supabase.', { icon: '⚠️', duration: 9000 })
+      if (!error) toast('Se guardó la obra, pero el tipo (original/interpretación) y el número de piezas quedarán pendientes hasta ejecutar docs/ACTUALIZAR_BASE.sql en Supabase.', { icon: '⚠️', duration: 9000 })
     }
     setGuardando(false)
     if (error) { toast.error('No se pudo guardar: ' + mensajeColumnasFaltantes(error), { duration: 8000 }); return }

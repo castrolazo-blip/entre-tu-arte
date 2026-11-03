@@ -28,8 +28,8 @@ export function CarritoProvider({ children }) {
       id: obra.id, titulo: obra.titulo, precio: obra.precio, foto: obra.foto, medidas: obra.medidasTexto || '',
       artista: obra.artista || '', cantidad: 1,
       // Por pedido (obra vendida que se pinta de nuevo): se puede pedir más de una
-      porPedido: obra.estadoEfectivo === 'vendida',
-      maximo: obra.estadoEfectivo === 'vendida' ? 10 : obra.edicion_total ? Math.max(1, obra.existencias || 1) : 1,
+      porPedido: obra.estadoEfectivo === 'vendida' && obra.origen !== 'marketplace',
+      maximo: obra.estadoEfectivo === 'vendida' && obra.origen !== 'marketplace' ? 10 : obra.edicion_total ? Math.max(1, obra.existencias || 1) : 1,
     }]),
     cambiarCantidad: (id, n) => setItems(l => l.map(x => String(x.id) === String(id) ? { ...x, cantidad: Math.min(x.maximo || 1, Math.max(1, n)) } : x)),
     quitar: id => setItems(l => l.filter(x => String(x.id) !== String(id))),
