@@ -37,6 +37,7 @@ export default function Asesoria() {
   async function enviar(e) {
     e.preventDefault()
     if (!form.telefono.trim()) { toast.error('Déjanos tu WhatsApp o teléfono para responderte'); return }
+    if (!form.mensaje.trim()) { toast.error(soloContacto ? 'Escribe tu mensaje' : 'Cuéntanos qué buscas para preparar tu propuesta'); return }
     setEnviando(true)
     try {
       let fotoUrl = null
@@ -128,7 +129,13 @@ export default function Asesoria() {
               )}
               <label className="etiqueta">Tu nombre<input required value={form.nombre} onChange={cambiar('nombre')} autoComplete="name" className="campo mt-1.5" /></label>
               <label className="etiqueta">WhatsApp o teléfono<input type="tel" required value={form.telefono} onChange={cambiar('telefono')} autoComplete="tel" placeholder="7777-7777" className="campo mt-1.5" /></label>
-              <label className="etiqueta">{soloContacto ? 'Mensaje' : 'Cuéntanos más (opcional)'}<textarea rows={3} required={soloContacto} value={form.mensaje} onChange={cambiar('mensaje')} className="campo mt-1.5" /></label>
+              <label className="etiqueta">{soloContacto ? 'Mensaje' : 'Cuéntanos qué buscas'}
+                <textarea rows={soloContacto ? 3 : 5} required value={form.mensaje} onChange={cambiar('mensaje')} className="campo mt-1.5 placeholder:text-[#a8a29a]"
+                  placeholder={soloContacto
+                    ? 'Ej.: Hola, quisiera saber si hacen cuadros a la medida y cuánto tardan en entregarlos.'
+                    : 'Ej.: Busco un cuadro abstracto para la sala, sobre un sofá gris de 2 metros. Me gustan los tonos tierra y dorados, y quiero que el espacio se sienta cálido y elegante. Presupuesto aproximado: $300.'} />
+                {!soloContacto && <span className="mt-1.5 block text-xs font-normal text-gris">Mientras más nos cuentes (dónde va, colores, lo que quieres transmitir y tu presupuesto), mejor será la propuesta.</span>}
+              </label>
               <p className="flex gap-2.5 text-[13px] text-gris"><Lock size={16} className="mt-0.5 shrink-0" />Tus datos y tu foto solo se usan para responderte.</p>
               <button disabled={enviando} className="btn-primario w-full">{enviando ? 'Enviando…' : soloContacto ? 'Enviar mensaje' : 'Pedir mi asesoría'}</button>
             </form>
