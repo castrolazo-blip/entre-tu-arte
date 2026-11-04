@@ -15,6 +15,7 @@ const GRUPOS = [
   ]],
   ['Obras por pedido (las vendidas)', [
     ['pedido_tiempo', 'Tiempo de entrega de una obra por pedido', '3 a 4 semanas'],
+    ['pedido_anticipo', 'Anticipo para obras por pedido y encargos (%)', '25'],
   ]],
   ['Página "Nuestra historia"', [
     ['nos_titulo', 'Título', 'Nuestra historia'],

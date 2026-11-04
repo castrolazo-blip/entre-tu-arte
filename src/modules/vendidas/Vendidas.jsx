@@ -34,6 +34,20 @@ export default function Vendidas() {
         </div>
       </section>
 
+      <section className="contenedor pt-10 md:pt-14">
+        <div className="flex flex-wrap items-center justify-between gap-8 rounded-[34px] bg-mostaza p-8 md:p-12">
+          <div className="max-w-xl">
+            <h2 className="text-[34px] font-semibold leading-[1.02] tracking-[-0.04em] md:text-[44px]">Una obra hecha solo para ti</h2>
+            <ol className="mt-5 space-y-2.5 text-[17px]">
+              {['Nos dices medidas, colores y la obra que te inspira', 'El artista te presenta un boceto a través de nosotros', `Anticipo del ${cfg.pedido_anticipo} % y entrega en ${cfg.pedido_tiempo}`].map((t, n) => (
+                <li key={t} className="flex items-center gap-3.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-tinta text-sm font-bold text-white">{n + 1}</span>{t}</li>
+              ))}
+            </ol>
+          </div>
+          <button onClick={() => setEncargo({ id: null, titulo: 'Encargo a medida' })} className="btn-oscuro h-16">Solicitar un encargo <ArrowRight size={20} /></button>
+        </div>
+      </section>
+
       <section className="contenedor py-12 md:py-16">
         <div className="sin-scroll -mx-5 mb-9 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
           <button onClick={() => setFiltro('')} className={`chip ${!filtro ? 'chip-on' : 'chip-off'}`}>Todas</button>
@@ -60,19 +74,6 @@ export default function Vendidas() {
         )}
       </section>
 
-      <section className="contenedor pb-24">
-        <div className="flex flex-wrap items-center justify-between gap-8 rounded-[34px] bg-mostaza p-8 md:p-12">
-          <div className="max-w-xl">
-            <h2 className="text-[34px] font-semibold leading-[1.02] tracking-[-0.04em] md:text-[44px]">Una obra hecha solo para ti</h2>
-            <ol className="mt-5 space-y-2.5 text-[17px]">
-              {['Nos dices medidas, colores y la obra que te inspira', 'El artista te presenta un boceto a través de nosotros', `Anticipo del 50 % y entrega en ${cfg.pedido_tiempo}`].map((t, n) => (
-                <li key={t} className="flex items-center gap-3.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-tinta text-sm font-bold text-white">{n + 1}</span>{t}</li>
-              ))}
-            </ol>
-          </div>
-          <button onClick={() => setEncargo({ id: null, titulo: 'Encargo a medida' })} className="btn-oscuro h-16">Solicitar un encargo <ArrowRight size={20} /></button>
-        </div>
-      </section>
       {encargo && <FormularioConsulta tipo="encargo" obra={encargo.id ? encargo : null} onCerrar={() => setEncargo(null)} />}
     </>
   )
