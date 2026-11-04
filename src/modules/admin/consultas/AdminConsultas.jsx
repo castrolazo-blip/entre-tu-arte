@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Mail, Phone, ExternalLink, Sparkles, Copy, Download } from 'lucide-react'
+import { Mail, Phone, ExternalLink, Sparkles, Copy, Download, MessageCircle, ShieldCheck, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { fechaCorta } from '../../../lib/formato.js'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
 import { promptMontaje, FORMATOS, SEGUIMIENTO } from './promptMontaje.js'
+import { mensajesWhatsApp, enlaceWhatsAppCliente } from './mensajesWhatsApp.js'
 
 const TIPOS = { compra: 'Compra', reserva: 'Reserva', encargo: 'Encargo', asesoria: 'Asesoría', contacto: 'Contacto' }
 const ESTADOS = [['nueva', 'Nueva'], ['en_proceso', 'En proceso'], ['cerrada', 'Cerrada']]
@@ -63,7 +64,7 @@ export default function AdminConsultas() {
                     <div className="flex flex-wrap gap-2">
                       {c.email && <a href={`mailto:${c.email}?subject=${encodeURIComponent('Entre tu Arte · ' + (c.ficha_titulo || 'Tu consulta'))}`} className="btn-contorno btn-chico"><Mail size={16} />{c.email}</a>}
                       {c.telefono && <a href={`tel:${c.telefono}`} className="btn-contorno btn-chico"><Phone size={16} />{c.telefono}</a>}
-                      {wa && <a href={wa} target="_blank" rel="noreferrer" className="btn-contorno btn-chico">WhatsApp</a>}
+                      {wa && <BotonWhatsApp consulta={c} />}
                       {c.ficha_id && <Link to={`/obra/${c.ficha_id}`} target="_blank" className="btn-contorno btn-chico"><ExternalLink size={16} />Ver obra</Link>}
                     </div>
                     {c.mensaje && <p className="mt-4 whitespace-pre-line rounded-2xl bg-crema-clara p-4 text-[15px]">{c.mensaje}</p>}
@@ -149,5 +150,41 @@ function PromptMontaje({ consulta }) {
         ))}
       </div>
     </div>
+  )
+}
+
+// WhatsApp con mensajes listos: se elige uno y se abre el chat del cliente con el texto escrito
+function BotonWhatsApp({ consulta }) {
+  const [abierto, setAbierto] = useState(false)
+  const opciones = mensajesWhatsApp(consulta)
+  const abrir = texto => { window.open(enlaceWhatsAppCliente(consulta.telefono, texto), '_blank'); setAbierto(false) }
+  return (
+    <>
+      <button type="button" onClick={() => setAbierto(true)} className="flex h-10 items-center gap-1.5 rounded-full bg-[#25D366] px-4 text-sm font-bold text-white"><MessageCircle size={16} />WhatsApp</button>
+      {abierto && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/45 md:items-center" onClick={() => setAbierto(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Mensaje de WhatsApp" onClick={e => e.stopPropagation()}
+            className="max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white p-5 md:rounded-[28px]">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">Escribir a {consulta.nombre?.split(' ')[0] || 'el cliente'}</h3>
+              <button type="button" onClick={() => setAbierto(false)} aria-label="Cerrar" className="flex h-10 w-10 items-center justify-center rounded-full bg-crema"><X size={18} /></button>
+            </div>
+            <p className="mt-1 text-sm text-gris">Elige un mensaje. Se abre WhatsApp con el texto listo; puedes editarlo antes de enviar.</p>
+            <ul className="mt-4 space-y-2.5">
+              {opciones.map(o => (
+                <li key={o.id}>
+                  <button type="button" onClick={() => abrir(o.texto)} className="w-full rounded-2xl bg-crema-clara p-4 text-left ring-1 ring-crema-borde hover:ring-tinta">
+                    <span className="flex items-center gap-2 font-bold">{o.clausula && <ShieldCheck size={16} className="text-tinta" />}{o.titulo}</span>
+                    <span className="mt-1.5 line-clamp-4 block whitespace-pre-line text-[13px] leading-relaxed text-gris">{o.texto}</span>
+                    {o.clausula && <span className="mt-2 inline-block rounded-full bg-mostaza px-2.5 py-0.5 text-[11px] font-bold">Incluye cláusula de propiedad de la propuesta</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" onClick={() => abrir('')} className="mt-3 w-full text-sm font-semibold underline">Abrir el chat sin mensaje</button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
