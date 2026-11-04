@@ -19,7 +19,7 @@ export default function Asesoria() {
   const [obra, setObra] = useState(null)
   const [foto, setFoto] = useState(null)
   const [vista, setVista] = useState('')
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', espacio: '', formato: '', ancho: '', alto: '', estilo: '', colores: '', mensaje: '' })
+  const [form, setForm] = useState({ nombre: '', telefono: '', espacio: '', formato: '', ancho: '', alto: '', estilo: '', colores: '', mensaje: '' })
   const [enviando, setEnviando] = useState(false)
   const [listo, setListo] = useState(false)
 
@@ -36,7 +36,7 @@ export default function Asesoria() {
 
   async function enviar(e) {
     e.preventDefault()
-    if (!form.email.trim() && !form.telefono.trim()) { toast.error('Déjanos un correo o un teléfono para responderte'); return }
+    if (!form.telefono.trim()) { toast.error('Déjanos tu WhatsApp o teléfono para responderte'); return }
     setEnviando(true)
     try {
       let fotoUrl = null
@@ -50,7 +50,7 @@ export default function Asesoria() {
       await enviarConsulta({
         tipo: soloContacto ? 'contacto' : 'asesoria',
         ficha_id: obra ? String(obra.id) : null, ficha_titulo: obra?.titulo || null,
-        nombre: form.nombre.trim(), email: form.email.trim() || null, telefono: form.telefono.trim() || null,
+        nombre: form.nombre.trim(), email: null, telefono: form.telefono.trim() || null,
         mensaje: form.mensaje.trim() || null,
         datos: soloContacto ? {} : { foto_url: fotoUrl, espacio: form.espacio || null, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, estilo: form.estilo || null, colores: form.colores.trim() || null, formato: form.formato || null },
       })
@@ -127,10 +127,7 @@ export default function Asesoria() {
                 </div>
               )}
               <label className="etiqueta">Tu nombre<input required value={form.nombre} onChange={cambiar('nombre')} autoComplete="name" className="campo mt-1.5" /></label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="etiqueta">Correo<input type="email" value={form.email} onChange={cambiar('email')} autoComplete="email" className="campo mt-1.5" /></label>
-                <label className="etiqueta">Teléfono<input type="tel" value={form.telefono} onChange={cambiar('telefono')} autoComplete="tel" className="campo mt-1.5" /></label>
-              </div>
+              <label className="etiqueta">WhatsApp o teléfono<input type="tel" required value={form.telefono} onChange={cambiar('telefono')} autoComplete="tel" placeholder="7777-7777" className="campo mt-1.5" /></label>
               <label className="etiqueta">{soloContacto ? 'Mensaje' : 'Cuéntanos más (opcional)'}<textarea rows={3} required={soloContacto} value={form.mensaje} onChange={cambiar('mensaje')} className="campo mt-1.5" /></label>
               <p className="flex gap-2.5 text-[13px] text-gris"><Lock size={16} className="mt-0.5 shrink-0" />Tus datos y tu foto solo se usan para responderte.</p>
               <button disabled={enviando} className="btn-primario w-full">{enviando ? 'Enviando…' : soloContacto ? 'Enviar mensaje' : 'Pedir mi asesoría'}</button>
