@@ -18,7 +18,7 @@ export default function Resumen() {
       contar(base().eq('estado', 'vendida')),
       contar(base().eq('estado', 'borrador')),
       contar(supabase.from('consultas').select('id', { count: 'exact', head: true }).eq('estado', 'nueva')),
-      contar(supabase.from('analytics').select('*', { count: 'exact', head: true }).eq('evento', 'visita').gte('created_at', hace30)),
+      contar(supabase.from('analytics').select('*', { count: 'exact', head: true }).in('evento', ['visita', 'visita_sitio']).gte('created_at', hace30)),
       supabase.from('consultas').select('*').order('created_at', { ascending: false }).limit(5).then(r => r.data || []),
       supabase.from('analytics').select('referencia_nombre').eq('evento', 'ver_obra').gte('created_at', hace30).limit(2000).then(r => r.data || []),
     ]).then(([disponibles, reservadas, vendidas, borradores, nuevas, visitas, consultas, vistas]) => {
