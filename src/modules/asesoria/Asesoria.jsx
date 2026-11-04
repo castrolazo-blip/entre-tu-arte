@@ -19,7 +19,7 @@ export default function Asesoria() {
   const [obra, setObra] = useState(null)
   const [foto, setFoto] = useState(null)
   const [vista, setVista] = useState('')
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', espacio: '', ancho: '', alto: '', estilo: '', colores: '', mensaje: '' })
+  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', espacio: '', formato: '', ancho: '', alto: '', estilo: '', colores: '', mensaje: '' })
   const [enviando, setEnviando] = useState(false)
   const [listo, setListo] = useState(false)
 
@@ -52,7 +52,7 @@ export default function Asesoria() {
         ficha_id: obra ? String(obra.id) : null, ficha_titulo: obra?.titulo || null,
         nombre: form.nombre.trim(), email: form.email.trim() || null, telefono: form.telefono.trim() || null,
         mensaje: form.mensaje.trim() || null,
-        datos: soloContacto ? {} : { foto_url: fotoUrl, espacio: form.espacio || null, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, estilo: form.estilo || null, colores: form.colores.trim() || null },
+        datos: soloContacto ? {} : { foto_url: fotoUrl, espacio: form.espacio || null, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, estilo: form.estilo || null, colores: form.colores.trim() || null, formato: form.formato || null },
       })
       registrarEvento(soloContacto ? 'contacto' : 'asesoria', '/asesoria', obra?.id, obra?.titulo)
       setListo(true)
@@ -117,6 +117,11 @@ export default function Asesoria() {
                   <label className="etiqueta">Alto de la pared (cm)<input inputMode="decimal" value={form.alto} onChange={cambiar('alto')} className="campo mt-1.5" /></label>
                   <label className="etiqueta col-span-2">Estilo del espacio
                     <select value={form.estilo} onChange={cambiar('estilo')} className="campo mt-1.5"><option value="">Elegir…</option>{ESTILOS.map(s => <option key={s}>{s}</option>)}</select>
+                  </label>
+                  <label className="etiqueta col-span-2">¿Qué formato te gustaría?
+                    <select value={form.formato} onChange={cambiar('formato')} className="campo mt-1.5">
+                      <option value="">Que me recomienden</option><option value="una">Una sola pieza</option><option value="diptico">Díptico (2 piezas)</option><option value="triptico">Tríptico (3 piezas)</option>
+                    </select>
                   </label>
                   <label className="etiqueta col-span-2">Colores que te gustan (opcional)<input value={form.colores} onChange={cambiar('colores')} placeholder="Ej. tonos tierra, beige, verde oliva" className="campo mt-1.5" /></label>
                 </div>

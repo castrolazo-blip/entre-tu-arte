@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { fechaCorta } from '../../../lib/formato.js'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
-import { promptMontaje } from './promptMontaje.js'
+import { promptMontaje, FORMATOS, SEGUIMIENTO } from './promptMontaje.js'
 
 const TIPOS = { compra: 'Compra', reserva: 'Reserva', encargo: 'Encargo', asesoria: 'Asesoría', contacto: 'Contacto' }
 const ESTADOS = [['nueva', 'Nueva'], ['en_proceso', 'En proceso'], ['cerrada', 'Cerrada']]
@@ -89,6 +89,7 @@ export default function AdminConsultas() {
                           {c.datos.pared_alto_cm && <p><span className="text-gris">Alto de pared:</span> {c.datos.pared_alto_cm} cm</p>}
                           {c.datos.estilo && <p><span className="text-gris">Estilo:</span> {c.datos.estilo}</p>}
                           {c.datos.colores && <p><span className="text-gris">Colores:</span> {c.datos.colores}</p>}
+                          {c.datos.formato && <p><span className="text-gris">Formato que prefiere:</span> {FORMATOS[c.datos.formato]}</p>}
                         </dl>
                       </div>
                     )}
@@ -112,10 +113,12 @@ export default function AdminConsultas() {
 
 // Prompt listo para que una IA de imágenes haga el montaje del cuadro en la foto del cliente
 function PromptMontaje({ consulta }) {
-  const texto = promptMontaje(consulta)
+  // Formato: el que pidió el cliente; el administrador puede cambiarlo antes de copiar
+  const [formato, setFormato] = useState(consulta.datos?.formato || '')
+  const texto = promptMontaje(consulta, formato)
   const [abierto, setAbierto] = useState(false)
-  async function copiar() {
-    try { await navigator.clipboard.writeText(texto); toast.success('Prompt copiado') } catch { setAbierto(true); toast('Selecciona el texto y cópialo') }
+  async function copiar(t = texto, aviso = 'Prompt copiado') {
+    try { await navigator.clipboard.writeText(t); toast.success(aviso) } catch { setAbierto(true); toast('Selecciona el texto y cópialo') }
   }
   return (
     <div className="mt-4 rounded-2xl bg-mostaza-fondo p-4 ring-1 ring-mostaza">
@@ -125,13 +128,26 @@ function PromptMontaje({ consulta }) {
         <li>Abre ChatGPT o Gemini, adjunta la foto{consulta.ficha_id ? ' y la foto de la obra' : ''}, y pega el prompt.</li>
         <li>Envía la imagen al cliente por WhatsApp con tu propuesta.</li>
       </ol>
+      <p className="mt-3 text-sm font-semibold">Formato del cuadro{consulta.datos?.formato ? ` (el cliente prefiere: ${FORMATOS[consulta.datos.formato]})` : ''}</p>
+      <div role="radiogroup" aria-label="Formato del cuadro" className="mt-1.5 flex flex-wrap gap-1.5">
+        {Object.entries(FORMATOS).map(([v, t]) => (
+          <button key={v} type="button" role="radio" aria-checked={formato === v} onClick={() => setFormato(v)}
+            className={`h-9 rounded-full px-3.5 text-xs font-bold ring-1 ${formato === v ? 'bg-tinta text-white ring-tinta' : 'bg-white ring-crema-borde'}`}>{t}</button>
+        ))}
+      </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={copiar} className="btn-oscuro btn-chico"><Copy size={15} />Copiar prompt</button>
+        <button type="button" onClick={() => copiar()} className="btn-oscuro btn-chico"><Copy size={15} />Copiar prompt</button>
         {consulta.datos?.foto_url && <a href={consulta.datos.foto_url} target="_blank" rel="noreferrer" download className="btn-contorno btn-chico"><Download size={15} />Foto del cliente</a>}
         {consulta.ficha_id && <Link to={`/obra/${consulta.ficha_id}`} target="_blank" className="btn-contorno btn-chico"><ExternalLink size={15} />Foto de la obra</Link>}
         <button type="button" onClick={() => setAbierto(a => !a)} className="text-sm font-semibold underline">{abierto ? 'Ocultar' : 'Ver'} prompt</button>
       </div>
       {abierto && <textarea readOnly value={texto} rows={14} className="campo mt-3 text-[13px] leading-relaxed" onFocus={e => e.target.select()} />}
+      <p className="mt-4 text-sm font-semibold">Ajustes (pégalos en el mismo chat, debajo de la imagen)</p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {SEGUIMIENTO.map(([t, p]) => (
+          <button key={t} type="button" onClick={() => copiar(p, `Copiado: ${t}`)} title={p} className="flex h-9 items-center gap-1 rounded-full bg-white px-3.5 text-xs font-bold ring-1 ring-crema-borde"><Copy size={12} />{t}</button>
+        ))}
+      </div>
     </div>
   )
 }

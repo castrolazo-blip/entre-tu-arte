@@ -15,26 +15,44 @@ const UBICACION = {
   'Pasillo': 'centrado en la pared, a la altura de la vista',
 }
 
-// Tamaño recomendado según el ancho de la pared (una pieza o tríptico en paredes grandes)
-export function tamanoRecomendado(anchoPared, altoPared) {
+// Formatos posibles del cuadro (la asesoría guarda la preferencia del cliente en datos.formato)
+export const FORMATOS = { '': 'Recomendado', una: 'Una pieza', diptico: 'Díptico (2)', triptico: 'Tríptico (3)' }
+
+// Tamaño según el ancho de la pared. Sin formato elegido: una pieza, o tríptico si pasa de 2 m.
+export function tamanoRecomendado(anchoPared, altoPared, formato = '') {
   const W = Number(anchoPared), H = Number(altoPared) || 260
   if (!(W > 0)) return null
   const proporcion = W <= 300 ? 0.57 : W <= 450 ? 0.5 : 0.4
   const total = redondear10(limitar(W * proporcion, 60, 280))
-  if (total > 200) {
-    const pieza = redondear10((total - 10) / 3)
-    const alto = redondear10(Math.min(H * 0.45, pieza * 1.33))
-    return { texto: `tríptico de 3 piezas verticales de ${alto} cm de alto × ${pieza} cm de ancho cada una, separadas 5 cm (conjunto de ${pieza * 3 + 10} cm de ancho)`, anchoTotal: pieza * 3 + 10, piezas: 3 }
+  const piezas = formato === 'una' ? 1 : formato === 'diptico' ? 2 : formato === 'triptico' ? 3 : (total > 200 ? 3 : 1)
+  if (piezas === 1) {
+    const ancho = Math.min(total, 200)   // una pieza más ancha deja de ser práctica de pintar y transportar
+    const alto = redondear10(Math.min(H * 0.45, ancho * 0.67))
+    return { texto: `una sola pieza horizontal de ${ancho} cm de ancho × ${alto} cm de alto`, anchoTotal: ancho, piezas: 1 }
   }
-  const alto = redondear10(Math.min(H * 0.45, total * 0.67))
-  return { texto: `una sola pieza horizontal de ${total} cm de ancho × ${alto} cm de alto`, anchoTotal: total, piezas: 1 }
+  const conjunto = limitar(total, piezas === 2 ? 80 : 120, piezas === 2 ? 220 : 280)
+  const pieza = redondear10((conjunto - 5 * (piezas - 1)) / piezas)
+  const alto = redondear10(Math.min(H * 0.45, pieza * 1.33))
+  const forma = alto > pieza ? ' verticales' : ''
+  const nombre = piezas === 2 ? `díptico de 2 piezas${forma}` : `tríptico de 3 piezas${forma}`
+  const ancho = pieza * piezas + 5 * (piezas - 1)
+  return { texto: `${nombre} de ${alto} cm de alto × ${pieza} cm de ancho cada una, separadas 5 cm (conjunto de ${ancho} cm de ancho)`, anchoTotal: ancho, piezas }
 }
 
-export function promptMontaje(consulta) {
+// Prompts para pedir ajustes a la IA en el mismo chat, debajo de la imagen
+export const SEGUIMIENTO = [
+  ['Más grande', 'Haz el cuadro un 20 % más grande, manteniendo la misma altura del centro y la separación entre piezas.'],
+  ['Centrar', 'Centra el cuadro en la pared y sobre el mueble principal, sin cambiar nada más de la foto.'],
+  ['Otros colores', 'Haz una segunda versión con la misma composición, pero en una variante de colores más suave que armonice con el espacio.'],
+  ['Con marco', 'Agrega un marco flotante delgado en color nogal, sin cambiar la obra ni el resto de la foto.'],
+  ['Otra propuesta', 'Haz una propuesta distinta de cuadro con el mismo tamaño, ubicación y estilo, para que el cliente pueda comparar.'],
+]
+
+export function promptMontaje(consulta, formato) {
   const d = consulta?.datos || {}
   const espacio = d.espacio || null
   const W = Number(d.pared_ancho_cm) || null, H = Number(d.pared_alto_cm) || null
-  const tam = tamanoRecomendado(W, H)
+  const tam = tamanoRecomendado(W, H, formato ?? d.formato ?? '')
   const obra = consulta?.ficha_titulo && consulta?.ficha_id ? consulta.ficha_titulo : null
   const colores = d.colores || null
   const pedido = (consulta?.mensaje || '').trim()
@@ -61,11 +79,14 @@ export function promptMontaje(consulta) {
   if (tam) {
     l(`- Formato y tamaño: ${tam.texto}.`)
     if (W) l(`- Respeta la escala real: usa el ancho de la pared (${W} cm) como referencia; el cuadro debe ocupar cerca del ${Math.round(tam.anchoTotal / W * 100)} % del ancho de la pared.`)
+  } else if (FORMATOS[formato ?? d.formato ?? '']) {
+    const f = formato ?? d.formato ?? ''
+    l(`- Formato y tamaño: ${f === 'diptico' ? 'díptico de 2 piezas verticales' : f === 'triptico' ? 'tríptico de 3 piezas verticales' : f === 'una' ? 'una sola pieza horizontal' : 'el que mejor se adapte'}, proporcional a la pared, ocupando entre la mitad y dos tercios del ancho del mueble o de la zona libre de la pared.`)
   } else {
     l('- Formato y tamaño: proporcional a la pared, ocupando entre la mitad y dos tercios del ancho del mueble o de la zona libre de la pared.')
   }
   l(`- Ubicación: ${UBICACION[espacio] || 'centrado en la pared principal que se ve en la foto'}. Si no hay mueble debajo, el centro del cuadro va a unos 150 cm del piso.`)
-  l(`- Montaje: lienzo en bastidor de 3 a 4 cm de grosor, sin marco${tam?.piezas === 3 ? ', las tres piezas alineadas y a la misma altura' : ''}, colgado recto y nivelado.`)
+  l(`- Montaje: lienzo en bastidor de 3 a 4 cm de grosor, sin marco${tam?.piezas > 1 ? ', las piezas alineadas y a la misma altura' : ''}, colgado recto y nivelado.`)
   l()
   l('REGLAS DEL MONTAJE')
   l('- Conserva exactamente la foto original: mismo ángulo de cámara, perspectiva, encuadre, muebles, piso, paredes, puertas y objetos. No agregues, quites ni muevas nada más.')
