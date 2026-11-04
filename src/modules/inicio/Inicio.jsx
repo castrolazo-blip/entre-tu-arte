@@ -71,15 +71,19 @@ export default function Inicio() {
         ) : <p className="contenedor text-gris">Pronto publicaremos nuevas obras.</p>}
 
         <div className="contenedor">
-          <Link to="/asesoria" className="relative mt-10 block h-56 overflow-hidden rounded-[26px] text-white shadow-[0_24px_44px_-28px_rgba(23,22,20,0.8)] md:mt-14 md:h-80 md:rounded-[34px]">
+          <Link to="/asesoria" className="relative mt-10 block h-72 overflow-hidden rounded-[26px] text-white shadow-[0_24px_44px_-28px_rgba(23,22,20,0.8)] md:mt-14 md:h-80 md:rounded-[34px]">
             {fotoAmbiente && <img src={fotoAmbiente} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />}
-            <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#3a2c1e]/95 via-[#3a2c1e]/70 to-transparent md:via-[#3a2c1e]/60" />
-            <span className="absolute left-6 top-8 max-w-xs md:left-14 md:top-14 md:max-w-md">
-              <span className="block text-[30px] font-medium leading-none tracking-[-0.035em] md:text-[48px]">Arte en tu espacio</span>
-              <span aria-hidden="true" className="mt-5 block h-[5px] w-12 rounded-full bg-mostaza" />
-              <span className="mt-5 hidden text-lg leading-relaxed text-white/90 md:block">Mira cómo se ve cada obra en tu pared antes de comprarla.</span>
+            <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#3a2c1e]/95 via-[#3a2c1e]/75 to-[#3a2c1e]/10 md:via-[#3a2c1e]/60" />
+            <span className="relative flex h-full flex-col justify-between p-6 md:px-14 md:py-10">
+              <span className="block max-w-sm md:max-w-xl">
+                <span className="block text-[13px] font-bold uppercase tracking-[0.14em] text-mostaza">Asesoría gratis</span>
+                <span className="mt-2 block text-[28px] font-medium leading-[1.05] tracking-[-0.035em] md:text-[40px]">¿Cómo se vería en tu pared?</span>
+                <span className="mt-3 block text-[15px] leading-relaxed text-white/90 md:text-lg">Envíanos una foto de tu pared y te mostramos el cuadro ideal en tu espacio.</span>
+              </span>
+              <span className="flex h-12 items-center gap-2 self-start rounded-full bg-mostaza px-5 text-[15px] font-bold text-tinta md:h-14 md:px-6 md:text-base">
+                <Camera size={19} />Subir foto de mi pared
+              </span>
             </span>
-            <span aria-hidden="true" className="absolute bottom-6 left-6 flex h-12 w-12 items-center justify-center rounded-full bg-white text-tinta md:bottom-12 md:left-14 md:h-[60px] md:w-[60px]"><ArrowRight size={22} /></span>
           </Link>
         </div>
       </section>
