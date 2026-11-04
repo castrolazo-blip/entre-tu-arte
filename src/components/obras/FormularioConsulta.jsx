@@ -8,12 +8,12 @@ const TITULOS = {
   compra:   ['Quiero comprar esta obra', 'Te contactamos hoy para coordinar el pago y la entrega.'],
   reserva:  ['Reservar por 48 horas', 'Apartamos la obra mientras coordinamos contigo el pago.'],
   encargo:  ['Pedir una obra similar', 'El artista prepara una propuesta a tu medida.'],
-  contacto: ['Pregunta sobre esta obra', 'Te respondemos por correo o teléfono.'],
+  contacto: ['Pregunta sobre esta obra', 'Te respondemos por WhatsApp.'],
 }
 
 // Toda la conversación pasa por la galería: el cliente nunca recibe datos del artista.
 export default function FormularioConsulta({ tipo, obra, onCerrar }) {
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', mensaje: '' })
+  const [form, setForm] = useState({ nombre: '', telefono: '', mensaje: '' })
   const [enviando, setEnviando] = useState(false)
   const [listo, setListo] = useState(false)
   const [titulo, subtitulo] = TITULOS[tipo] || TITULOS.contacto
@@ -28,13 +28,16 @@ export default function FormularioConsulta({ tipo, obra, onCerrar }) {
 
   async function enviar(e) {
     e.preventDefault()
-    if (!form.email.trim() && !form.telefono.trim()) { toast.error('Déjanos un correo o un teléfono para responderte'); return }
+    if (!form.telefono.trim()) { toast.error('Déjanos tu WhatsApp o teléfono para responderte'); return }
+    if (tipo === 'encargo' && !form.mensaje.trim()) { toast.error('Cuéntanos cómo la quieres para preparar tu propuesta'); return }
     setEnviando(true)
     try {
       await enviarConsulta({
         tipo, ficha_id: obra ? String(obra.id) : null, ficha_titulo: obra?.titulo || null,
-        nombre: form.nombre.trim(), email: form.email.trim() || null, telefono: form.telefono.trim() || null,
+        nombre: form.nombre.trim(), email: null, telefono: form.telefono.trim() || null,
         mensaje: form.mensaje.trim() || null,
+        // Obra de referencia: foto, medidas y precio para verla en el panel sin abrirla
+        datos: obra ? { obra_foto: obra.fotoMini || obra.foto || null, obra_medidas: obra.medidasTexto || null, obra_precio: obra.precio ?? null } : {},
       })
       registrarEvento('consulta_' + tipo, '/obra', obra?.id, obra?.titulo)
       setListo(true)
@@ -50,7 +53,7 @@ export default function FormularioConsulta({ tipo, obra, onCerrar }) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="consulta-titulo" className="text-2xl font-semibold tracking-tight">{listo ? '¡Recibimos tu solicitud!' : titulo}</h2>
-            {obra && <p className="mt-1 text-sm text-gris">{obra.titulo}</p>}
+            {obra && !obra.foto && <p className="mt-1 text-sm text-gris">{obra.titulo}</p>}
           </div>
           <button onClick={onCerrar} aria-label="Cerrar" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-crema"><X size={20} /></button>
         </div>
@@ -61,15 +64,18 @@ export default function FormularioConsulta({ tipo, obra, onCerrar }) {
           </div>
         ) : (
           <form onSubmit={enviar} className="mt-6 space-y-4">
+            {obra?.foto && (
+              <div className="flex items-center gap-3 rounded-2xl bg-crema-clara p-2.5 ring-1 ring-crema-borde">
+                <img src={obra.fotoMini || obra.foto} alt="" className="h-16 w-16 shrink-0 rounded-xl bg-white object-contain" />
+                <div className="min-w-0"><p className="text-xs font-semibold text-gris">Obra de referencia</p><p className="truncate font-bold">{obra.titulo}</p>{obra.medidasTexto && <p className="truncate text-sm text-gris">{obra.medidasTexto}</p>}</div>
+              </div>
+            )}
             <p className="text-[15px] text-gris">{subtitulo}</p>
             <label className="etiqueta">Tu nombre<input required value={form.nombre} onChange={cambiar('nombre')} autoComplete="name" className="campo mt-1.5" /></label>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="etiqueta">Correo<input type="email" value={form.email} onChange={cambiar('email')} autoComplete="email" className="campo mt-1.5" /></label>
-              <label className="etiqueta">Teléfono<input type="tel" value={form.telefono} onChange={cambiar('telefono')} autoComplete="tel" className="campo mt-1.5" /></label>
-            </div>
-            <label className="etiqueta">Mensaje (opcional)
-              <textarea rows={3} value={form.mensaje} onChange={cambiar('mensaje')} className="campo mt-1.5"
-                placeholder={tipo === 'encargo' ? 'Medidas, colores o el espacio donde irá' : '¿Algo que debamos saber?'} />
+            <label className="etiqueta">WhatsApp o teléfono<input type="tel" required value={form.telefono} onChange={cambiar('telefono')} autoComplete="tel" placeholder="7777-7777" className="campo mt-1.5" /></label>
+            <label className="etiqueta">{tipo === 'encargo' ? '¿Cómo la quieres?' : 'Mensaje (opcional)'}
+              <textarea rows={tipo === 'encargo' ? 4 : 3} required={tipo === 'encargo'} value={form.mensaje} onChange={cambiar('mensaje')} className="campo mt-1.5 placeholder:text-[#a8a29a]"
+                placeholder={tipo === 'encargo' ? 'Ej.: La quiero igual pero más grande, de unos 150 × 100 cm, para la sala, y con un poco más de dorado.' : '¿Algo que debamos saber?'} />
             </label>
             <p className="flex gap-2.5 text-[13px] leading-relaxed text-gris"><Lock size={16} className="mt-0.5 shrink-0" />La compra, el pago y la entrega se gestionan con Entre tu Arte. Tus datos solo se usan para responderte.</p>
             <button disabled={enviando} className="btn-primario w-full">{enviando ? 'Enviando…' : 'Enviar solicitud'}</button>

@@ -68,6 +68,16 @@ export default function AdminConsultas() {
                       {wa && <MenuWhatsApp telefono={c.telefono} nombre={c.nombre} opciones={mensajesWhatsApp(c).map(o => o.clausula ? { ...o, destacado: true, nota: 'Incluye cláusula de propiedad de la propuesta' } : o)} />}
                       {c.ficha_id && <Link to={`/obra/${c.ficha_id}`} target="_blank" className="btn-contorno btn-chico"><ExternalLink size={16} />Ver obra</Link>}
                     </div>
+                    {c.ficha_id && !c.datos?.pedido && (
+                      <Link to={`/obra/${c.ficha_id}`} target="_blank" className="mt-4 flex items-center gap-3 rounded-2xl bg-mostaza-fondo p-3 ring-1 ring-mostaza">
+                        {c.datos?.obra_foto ? <img src={c.datos.obra_foto} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" /> : <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white"><ExternalLink size={20} /></span>}
+                        <span className="min-w-0">
+                          <span className="block text-xs font-semibold text-gris">Obra de referencia</span>
+                          <span className="block truncate font-bold">{c.ficha_titulo || 'Ver obra'}</span>
+                          <span className="block truncate text-sm text-gris">{[c.datos?.obra_medidas, c.datos?.obra_precio ? `$${Number(c.datos.obra_precio).toLocaleString('en-US')}` : null].filter(Boolean).join(' · ') || 'Toca para abrirla'}</span>
+                        </span>
+                      </Link>
+                    )}
                     {c.mensaje && <p className="mt-4 whitespace-pre-line rounded-2xl bg-crema-clara p-4 text-[15px]">{c.mensaje}</p>}
                     {c.datos?.pedido && (
                       <div className="mt-4 rounded-2xl bg-mostaza-fondo p-4 text-sm">
@@ -82,7 +92,7 @@ export default function AdminConsultas() {
                         {c.datos.direccion && <p>Dirección: {c.datos.direccion}</p>}
                       </div>
                     )}
-                    {c.datos && !c.datos.pedido && Object.keys(c.datos).some(k => c.datos[k]) && (
+                    {c.datos && !c.datos.pedido && Object.keys(c.datos).some(k => c.datos[k] && !k.startsWith('obra_')) && (
                       <div className="mt-4 flex flex-wrap items-start gap-4">
                         {c.datos.foto_url && <a href={c.datos.foto_url} target="_blank" rel="noreferrer"><img src={c.datos.foto_url} alt="Foto del espacio del cliente" className="h-40 rounded-2xl object-cover" /></a>}
                         {c.datos.referencia_url && <a href={c.datos.referencia_url} target="_blank" rel="noreferrer" className="relative block"><img src={c.datos.referencia_url} alt="Cuadro de referencia del cliente" className="h-40 rounded-2xl object-cover" /><span className="absolute left-2 top-2 rounded-full bg-mostaza px-2.5 py-0.5 text-[11px] font-bold">Referencia</span></a>}
