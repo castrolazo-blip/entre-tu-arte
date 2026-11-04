@@ -5,7 +5,7 @@ export const CLAUSULA_PROPUESTA =
   'Esta propuesta, sus imágenes y su diseño son propiedad de Entre tu Arte y se comparten solo para tu evaluación personal. ' +
   'Te pedimos no compartirlos, reproducirlos ni utilizarlos con otros proveedores, artistas o talleres de arte.'
 
-import { anticipoYSaldo } from '../../../lib/anticipo.js'
+import { anticipoPedido } from '../../../lib/anticipo.js'
 import { precio } from '../../../lib/formato.js'
 
 const primerNombre = n => String(n || '').trim().split(/\s+/)[0] || ''
@@ -35,8 +35,11 @@ export function mensajesWhatsApp(c, porcentajeAnticipo = 25) {
   if (c?.tipo === 'compra' || c?.tipo === 'reserva') lista.unshift({
     id: 'pedido', titulo: 'Confirmar el pedido',
     texto: (() => {
-      const r = anticipoYSaldo(c?.datos?.total, porcentajeAnticipo)
-      const detalle = r.total > 0 ? `\n\n• Total: ${precio(r.total)}\n• Anticipo (${r.pct} %): ${precio(r.anticipo)}\n• Saldo contra entrega: ${precio(r.saldo)}` : ''
+      const total = Number(c?.datos?.total) || 0
+      const r = anticipoPedido(c?.datos, porcentajeAnticipo)
+      const detalle = r
+        ? `\n\n• Total: ${precio(r.total)}\n• Anticipo (${r.pct} %${r.mixto ? ' de las obras por pedido' : ''}): ${precio(r.anticipo)}\n• Saldo contra entrega: ${precio(r.saldo)}`
+        : total > 0 ? `\n\n• Total: ${precio(total)}, contra entrega.` : ''
       return `${hola}, gracias por tu pedido en Entre tu Arte${obra}. Te confirmamos la disponibilidad y coordinamos contigo la forma de pago y la entrega.${detalle}`
     })(),
   })

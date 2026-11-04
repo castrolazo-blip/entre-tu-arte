@@ -7,7 +7,7 @@ import { fechaCorta } from '../../../lib/formato.js'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
 import { promptMontaje, FORMATOS, SEGUIMIENTO } from './promptMontaje.js'
 import { mensajesWhatsApp } from './mensajesWhatsApp.js'
-import { anticipoYSaldo } from '../../../lib/anticipo.js'
+import { anticipoPedido, anticipoEncargo } from '../../../lib/anticipo.js'
 import { useConfig } from '../../../context/ConfigContext.jsx'
 import { precio } from '../../../lib/formato.js'
 import MenuWhatsApp from '../../../components/admin/MenuWhatsApp.jsx'
@@ -82,6 +82,13 @@ export default function AdminConsultas() {
                         </span>
                       </Link>
                     )}
+                    {(() => { const r = anticipoEncargo(c, cfg.pedido_anticipo); return r && (
+                      <div className="mt-2 rounded-xl bg-crema-clara p-2.5 text-sm">
+                        <p className="flex justify-between"><span>Anticipo estimado ({r.pct} %)</span><strong>{precio(r.anticipo)}</strong></p>
+                        <p className="flex justify-between"><span>Saldo contra entrega</span><strong>{precio(r.saldo)}</strong></p>
+                        <p className="mt-1 text-xs text-gris">Sobre el precio de la obra de referencia; se ajusta al precio que acuerdes.</p>
+                      </div>
+                    ) })()}
                     {c.mensaje && <p className="mt-4 whitespace-pre-line rounded-2xl bg-crema-clara p-4 text-[15px]">{c.mensaje}</p>}
                     {c.datos?.pedido && (
                       <div className="mt-4 rounded-2xl bg-mostaza-fondo p-4 text-sm">
@@ -92,10 +99,11 @@ export default function AdminConsultas() {
                           ))}
                         </ul>
                         <p className="mt-2 flex justify-between border-t border-black/10 pt-2 font-bold"><span>Total</span><span>{precio(c.datos.total || 0)}</span></p>
-                        {(() => { const r = anticipoYSaldo(c.datos.total, cfg.pedido_anticipo); return r.total > 0 && (
+                        {(() => { const r = anticipoPedido(c.datos, cfg.pedido_anticipo); return r && (
                           <div className="mt-2 space-y-1 rounded-xl bg-white/70 p-2.5">
-                            <p className="flex justify-between"><span>Anticipo ({r.pct} %)</span><strong>{precio(r.anticipo)}</strong></p>
-                            <p className="flex justify-between"><span>Saldo contra entrega ({100 - r.pct} %)</span><strong>{precio(r.saldo)}</strong></p>
+                            {r.mixto && <p className="flex justify-between text-gris"><span>Obras por pedido</span><span>{precio(r.base)}</span></p>}
+                            <p className="flex justify-between"><span>Anticipo ({r.pct} %{r.mixto ? ' de las obras por pedido' : ''})</span><strong>{precio(r.anticipo)}</strong></p>
+                            <p className="flex justify-between"><span>Saldo contra entrega</span><strong>{precio(r.saldo)}</strong></p>
                           </div>
                         ) })()}
                         <p className="mt-2">Entrega: <strong>{c.datos.entrega === 'envio' ? 'Envío a domicilio' : 'Retiro en San Salvador'}</strong>{c.datos.instalacion ? ' · con instalación' : ''}</p>
