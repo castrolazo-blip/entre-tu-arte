@@ -7,6 +7,9 @@ import { fechaCorta } from '../../../lib/formato.js'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
 import { promptMontaje, FORMATOS, SEGUIMIENTO } from './promptMontaje.js'
 import { mensajesWhatsApp } from './mensajesWhatsApp.js'
+import { anticipoYSaldo } from '../../../lib/anticipo.js'
+import { useConfig } from '../../../context/ConfigContext.jsx'
+import { precio } from '../../../lib/formato.js'
 import MenuWhatsApp from '../../../components/admin/MenuWhatsApp.jsx'
 
 const TIPOS = { compra: 'Compra', reserva: 'Reserva', encargo: 'Encargo', asesoria: 'Asesoría', contacto: 'Contacto' }
@@ -15,6 +18,7 @@ const ESTADOS = [['nueva', 'Nueva'], ['en_proceso', 'En proceso'], ['cerrada', '
 // Bandeja de solicitudes de clientes. La galería responde directamente al cliente;
 // los artistas nunca reciben los datos de contacto del cliente.
 export default function AdminConsultas() {
+  const { cfg } = useConfig()
   const [consultas, setConsultas] = useState(null)
   const [filtro, setFiltro] = useState('nueva')
   const [abierta, setAbierta] = useState(null)
@@ -65,7 +69,7 @@ export default function AdminConsultas() {
                     <div className="flex flex-wrap gap-2">
                       {c.email && <a href={`mailto:${c.email}?subject=${encodeURIComponent('Entre tu Arte · ' + (c.ficha_titulo || 'Tu consulta'))}`} className="btn-contorno btn-chico"><Mail size={16} />{c.email}</a>}
                       {c.telefono && <a href={`tel:${c.telefono}`} className="btn-contorno btn-chico"><Phone size={16} />{c.telefono}</a>}
-                      {wa && <MenuWhatsApp telefono={c.telefono} nombre={c.nombre} opciones={mensajesWhatsApp(c).map(o => o.clausula ? { ...o, destacado: true, nota: 'Incluye cláusula de propiedad de la propuesta' } : o)} />}
+                      {wa && <MenuWhatsApp telefono={c.telefono} nombre={c.nombre} opciones={mensajesWhatsApp(c, cfg.pedido_anticipo).map(o => o.clausula ? { ...o, destacado: true, nota: 'Incluye cláusula de propiedad de la propuesta' } : o)} />}
                       {c.ficha_id && <Link to={`/obra/${c.ficha_id}`} target="_blank" className="btn-contorno btn-chico"><ExternalLink size={16} />Ver obra</Link>}
                     </div>
                     {c.ficha_id && !c.datos?.pedido && (
@@ -87,7 +91,13 @@ export default function AdminConsultas() {
                             <li key={it.id} className="flex justify-between gap-3"><span><Link to={`/obra/${it.id}`} target="_blank" className="underline">{it.titulo}{it.cantidad > 1 ? ` (x${it.cantidad})` : ''}</Link>{it.porPedido && <span className="ml-1.5 rounded-full bg-mostaza px-2 py-0.5 text-[11px] font-bold">Por pedido</span>}</span><span>{it.precio ? `$${Number(it.precio * (it.cantidad || 1)).toLocaleString('en-US')}` : '—'}</span></li>
                           ))}
                         </ul>
-                        <p className="mt-2 flex justify-between border-t border-black/10 pt-2 font-bold"><span>Total</span><span>${Number(c.datos.total || 0).toLocaleString('en-US')}</span></p>
+                        <p className="mt-2 flex justify-between border-t border-black/10 pt-2 font-bold"><span>Total</span><span>{precio(c.datos.total || 0)}</span></p>
+                        {(() => { const r = anticipoYSaldo(c.datos.total, cfg.pedido_anticipo); return r.total > 0 && (
+                          <div className="mt-2 space-y-1 rounded-xl bg-white/70 p-2.5">
+                            <p className="flex justify-between"><span>Anticipo ({r.pct} %)</span><strong>{precio(r.anticipo)}</strong></p>
+                            <p className="flex justify-between"><span>Saldo contra entrega ({100 - r.pct} %)</span><strong>{precio(r.saldo)}</strong></p>
+                          </div>
+                        ) })()}
                         <p className="mt-2">Entrega: <strong>{c.datos.entrega === 'envio' ? 'Envío a domicilio' : 'Retiro en San Salvador'}</strong>{c.datos.instalacion ? ' · con instalación' : ''}</p>
                         {c.datos.direccion && <p>Dirección: {c.datos.direccion}</p>}
                       </div>
