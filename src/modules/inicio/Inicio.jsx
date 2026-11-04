@@ -126,6 +126,10 @@ export default function Inicio() {
                   <span className="block text-sm text-gris">{precio(o.precio) ? `${precio(o.precio)} · ` : ''}Pedir la mía →</span>
                 </Link>
               ))}
+              {/* Al final de la fila (en celular): ver todas las obras por pedido */}
+              <Link to="/por-pedido" className="flex aspect-[4/3] w-40 shrink-0 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-crema-borde bg-white/40 text-sm font-semibold md:hidden">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-tinta text-white"><ArrowRight size={20} /></span>Ver todas
+              </Link>
             </div>
           </div>
         </FondoImagen>
