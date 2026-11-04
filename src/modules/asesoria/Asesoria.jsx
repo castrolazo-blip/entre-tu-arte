@@ -19,7 +19,7 @@ export default function Asesoria() {
   const [obra, setObra] = useState(null)
   const [foto, setFoto] = useState(null)
   const [vista, setVista] = useState('')
-  const [form, setForm] = useState({ nombre: '', telefono: '', espacio: '', formato: '', ancho: '', alto: '', estilo: '', colores: '', mensaje: '' })
+  const [form, setForm] = useState({ nombre: '', telefono: '', espacio: '', formato: '', ancho: '', alto: '', cuadroAncho: '', cuadroAlto: '', estilo: '', colores: '', mensaje: '' })
   const [enviando, setEnviando] = useState(false)
   const [listo, setListo] = useState(false)
 
@@ -53,7 +53,7 @@ export default function Asesoria() {
         ficha_id: obra ? String(obra.id) : null, ficha_titulo: obra?.titulo || null,
         nombre: form.nombre.trim(), email: null, telefono: form.telefono.trim() || null,
         mensaje: form.mensaje.trim() || null,
-        datos: soloContacto ? {} : { foto_url: fotoUrl, espacio: form.espacio || null, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, estilo: form.estilo || null, colores: form.colores.trim() || null, formato: form.formato || null },
+        datos: soloContacto ? {} : { foto_url: fotoUrl, espacio: form.espacio || null, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, cuadro_ancho_cm: form.cuadroAncho || null, cuadro_alto_cm: form.cuadroAlto || null, estilo: form.estilo || null, colores: form.colores.trim() || null, formato: form.formato || null },
       })
       registrarEvento(soloContacto ? 'contacto' : 'asesoria', '/asesoria', obra?.id, obra?.titulo)
       setListo(true)
@@ -114,8 +114,12 @@ export default function Asesoria() {
                   <label className="etiqueta col-span-2">¿En qué espacio irá el cuadro?
                     <select value={form.espacio} onChange={cambiar('espacio')} className="campo mt-1.5"><option value="">Elegir…</option>{ESPACIOS.map(s => <option key={s}>{s}</option>)}</select>
                   </label>
-                  <label className="etiqueta">Ancho de la pared (cm)<input inputMode="decimal" value={form.ancho} onChange={cambiar('ancho')} className="campo mt-1.5" /></label>
-                  <label className="etiqueta">Alto de la pared (cm)<input inputMode="decimal" value={form.alto} onChange={cambiar('alto')} className="campo mt-1.5" /></label>
+                  <label className="etiqueta">Ancho de la pared (cm, opcional)<input inputMode="decimal" value={form.ancho} onChange={cambiar('ancho')} className="campo mt-1.5" /></label>
+                  <label className="etiqueta">Alto de la pared (cm, opcional)<input inputMode="decimal" value={form.alto} onChange={cambiar('alto')} className="campo mt-1.5" /></label>
+                  <p className="col-span-2 -mt-1 text-xs text-gris">¿No sabes las medidas? Déjalo en blanco: con la foto calculamos el tamaño ideal.</p>
+                  <p className="etiqueta col-span-2 -mb-2 mt-1">Tamaño del cuadro que te imaginas (opcional)</p>
+                  <label className="etiqueta font-normal text-gris">Ancho (cm)<input inputMode="decimal" value={form.cuadroAncho} onChange={cambiar('cuadroAncho')} placeholder="Ej. 120" className="campo mt-1.5" /></label>
+                  <label className="etiqueta font-normal text-gris">Alto (cm)<input inputMode="decimal" value={form.cuadroAlto} onChange={cambiar('cuadroAlto')} placeholder="Ej. 80" className="campo mt-1.5" /></label>
                   <label className="etiqueta col-span-2">Estilo del espacio
                     <select value={form.estilo} onChange={cambiar('estilo')} className="campo mt-1.5"><option value="">Elegir…</option>{ESTILOS.map(s => <option key={s}>{s}</option>)}</select>
                   </label>
@@ -133,8 +137,8 @@ export default function Asesoria() {
                 <textarea rows={soloContacto ? 3 : 5} required value={form.mensaje} onChange={cambiar('mensaje')} className="campo mt-1.5 placeholder:text-[#a8a29a]"
                   placeholder={soloContacto
                     ? 'Ej.: Hola, quisiera saber si hacen cuadros a la medida y cuánto tardan en entregarlos.'
-                    : 'Ej.: Busco un cuadro abstracto para la sala, sobre un sofá gris de 2 metros. Me gustan los tonos tierra y dorados, y quiero que el espacio se sienta cálido y elegante. Presupuesto aproximado: $300.'} />
-                {!soloContacto && <span className="mt-1.5 block text-xs font-normal text-gris">Mientras más nos cuentes (dónde va, colores, lo que quieres transmitir y tu presupuesto), mejor será la propuesta.</span>}
+                    : 'Ej.: Busco un cuadro abstracto para la sala, sobre un sofá gris de 2 metros. Me gustan los tonos tierra y dorados, y quiero que el espacio se sienta cálido y elegante.'} />
+                {!soloContacto && <span className="mt-1.5 block text-xs font-normal text-gris">Mientras más nos cuentes (dónde va, sobre qué mueble, colores y lo que quieres transmitir), mejor será la propuesta.</span>}
               </label>
               <p className="flex gap-2.5 text-[13px] text-gris"><Lock size={16} className="mt-0.5 shrink-0" />Tus datos y tu foto solo se usan para responderte.</p>
               <button disabled={enviando} className="btn-primario w-full">{enviando ? 'Enviando…' : soloContacto ? 'Enviar mensaje' : 'Pedir mi asesoría'}</button>

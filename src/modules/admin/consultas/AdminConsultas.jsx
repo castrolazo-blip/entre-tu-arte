@@ -89,6 +89,7 @@ export default function AdminConsultas() {
                           {c.datos.espacio && <p><span className="text-gris">Espacio:</span> {c.datos.espacio}</p>}
                           {c.datos.pared_ancho_cm && <p><span className="text-gris">Ancho de pared:</span> {c.datos.pared_ancho_cm} cm</p>}
                           {c.datos.pared_alto_cm && <p><span className="text-gris">Alto de pared:</span> {c.datos.pared_alto_cm} cm</p>}
+                          {(c.datos.cuadro_ancho_cm || c.datos.cuadro_alto_cm) && <p><span className="text-gris">Cuadro que imagina:</span> {[c.datos.cuadro_ancho_cm && `${c.datos.cuadro_ancho_cm} cm de ancho`, c.datos.cuadro_alto_cm && `${c.datos.cuadro_alto_cm} cm de alto`].filter(Boolean).join(' × ')}</p>}
                           {c.datos.estilo && <p><span className="text-gris">Estilo:</span> {c.datos.estilo}</p>}
                           {c.datos.colores && <p><span className="text-gris">Colores:</span> {c.datos.colores}</p>}
                           {c.datos.formato && <p><span className="text-gris">Formato que prefiere:</span> {FORMATOS[c.datos.formato]}</p>}

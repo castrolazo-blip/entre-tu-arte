@@ -52,7 +52,12 @@ export function promptMontaje(consulta, formato) {
   const d = consulta?.datos || {}
   const espacio = d.espacio || null
   const W = Number(d.pared_ancho_cm) || null, H = Number(d.pared_alto_cm) || null
-  const tam = tamanoRecomendado(W, H, formato ?? d.formato ?? '')
+  const f = formato ?? d.formato ?? ''
+  const cA = Number(d.cuadro_ancho_cm) || null, cH = Number(d.cuadro_alto_cm) || null
+  // Si el cliente indicó el tamaño del cuadro, se usa ese; si no, se calcula con la pared
+  const tam = cA || cH
+    ? { texto: `${f === 'diptico' ? 'díptico de 2 piezas, ' : f === 'triptico' ? 'tríptico de 3 piezas, ' : ''}${cA ? `${cA} cm de ancho` : ''}${cA && cH ? ' × ' : ''}${cH ? `${cH} cm de alto` : ''}${f === 'diptico' || f === 'triptico' ? ' en total, con 5 cm de separación entre piezas' : ''} (tamaño que pidió el cliente)`, anchoTotal: cA, piezas: f === 'diptico' ? 2 : f === 'triptico' ? 3 : 1 }
+    : tamanoRecomendado(W, H, f)
   const obra = consulta?.ficha_titulo && consulta?.ficha_id ? consulta.ficha_titulo : null
   const colores = d.colores || null
   const pedido = (consulta?.mensaje || '').trim()
@@ -78,11 +83,14 @@ export function promptMontaje(consulta, formato) {
   }
   if (tam) {
     l(`- Formato y tamaño: ${tam.texto}.`)
-    if (W) l(`- Respeta la escala real: usa el ancho de la pared (${W} cm) como referencia; el cuadro debe ocupar cerca del ${Math.round(tam.anchoTotal / W * 100)} % del ancho de la pared.`)
+    if (W && tam.anchoTotal) l(`- Respeta la escala real: usa el ancho de la pared (${W} cm) como referencia; el cuadro debe ocupar cerca del ${Math.round(tam.anchoTotal / W * 100)} % del ancho de la pared.`)
+    else l('- Respeta la escala real usando como referencia los objetos de la foto: una puerta mide unos 210 cm de alto, un sofá unos 85 cm y un escritorio o mesa unos 75 cm.')
   } else if (FORMATOS[formato ?? d.formato ?? '']) {
     const f = formato ?? d.formato ?? ''
+    l('- Escala: usa como referencia los objetos de la foto (una puerta mide unos 210 cm de alto, un sofá unos 85 cm y un escritorio o mesa unos 75 cm).')
     l(`- Formato y tamaño: ${f === 'diptico' ? 'díptico de 2 piezas verticales' : f === 'triptico' ? 'tríptico de 3 piezas verticales' : f === 'una' ? 'una sola pieza horizontal' : 'el que mejor se adapte'}, proporcional a la pared, ocupando entre la mitad y dos tercios del ancho del mueble o de la zona libre de la pared.`)
   } else {
+    l('- Escala: usa como referencia los objetos de la foto (una puerta mide unos 210 cm de alto, un sofá unos 85 cm y un escritorio o mesa unos 75 cm).')
     l('- Formato y tamaño: proporcional a la pared, ocupando entre la mitad y dos tercios del ancho del mueble o de la zona libre de la pared.')
   }
   l(`- Ubicación: ${UBICACION[espacio] || 'centrado en la pared principal que se ve en la foto'}. Si no hay mueble debajo, el centro del cuadro va a unos 150 cm del piso.`)
