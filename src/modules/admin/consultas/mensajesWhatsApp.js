@@ -35,8 +35,3 @@ export function mensajesWhatsApp(c) {
   })
   return lista
 }
-
-export function enlaceWhatsAppCliente(telefono, texto) {
-  const n = String(telefono || '').replace(/\D/g, '').replace(/^(\d{8})$/, '503$1')
-  return n ? `https://wa.me/${n}${texto ? `?text=${encodeURIComponent(texto)}` : ''}` : null
-}

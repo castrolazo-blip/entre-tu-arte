@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ExternalLink, MessageCircle, Mail, Check, X, Copy, Pencil, Loader2 } from 'lucide-react'
+import { ExternalLink, Mail, Check, X, Copy, Pencil, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { precio, medidasTexto, fechaCorta } from '../../../lib/formato.js'
 import { faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
 import { conMiniaturas } from '../adminService.js'
+import MenuWhatsApp from '../../../components/admin/MenuWhatsApp.jsx'
+import { mensajesVendedor } from './mensajesVendedor.js'
 import { COMISION_SUGERIDA } from '../../marketplace/condiciones.js'
 
 // Lo que se paga al vendedor: el precio de venta menos la comisión acordada para esa obra
@@ -158,7 +160,8 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
           <p className="text-xs font-semibold text-gris">Vendedor (privado)</p>
           <p className="font-bold">{s.nombre}</p>
           <div className="mt-1 flex flex-wrap gap-2">
-            {wa && <a href={wa} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-full bg-[#25D366] px-3 py-1 text-xs font-bold text-white"><MessageCircle size={13} />{s.telefono}</a>}
+            {wa && <MenuWhatsApp chico telefono={s.telefono} nombre={s.nombre} etiqueta={s.telefono}
+              opciones={mensajesVendedor(s, { precioVenta: venta, comision: pct, alVendedor, vendida, pago: pagoVendedor(s), enlace: s.ficha_id ? `${window.location.origin}${import.meta.env.BASE_URL}obra/${s.ficha_id}` : null })} />}
             {s.email && <a href={`mailto:${s.email}`} className="flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-bold"><Mail size={13} />{s.email}</a>}
           </div>
         </div>
