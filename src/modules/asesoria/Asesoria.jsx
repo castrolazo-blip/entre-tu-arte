@@ -77,7 +77,7 @@ export default function Asesoria() {
           </p>
           {!soloContacto && (
             <ol className="mt-8 space-y-4 text-[17px]">
-              {['Sube la foto y las medidas de tu pared', 'Recibe obras recomendadas y el tamaño ideal', 'Compra y agenda la instalación'].map((t, n) => (
+              {['Sube la foto y las medidas de tu pared', 'Recibe obras recomendadas y el tamaño ideal', 'Compra y cotiza la instalación'].map((t, n) => (
                 <li key={t} className="flex items-center gap-4"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tinta font-bold text-white">{n + 1}</span>{t}</li>
               ))}
             </ol>
