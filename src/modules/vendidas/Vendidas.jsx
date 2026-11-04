@@ -46,7 +46,7 @@ export default function Vendidas() {
           </div>
           <div className="flex flex-col items-start gap-3">
             <a href="#obras-por-pedido" onClick={e => { e.preventDefault(); document.getElementById('obras-por-pedido')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-oscuro h-16">Elegir la obra que me inspira <ArrowRight size={20} className="rotate-90" /></a>
-            <Link to="/asesoria" className="font-semibold underline decoration-tinta/40 decoration-2 underline-offset-4">¿Tienes tu propia idea? Pide una asesoría</Link>
+            <Link to="/asesoria" className="font-semibold underline decoration-tinta/40 decoration-2 underline-offset-4">¿Tienes tu propia idea o la foto de un cuadro que te gusta? Pide tu cotización</Link>
           </div>
         </div>
       </section>

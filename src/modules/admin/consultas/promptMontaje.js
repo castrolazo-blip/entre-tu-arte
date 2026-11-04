@@ -74,7 +74,10 @@ export function promptMontaje(consulta, formato) {
   if (pedido) l(`- Lo que pidió el cliente: "${pedido}".`)
   l()
   l('EL CUADRO')
-  if (obra) {
+  if (!obra && d.referencia_url) {
+    l('- Usa la IMAGEN DE REFERENCIA adjunta (la segunda imagen) como inspiración: mismo estilo, tipo de composición, textura y paleta de colores, pero como una obra nueva pintada a mano por Entre tu Arte, no una copia exacta.')
+    if (colores) l(`- Ajusta la paleta a los colores que pidió el cliente: ${colores}.`)
+  } else if (obra) {
     l(`- Usa la obra "${obra}" de la SEGUNDA imagen adjunta tal cual: sin cambiar sus colores, composición ni proporciones.`)
   } else {
     const paleta = colores || (pedido ? 'los colores que pidió el cliente (si no menciona colores, en tonos que armonicen con el espacio de la foto)' : 'colores que armonicen con el espacio de la foto')

@@ -85,6 +85,7 @@ export default function AdminConsultas() {
                     {c.datos && !c.datos.pedido && Object.keys(c.datos).some(k => c.datos[k]) && (
                       <div className="mt-4 flex flex-wrap items-start gap-4">
                         {c.datos.foto_url && <a href={c.datos.foto_url} target="_blank" rel="noreferrer"><img src={c.datos.foto_url} alt="Foto del espacio del cliente" className="h-40 rounded-2xl object-cover" /></a>}
+                        {c.datos.referencia_url && <a href={c.datos.referencia_url} target="_blank" rel="noreferrer" className="relative block"><img src={c.datos.referencia_url} alt="Cuadro de referencia del cliente" className="h-40 rounded-2xl object-cover" /><span className="absolute left-2 top-2 rounded-full bg-mostaza px-2.5 py-0.5 text-[11px] font-bold">Referencia</span></a>}
                         <dl className="text-sm">
                           {c.datos.espacio && <p><span className="text-gris">Espacio:</span> {c.datos.espacio}</p>}
                           {c.datos.pared_ancho_cm && <p><span className="text-gris">Ancho de pared:</span> {c.datos.pared_ancho_cm} cm</p>}
@@ -128,7 +129,7 @@ function PromptMontaje({ consulta }) {
       <p className="flex items-center gap-2 font-bold"><Sparkles size={17} />Montaje con IA</p>
       <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-sm">
         <li>Copia el prompt{consulta.datos?.foto_url ? ' y descarga la foto del cliente' : ''}.</li>
-        <li>Abre ChatGPT o Gemini, adjunta la foto{consulta.ficha_id ? ' y la foto de la obra' : ''}, y pega el prompt.</li>
+        <li>Abre ChatGPT o Gemini, adjunta la foto{consulta.ficha_id ? ' y la foto de la obra' : consulta.datos?.referencia_url ? ' y después la imagen de referencia' : ''}, y pega el prompt.</li>
         <li>Envía la imagen al cliente por WhatsApp con tu propuesta.</li>
       </ol>
       <p className="mt-3 text-sm font-semibold">Formato del cuadro{consulta.datos?.formato ? ` (el cliente prefiere: ${FORMATOS[consulta.datos.formato]})` : ''}</p>
@@ -141,6 +142,7 @@ function PromptMontaje({ consulta }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" onClick={() => copiar()} className="btn-oscuro btn-chico"><Copy size={15} />Copiar prompt</button>
         {consulta.datos?.foto_url && <a href={consulta.datos.foto_url} target="_blank" rel="noreferrer" download className="btn-contorno btn-chico"><Download size={15} />Foto del cliente</a>}
+        {consulta.datos?.referencia_url && <a href={consulta.datos.referencia_url} target="_blank" rel="noreferrer" download className="btn-contorno btn-chico"><Download size={15} />Imagen de referencia</a>}
         {consulta.ficha_id && <Link to={`/obra/${consulta.ficha_id}`} target="_blank" className="btn-contorno btn-chico"><ExternalLink size={15} />Foto de la obra</Link>}
         <button type="button" onClick={() => setAbierto(a => !a)} className="text-sm font-semibold underline">{abierto ? 'Ocultar' : 'Ver'} prompt</button>
       </div>

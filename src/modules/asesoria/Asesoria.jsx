@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Camera, Check, Lock } from 'lucide-react'
+import { Camera, Check, Lock, ImagePlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase, BUCKET, urlPublica } from '../../lib/supabase.js'
 import { enviarConsulta, obtenerObra } from '../catalogo/obrasService.js'
@@ -19,6 +19,8 @@ export default function Asesoria() {
   const [obra, setObra] = useState(null)
   const [foto, setFoto] = useState(null)
   const [vista, setVista] = useState('')
+  const [referencia, setReferencia] = useState(null)      // imagen de un cuadro que le gusta al cliente
+  const [vistaRef, setVistaRef] = useState('')
   const [form, setForm] = useState({ nombre: '', telefono: '', espacio: '', formato: '', ancho: '', alto: '', cuadroAncho: '', cuadroAlto: '', estilo: '', colores: '', mensaje: '' })
   const [enviando, setEnviando] = useState(false)
   const [listo, setListo] = useState(false)
@@ -26,6 +28,13 @@ export default function Asesoria() {
   useEffect(() => { const id = params.get('obra'); if (id) obtenerObra(id).then(setObra).catch(() => {}) }, [params])
   useEffect(() => () => vista && URL.revokeObjectURL(vista), [vista])
   const cambiar = c => e => setForm(f => ({ ...f, [c]: e.target.value }))
+
+  function elegirReferencia(e) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    if (f.size > 12 * 1024 * 1024) { toast.error('La imagen es muy pesada (máximo 12 MB)'); return }
+    setReferencia(f); setVistaRef(URL.createObjectURL(f))
+  }
 
   function elegirFoto(e) {
     const f = e.target.files?.[0]
@@ -40,20 +49,21 @@ export default function Asesoria() {
     if (!form.mensaje.trim()) { toast.error(soloContacto ? 'Escribe tu mensaje' : 'Cuéntanos qué buscas para preparar tu propuesta'); return }
     setEnviando(true)
     try {
-      let fotoUrl = null
-      if (foto) {
-        const ext = (foto.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const subir = async archivo => {
+        if (!archivo) return null
+        const ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
         const ruta = `asesorias/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
-        const { error } = await supabase.storage.from(BUCKET).upload(ruta, foto, { contentType: foto.type })
+        const { error } = await supabase.storage.from(BUCKET).upload(ruta, archivo, { contentType: archivo.type })
         if (error) throw error
-        fotoUrl = urlPublica(ruta)
+        return urlPublica(ruta)
       }
+      const [fotoUrl, referenciaUrl] = await Promise.all([subir(foto), subir(referencia)])
       await enviarConsulta({
         tipo: soloContacto ? 'contacto' : 'asesoria',
         ficha_id: obra ? String(obra.id) : null, ficha_titulo: obra?.titulo || null,
         nombre: form.nombre.trim(), email: null, telefono: form.telefono.trim() || null,
         mensaje: form.mensaje.trim() || null,
-        datos: soloContacto ? {} : { foto_url: fotoUrl, espacio: form.espacio || null, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, cuadro_ancho_cm: form.cuadroAncho || null, cuadro_alto_cm: form.cuadroAlto || null, estilo: form.estilo || null, colores: form.colores.trim() || null, formato: form.formato || null },
+        datos: soloContacto ? {} : { foto_url: fotoUrl, referencia_url: referenciaUrl, espacio: form.espacio || null, pared_ancho_cm: form.ancho || null, pared_alto_cm: form.alto || null, cuadro_ancho_cm: form.cuadroAncho || null, cuadro_alto_cm: form.cuadroAlto || null, estilo: form.estilo || null, colores: form.colores.trim() || null, formato: form.formato || null },
       })
       registrarEvento(soloContacto ? 'contacto' : 'asesoria', '/asesoria', obra?.id, obra?.titulo)
       setListo(true)
@@ -107,6 +117,18 @@ export default function Asesoria() {
                   {vista ? <img src={vista} alt="Foto de tu pared" className="max-h-60 rounded-2xl object-contain" /> : <Camera size={34} />}
                   <span className="font-semibold">{vista ? 'Cambiar foto' : 'Subir o tomar foto de mi pared'}</span>
                   <input type="file" accept="image/*" onChange={elegirFoto} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
+                </label>
+              )}
+              {!soloContacto && (
+                <label className="relative flex cursor-pointer items-center gap-4 overflow-hidden rounded-[24px] border-2 border-dashed border-crema-borde bg-crema-clara p-4">
+                  {vistaRef
+                    ? <img src={vistaRef} alt="Cuadro de referencia" className="h-20 w-20 shrink-0 rounded-xl object-cover" />
+                    : <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-white"><ImagePlus size={28} /></span>}
+                  <span>
+                    <span className="block font-semibold">{vistaRef ? 'Cambiar imagen de referencia' : '¿Tienes la foto de un cuadro que te gusta?'}</span>
+                    <span className="block text-sm text-gris">Opcional. Súbela y te cotizamos uno inspirado en ella, a tu medida.</span>
+                  </span>
+                  <input type="file" accept="image/*" onChange={elegirReferencia} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
                 </label>
               )}
               {!soloContacto && (
