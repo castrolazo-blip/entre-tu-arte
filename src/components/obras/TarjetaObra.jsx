@@ -15,7 +15,7 @@ export default function TarjetaObra({ obra, compacta = false }) {
         <span className={`absolute left-4 top-4 rounded-full px-3.5 py-2 text-xs font-bold ${tag.clase}`}>{tag.texto}</span>
         {obra.tipo_obra === 'interpretacion' && <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-2 text-xs font-bold">Interpretación</span>}
         {obra.piezas > 1 && <span className="absolute bottom-4 left-4 rounded-full bg-tinta px-3 py-1.5 text-xs font-bold text-white">{insigniaJuego(obra.piezas)}</span>}
-        {obra.tipo_obra === 'original' && obra.certificado && <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-2 text-xs font-bold">Original · Certificada</span>}
+        {obra.tipo_obra === 'original' && obra.certificado && <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-2 text-xs font-bold">Diseño propio · Certificado</span>}
       </Link>
       <div className={compacta ? 'p-4' : 'p-5 md:p-6'}>
         {obra.artista && <p className="text-[13px] font-semibold text-gris">{obra.artista}</p>}

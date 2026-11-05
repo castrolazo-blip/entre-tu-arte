@@ -14,14 +14,14 @@ export const ESTADOS = {
 }
 
 export const TIPOS_OBRA = {
-  original: 'Obra original',
+  original: 'Diseño propio',
   interpretacion: 'Interpretación',
 }
 
-// Texto para la ficha: "Obra original" o "Interpretación de «La noche estrellada» (Van Gogh)"
+// Texto para la ficha: "Diseño propio" o "Interpretación de «La noche estrellada» (Van Gogh)"
 export function textoTipo(f) {
   if (f.tipo_obra === 'interpretacion') return f.inspirada_en ? `Interpretación de ${f.inspirada_en}` : 'Interpretación de otra obra'
-  if (f.tipo_obra === 'original') return 'Obra original'
+  if (f.tipo_obra === 'original') return 'Diseño propio'
   return ''
 }
 

@@ -124,7 +124,7 @@ export default function SubirLote() {
       const obra = comun.mejorar ? mejorarImagen(recorte) : recorte
       const ambiente = dibujarAmbiente(obra, AMBIENTES[0], {})
       lienzos.current[item.id] = { obra, ambiente }
-      const etiqueta = comun.tipo_obra === 'interpretacion' ? 'Interpretación' : comun.certificado ? 'Original certificada' : 'Pieza única'
+      const etiqueta = comun.tipo_obra === 'interpretacion' ? 'Interpretación' : comun.certificado ? 'Diseño propio certificado' : 'Pieza única'
       const ficha = dibujarPublicacion('catalogo', { datos: { nombre: r.nombre, artista: artista?.nombre, tecnica: r.tecnica, existencias: etiqueta }, imagenes: { obra, ambiente } })
 
       actualizar(item.id, { estado: 'guardando' })
@@ -189,7 +189,7 @@ export default function SubirLote() {
       const l = lienzos.current[item.id]
       if (l) {
         const ambiente = dibujarAmbiente(l.obra, AMBIENTES[0], conjunto || { alto, ancho })
-        const etiqueta = comun.tipo_obra === 'interpretacion' ? 'Interpretación' : comun.certificado ? 'Original certificada' : 'Pieza única'
+        const etiqueta = comun.tipo_obra === 'interpretacion' ? 'Interpretación' : comun.certificado ? 'Diseño propio certificado' : 'Pieza única'
         const ficha = dibujarPublicacion('catalogo', { datos: { nombre: item.nombre, artista: artista?.nombre, tecnica: item.tecnica, medidas, precio: item.precio, existencias: etiqueta }, imagenes: { obra: l.obra, ambiente } })
         cambios.ficha_url = await subirArchivo('fichas', new File([await aBlob(ficha, 0.9)], 'ficha.jpg', { type: 'image/jpeg' }))
       }

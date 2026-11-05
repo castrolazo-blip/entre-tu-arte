@@ -73,7 +73,7 @@ export default function SubirObraIA() {
     : medidasTexto({ alto_cm: circular ? null : cm.alto, ancho_cm: circular ? null : cm.ancho, diametro_cm: circular ? cm.ancho : null })
   const edicion = campos.tipoExistencias === 'edicion'
   const textoExistencias = campos.tipo_obra === 'interpretacion' ? 'Interpretación'
-    : campos.certificado ? 'Original certificada' : edicion ? `Edición de ${campos.edicion_total || '—'}` : 'Pieza única'
+    : campos.certificado ? 'Diseño propio certificado' : edicion ? `Edición de ${campos.edicion_total || '—'}` : 'Pieza única'
 
   // ── IA ──
   const aplicarResultado = useCallback((r, orden) => {

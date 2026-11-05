@@ -1,13 +1,13 @@
 // Condiciones comerciales para artistas (texto de Entre tu Arte).
 // Si cambia el texto, sube la VERSION: cada solicitud guarda la versión que aceptó el vendedor.
-export const CONDICIONES_VERSION = '2026-11-03.2'
-export const CONDICIONES_FECHA = '2026-11-03'
+export const CONDICIONES_VERSION = '2026-11-05'
+export const CONDICIONES_FECHA = '2026-11-05'
 // La comisión se acuerda con cada artista; este es solo el valor que el panel sugiere al aprobar
 export const COMISION_SUGERIDA = 30
 
 export const CONDICIONES = [
   { titulo: 'Objeto del acuerdo', bloques: [
-    'Entre tu Arte es una plataforma dedicada a la promoción y comercialización de obras de arte originales.',
+    'Entre tu Arte es una plataforma dedicada a la promoción y comercialización de cuadros y obras de arte decorativo.',
     'Mediante este acuerdo, el artista autoriza a Entre tu Arte a publicar, promocionar y gestionar la venta de las obras que sean previamente aceptadas por la galería.',
     'La relación comercial se desarrolla bajo un modelo de consignación digital, sin que la publicación implique la transferencia de propiedad de las obras.',
   ] },

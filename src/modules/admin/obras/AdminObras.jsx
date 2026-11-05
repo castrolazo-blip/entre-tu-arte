@@ -126,7 +126,7 @@ export default function AdminObras() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{o.titulo}{o.origen === 'marketplace' && <span className="ml-1.5 rounded-full bg-mostaza px-2 py-0.5 align-middle text-[10px] font-bold">Marketplace</span>}</p>
                   <p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos'}</p>
-                  <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Original${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p>
+                  <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Diseño propio${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p>
                   <p className="mt-1 text-sm"><span className="font-bold">{precio(o.precio) || 'Sin precio'}</span><span className="text-gris"> · {etiquetaExistencias(o)}</span></p>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export default function AdminObras() {
                         {seleccion && <CasillaSeleccion n={seleccion.indexOf(o.id)} />}
                         {o.foto ? <img src={o.foto} alt="" className="h-12 w-16 shrink-0 rounded-xl object-cover" /> : <span className="h-12 w-16 shrink-0 rounded-xl bg-crema" />}
                         <div className="min-w-0"><p className="truncate font-semibold">{o.titulo}{o.origen === 'marketplace' && <span className="ml-1.5 rounded-full bg-mostaza px-2 py-0.5 align-middle text-[10px] font-bold">Marketplace</span>}</p><p className="truncate text-xs text-gris">{[o.artista, o.medidasTexto].filter(Boolean).join(' · ') || 'Sin datos (obra del sitio anterior)'}</p>
-                          <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Original${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p></div>
+                          <p className={`truncate text-xs font-semibold ${o.tipo_obra ? 'text-tinta' : 'text-red-700'}`}>{o.tipo_obra === 'interpretacion' ? 'Interpretación' : o.tipo_obra === 'original' ? `Diseño propio${o.certificado ? ' · con certificado' : ''}` : 'Tipo sin indicar'}</p></div>
                       </div>
                     </td>
                     <td className="px-3">

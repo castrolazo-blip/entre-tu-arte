@@ -3,7 +3,7 @@ export default function SelectorTipoObra({ tipo, inspiradaEn, certificado, onCha
   return (
     <div className="space-y-3">
       <div role="radiogroup" aria-label="Tipo de obra" className="grid grid-cols-2 rounded-full bg-crema-clara p-1 ring-1 ring-crema-borde">
-        {[['original', 'Obra original'], ['interpretacion', 'Interpretación']].map(([v, t]) => (
+        {[['original', 'Diseño propio'], ['interpretacion', 'Interpretación']].map(([v, t]) => (
           <button key={v} type="button" role="radio" aria-checked={tipo === v}
             onClick={() => onChange({ tipo_obra: v, certificado: v === 'original' ? certificado : false })}
             className={`h-10 rounded-full text-[13px] font-bold ${tipo === v ? 'bg-tinta text-white' : ''}`}>{t}</button>
@@ -30,7 +30,7 @@ export default function SelectorTipoObra({ tipo, inspiradaEn, certificado, onCha
 // Nota para la IA según el tipo de obra
 export function notaTipoParaIA(tipo, inspiradaEn) {
   if (tipo === 'interpretacion') return `Esta obra es una interpretación hecha por el artista${inspiradaEn ? `, inspirada en ${inspiradaEn}` : ' de una obra de otro artista'}. No la presentes como una obra original; puedes mencionar con respeto la obra que la inspira.`
-  if (tipo === 'original') return 'Es una obra original del artista.'
+  if (tipo === 'original') return 'Es un diseño propio del artista (no es una interpretación de otra obra). No uses las expresiones «arte original», «obra original» ni «pintura original».'
   return ''
 }
 

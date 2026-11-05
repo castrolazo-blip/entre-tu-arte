@@ -79,7 +79,7 @@ export default function Catalogo() {
         <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-3 text-sm font-semibold">Tipo
           <select value={tipo} onChange={e => cambiar('tipo', e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
-            <option value="">Todas</option><option value="original">Originales</option><option value="interpretacion">Interpretaciones</option>
+            <option value="">Todas</option><option value="original">Diseños propios</option><option value="interpretacion">Interpretaciones artísticas</option>
           </select>
         </label>
         <label className="flex items-center gap-3 text-sm font-semibold">Piezas
