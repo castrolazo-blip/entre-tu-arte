@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Mail, Phone, ExternalLink, Sparkles, Copy, Download } from 'lucide-react'
+import { Mail, Phone, ExternalLink, Sparkles, Copy, Download, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { fechaCorta } from '../../../lib/formato.js'
@@ -37,6 +37,15 @@ export default function AdminConsultas() {
     setConsultas(cs => cs.map(x => x.id === c.id ? { ...x, estado } : x))
   }
 
+  async function eliminar(c) {
+    if (!window.confirm(`¿Eliminar la consulta de ${c.nombre}? Esta acción no se puede deshacer.`)) return
+    const { error } = await supabase.from('consultas').delete().eq('id', c.id)
+    if (error) { toast.error('No se pudo eliminar: ' + error.message); return }
+    setConsultas(cs => cs.filter(x => x.id !== c.id))
+    setAbierta(null)
+    toast.success('Consulta eliminada')
+  }
+
   async function reservarObra(c) {
     if (!c.ficha_id) return
     const { error } = await supabase.from('fichas').update({ estado: 'reservada', reservada_hasta: new Date(Date.now() + 48 * 3600e3).toISOString() }).eq('id', c.ficha_id)
@@ -58,11 +67,14 @@ export default function AdminConsultas() {
             const wa = c.telefono ? `https://wa.me/${c.telefono.replace(/\D/g, '').replace(/^(\d{8})$/, '503$1')}` : null
             return (
               <article key={c.id} className="rounded-[24px] bg-white">
-                <button onClick={() => setAbierta(abierto ? null : c.id)} aria-expanded={abierto} className="flex w-full flex-wrap items-center gap-3 p-4 text-left md:p-5">
-                  <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${c.tipo === 'compra' ? 'bg-mostaza' : c.tipo === 'reserva' ? 'bg-tinta text-white' : 'bg-crema'}`}>{TIPOS[c.tipo] || c.tipo}</span>
-                  <span className="min-w-0 flex-1"><span className="block truncate font-bold">{c.nombre}</span><span className="block truncate text-sm text-gris">{c.ficha_titulo || c.mensaje || '—'}</span></span>
-                  <span className="text-xs text-gris">{fechaCorta(c.created_at)}</span>
-                  {c.estado === 'nueva' && <span className="h-2.5 w-2.5 rounded-full bg-mostaza" aria-label="Nueva" />}
+                <button onClick={() => setAbierta(abierto ? null : c.id)} aria-expanded={abierto} className="flex w-full items-start gap-3 p-4 text-left md:p-5">
+                  <span className={`mt-0.5 shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${c.tipo === 'compra' ? 'bg-mostaza' : c.tipo === 'reserva' ? 'bg-tinta text-white' : 'bg-crema'}`}>{TIPOS[c.tipo] || c.tipo}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block font-bold leading-snug ${abierto ? '' : 'line-clamp-2'}`}>{c.nombre}</span>
+                    <span className={`block text-sm text-gris ${abierto ? '' : 'truncate'}`}>{c.ficha_titulo || c.mensaje || '—'}</span>
+                    <span className="mt-0.5 block text-xs text-gris">{fechaCorta(c.created_at)}</span>
+                  </span>
+                  {c.estado === 'nueva' && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-mostaza" aria-label="Nueva" />}
                 </button>
                 {abierto && (
                   <div className="border-t border-[#efebe4] p-4 md:p-5">
@@ -131,6 +143,7 @@ export default function AdminConsultas() {
                         <select value={c.estado} onChange={e => cambiarEstado(c, e.target.value)} className="ml-2 h-10 rounded-full border border-crema-borde px-3">{ESTADOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select>
                       </label>
                       {c.tipo === 'reserva' && c.ficha_id && <button onClick={() => reservarObra(c)} className="btn-primario btn-chico">Reservar la obra 48 h</button>}
+                      <button onClick={() => eliminar(c)} className="ml-auto flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-red-700 ring-1 ring-red-200 hover:bg-red-50"><Trash2 size={16} />Eliminar</button>
                     </div>
                   </div>
                 )}
