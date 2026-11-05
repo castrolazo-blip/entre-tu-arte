@@ -73,3 +73,27 @@ jobs:
             echo "$(curl -s -o /dev/null -w '%{http_code}' "$u") $u"
           done
 
+      - name: Confirmar que entretuarte.com sirve esta versión y sus textos clave
+        run: |
+          SITIO=https://entretuarte.com
+          esperada=${GITHUB_SHA::7}
+          for intento in 1 2 3 4 5 6 7 8 9 10; do
+            publicada=$(curl -s "$SITIO/version.json?t=$RANDOM" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
+            [ "$publicada" = "$esperada" ] && break
+            echo "Intento $intento: versión publicada $publicada, esperada $esperada…"; sleep 15
+          done
+          echo "Versión en línea: $publicada (esperada $esperada)"
+          [ "$publicada" = "$esperada" ] || { echo "ERROR: entretuarte.com no sirve esta versión"; exit 1; }
+          curl -s "$SITIO/?t=$RANDOM" -o inicio.html
+          echo "Título: $(grep -o '<title>[^<]*' inicio.html | cut -c8-)"
+          app=$(grep -o '/assets/index-[^"]*\.js' inicio.html | head -1)
+          curl -s "$SITIO$app" -o app.js
+          revisar() { if grep -q "$2" "$1"; then echo "  sí: $2"; else echo "  no: $2"; fi; }
+          echo "Textos en $app:"
+          for t in "Diseño propio" "Diseños propios" "Interpretaciones artísticas" "Obra original" "Originales"; do revisar app.js "$t"; done
+          trozo=$(grep -o 'condiciones-[A-Za-z0-9_-]*\.js' app.js | head -1)
+          if [ -n "$trozo" ]; then
+            curl -s "$SITIO/assets/$trozo" -o condiciones.js
+            echo "Textos en $trozo:"
+            for t in "cuadros y obras de arte decorativo" "obras de arte originales" "2026-11-05"; do revisar condiciones.js "$t"; done
+          fi
