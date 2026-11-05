@@ -89,7 +89,9 @@ jobs:
           app=$(grep -o '/assets/index-[^"]*\.js' inicio.html | head -1)
           curl -s "$SITIO$app" -o app.js
           revisar() { if grep -q "$2" "$1"; then echo "  sí: $2"; else echo "  no: $2"; fi; }
-          echo "Textos en $app:"
+          # La app y todas sus partes que se cargan aparte (catálogo, obra, condiciones…)
+          for parte in $(grep -o '[A-Za-z]*-[A-Za-z0-9_-]\{8\}\.js' app.js | sort -u); do curl -s "$SITIO/assets/$parte" >> app.js; done
+          echo "Textos en la app publicada ($app y sus partes):"
           for t in "Diseño propio" "Diseños propios" "Interpretaciones artísticas" "Obra original" "Originales"; do revisar app.js "$t"; done
           trozo=$(grep -o 'condiciones-[A-Za-z0-9_-]*\.js' app.js | head -1)
           if [ -n "$trozo" ]; then
