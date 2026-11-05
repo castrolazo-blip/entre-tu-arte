@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ImagePlus, Plus, Trash2, Check, Loader2, Palette, Frame } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -17,7 +17,6 @@ export default function Vender() {
   const [acepto, setAcepto] = useState(false)
   const [enviando, setEnviando] = useState(0)   // 0 = no; n = cuadro que se está enviando
   const [listo, setListo] = useState(false)
-  useEffect(() => { document.title = 'Vende tus cuadros · Entre tu Arte' }, [])
 
   const v = k => e => setVendedor(x => ({ ...x, [k]: e.target.value }))
   const cambiar = (id, k, valor) => setCuadros(l => l.map(c => c.id === id ? { ...c, [k]: valor } : c))

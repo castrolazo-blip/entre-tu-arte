@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { obtenerArtista } from './artistasService.js'
+import { aplicarSEO, seoArtista } from '../../lib/seo.js'
 import { listarObras } from '../catalogo/obrasService.js'
 import TarjetaObra from '../../components/obras/TarjetaObra.jsx'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
@@ -14,6 +15,7 @@ export default function ArtistaDetalle() {
   useEffect(() => {
     obtenerArtista(slug).then(a => {
       setArtista(a)
+      if (a) aplicarSEO(seoArtista(a))
       if (a) listarObras({ artistaId: a.id }).then(setObras).catch(() => {})
     }).catch(() => setArtista(null))
   }, [slug])

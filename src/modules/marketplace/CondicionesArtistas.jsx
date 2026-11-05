@@ -1,11 +1,10 @@
-import { useEffect } from 'react'
+
 import { Link } from 'react-router-dom'
 import { Printer, ArrowRight } from 'lucide-react'
 import { CONDICIONES, CONDICIONES_FECHA } from './condiciones.js'
 
 // Condiciones comerciales para artistas: página pública, imprimible (o "guardar como PDF").
 export default function CondicionesArtistas() {
-  useEffect(() => { document.title = 'Condiciones comerciales para artistas · Entre tu Arte' }, [])
   const fecha = new Date(CONDICIONES_FECHA + 'T12:00:00').toLocaleDateString('es-SV', { day: 'numeric', month: 'long', year: 'numeric' })
   return (
     <div className="contenedor pb-28 pt-28 md:pt-36">

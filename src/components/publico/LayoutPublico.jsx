@@ -6,6 +6,7 @@ import Footer from './Footer.jsx'
 import { registrarEvento } from '../../lib/analytics.js'
 import { useCarrito } from '../../context/CarritoContext.jsx'
 import { useRestaurarScroll } from '../../lib/scroll.js'
+import { PAGINAS_SEO, aplicarSEO } from '../../lib/seo.js'
 
 export const MENU = [
   { to: '/', etiqueta: 'Inicio', fin: true },
@@ -28,6 +29,8 @@ export default function LayoutPublico() {
 
   useRestaurarScroll()
   useEffect(() => { setAbierto(false); registrarEvento('visita', pathname) }, [pathname])
+  // Páginas fijas: su título y descripción; las de una obra, artista o artículo los ponen ellas
+  useEffect(() => { if (PAGINAS_SEO[pathname]) aplicarSEO(PAGINAS_SEO[pathname]) }, [pathname])
   useEffect(() => {
     const f = () => setScroll(window.scrollY > 40)
     f(); window.addEventListener('scroll', f, { passive: true })

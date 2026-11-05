@@ -6,6 +6,7 @@ import { precio } from '../../lib/formato.js'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
 import { nombreJuego } from '../../lib/piezas.js'
 import { registrarEvento } from '../../lib/analytics.js'
+import { aplicarSEO, seoObra } from '../../lib/seo.js'
 import FormularioConsulta from '../../components/obras/FormularioConsulta.jsx'
 import TarjetaObra from '../../components/obras/TarjetaObra.jsx'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
@@ -33,12 +34,11 @@ export default function ObraDetalle() {
     obtenerObra(id).then(o => {
       setObra(o)
       if (!o) return
-      document.title = `${o.titulo} · Entre tu Arte`
+      aplicarSEO(seoObra(o))
       registrarEvento('ver_obra', '/obra', o.id, o.titulo)
       const cat = (o.categorias || [])[0]
       listarObras({ estado: 'en_venta', categoria: o.origen === 'marketplace' ? undefined : cat, limite: 5, origen: o.origen === 'marketplace' ? 'marketplace' : 'entre_tu_arte' }).then(l => setSimilares(l.filter(x => x.id !== o.id).slice(0, 4))).catch(() => {})
     }).catch(() => setObra(null))
-    return () => { document.title = 'Entre tu Arte · Arte que transforma espacios' }
   }, [id])
 
   if (obra === undefined) return <div className="pt-28"><CargandoModulo /></div>

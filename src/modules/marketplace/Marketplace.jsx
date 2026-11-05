@@ -10,7 +10,6 @@ import CargandoModulo from '../../components/CargandoModulo.jsx'
 export default function Marketplace() {
   const [obras, setObras] = useState(null)
   useEffect(() => {
-    document.title = 'Marketplace · Entre tu Arte'
     listarObras({ estado: 'en_venta', origen: 'marketplace' }).then(setObras).catch(() => setObras([]))
   }, [])
   const fondo = obras?.find(o => o.foto)?.foto

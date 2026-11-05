@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { obtenerArticulo } from './blogService.js'
+import { aplicarSEO, seoArticulo } from '../../lib/seo.js'
 import { fechaCorta } from '../../lib/formato.js'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
 
 export default function Articulo() {
   const { id } = useParams()
   const [a, setA] = useState(undefined)
-  useEffect(() => { obtenerArticulo(id).then(setA).catch(() => setA(null)) }, [id])
+  useEffect(() => { obtenerArticulo(id).then(b => { setA(b); if (b) aplicarSEO(seoArticulo(b)) }).catch(() => setA(null)) }, [id])
   if (a === undefined) return <div className="pt-28"><CargandoModulo /></div>
   if (!a) return <div className="contenedor pb-24 pt-36 text-center"><h1 className="text-3xl font-semibold">Artículo no encontrado</h1><Link to="/blog" className="btn-oscuro mt-8">Volver al blog</Link></div>
   const bloques = [[a.bloque1, a.imagen1_url], [a.bloque2, a.imagen2_url], [a.bloque3, a.imagen3_url]]

@@ -6,8 +6,8 @@
 // Si Supabase no responde, se publican solo las páginas fijas y la publicación sigue adelante.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { SITIO, PAGINAS_SEO, tituloCompleto, seoObra, seoArtista, seoArticulo } from '../src/lib/seo.js'
 
-const SITIO = 'https://entretuarte.com'
 const DIST = 'dist'
 const base = readFileSync(join(DIST, 'index.html'), 'utf8')
 
@@ -16,19 +16,20 @@ const conf = readFileSync('src/lib/supabase.js', 'utf8')
 const SUPABASE_URL = /SUPABASE_URL\s*=\s*'([^']+)'/.exec(conf)?.[1]
 const ANON = /SUPABASE_ANON_KEY\s*=\s*'([^']+)'/.exec(conf)?.[1]
 
+// Prioridad y frecuencia para el sitemap; título y descripción salen de src/lib/seo.js
 const PAGINAS = [
   { ruta: '/', prioridad: '1.0', frecuencia: 'daily' },
-  { ruta: '/obras', prioridad: '0.9', frecuencia: 'daily', titulo: 'Obras de arte decorativo', descripcion: 'Cuadros decorativos pintados a mano, en existencia y por pedido. Elige por colección, formato y tamaño para tu espacio.' },
-  { ruta: '/por-pedido', prioridad: '0.8', frecuencia: 'weekly', titulo: 'Obras por pedido', descripcion: 'Cuadros que el artista vuelve a pintar para ti, también a tu medida o en tus colores.' },
-  { ruta: '/marketplace', prioridad: '0.8', frecuencia: 'daily', titulo: 'Marketplace de cuadros de El Salvador', descripcion: 'Cuadros de artistas salvadoreños y coleccionistas, a la venta a través de Entre tu Arte con compra segura y entrega coordinada.' },
-  { ruta: '/colecciones', prioridad: '0.7', frecuencia: 'weekly', titulo: 'Colecciones', descripcion: 'Colecciones de arte decorativo para sala, comedor, habitación, oficina y más.' },
-  { ruta: '/artistas', prioridad: '0.7', frecuencia: 'weekly', titulo: 'Nuestros artistas', descripcion: 'Conoce a los artistas que pintan a mano cada obra de Entre tu Arte.' },
-  { ruta: '/nosotros', prioridad: '0.7', frecuencia: 'monthly', titulo: 'Nuestra historia', descripcion: 'Arte decorativo pintado a mano que se adapta a tu estilo y a tu espacio. Conoce Entre tu Arte.' },
-  { ruta: '/asesoria', prioridad: '0.6', frecuencia: 'monthly', titulo: 'Asesoría para tu espacio', descripcion: 'Envíanos una foto de tu pared y te recomendamos la obra y el tamaño ideal.' },
-  { ruta: '/blog', prioridad: '0.6', frecuencia: 'weekly', titulo: 'Ideas para decorar', descripcion: 'Ideas y consejos para decorar con arte tu hogar u oficina.' },
-  { ruta: '/condiciones-artistas', prioridad: '0.3', frecuencia: 'yearly', titulo: 'Condiciones comerciales para artistas', descripcion: 'Condiciones del programa de comercialización de obras de Entre tu Arte: comisión, pagos, entrega, promoción y responsabilidades.' },
-  { ruta: '/vender', prioridad: '0.5', frecuencia: 'monthly', titulo: 'Vende tus cuadros', descripcion: 'Artistas y coleccionistas: publica tus cuadros en el Marketplace de Entre tu Arte. Nosotros atendemos a los compradores.' },
-]
+  { ruta: '/obras', prioridad: '0.9', frecuencia: 'daily' },
+  { ruta: '/por-pedido', prioridad: '0.8', frecuencia: 'weekly' },
+  { ruta: '/marketplace', prioridad: '0.8', frecuencia: 'daily' },
+  { ruta: '/colecciones', prioridad: '0.7', frecuencia: 'weekly' },
+  { ruta: '/artistas', prioridad: '0.7', frecuencia: 'weekly' },
+  { ruta: '/nosotros', prioridad: '0.7', frecuencia: 'monthly' },
+  { ruta: '/asesoria', prioridad: '0.6', frecuencia: 'monthly' },
+  { ruta: '/blog', prioridad: '0.6', frecuencia: 'weekly' },
+  { ruta: '/condiciones-artistas', prioridad: '0.3', frecuencia: 'yearly' },
+  { ruta: '/vender', prioridad: '0.5', frecuencia: 'monthly' },
+].map(p => ({ ...p, ...(PAGINAS_SEO[p.ruta] || {}) }))
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const recortar = (s, n = 160) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t }
@@ -46,12 +47,12 @@ async function leer(tabla, consulta) {
 }
 
 // Página HTML con sus propios metadatos (mismo contenido que index.html; la app carga igual)
-function pagina({ ruta, titulo, descripcion, imagen }) {
+function pagina({ ruta, titulo, descripcion, imagen, datos }) {
   const url = SITIO + ruta
   let html = base
   const reemplazar = (patron, valor) => { html = html.replace(patron, valor) }
   if (titulo) {
-    const t = esc(`${titulo} · Entre tu Arte`)
+    const t = esc(tituloCompleto(titulo))
     reemplazar(/<title>[^<]*<\/title>/, `<title>${t}</title>`)
     reemplazar(/(<meta property="og:title" content=")[^"]*(")/, `$1${t}$2`)
   }
@@ -63,6 +64,8 @@ function pagina({ ruta, titulo, descripcion, imagen }) {
   if (imagen) reemplazar(/(<meta property="og:image" content=")[^"]*(")/, `$1${esc(imagen)}$2`)
   reemplazar(/(<link rel="canonical" href=")[^"]*(")/, `$1${esc(url)}$2`)
   reemplazar(/(<meta property="og:url" content=")[^"]*(")/, `$1${esc(url)}$2`)
+  // Datos estructurados de la página (p. ej. producto con precio y disponibilidad)
+  if (datos) html = html.replace('</head>', () => `<script type="application/ld+json">${JSON.stringify(datos).replace(/</g, '\\u003c')}</script></head>`)
   if (ruta !== '/') {
     const archivo = join(DIST, ruta.slice(1) + '.html')
     mkdirSync(dirname(archivo), { recursive: true })
@@ -85,18 +88,30 @@ for (const f of fichas) {
   if (marketplace && f.estado === 'vendida') continue   // ya no se puede comprar
   const foto = (Array.isArray(f.fotos) && f.fotos.find(x => x?.url)?.url) || f.imagen_url || null
   const ruta = `/obra/${f.id}`
-  pagina({ ruta, titulo: f.titulo || 'Obra', descripcion: f.descripcion || `${f.titulo || 'Obra'}${f.medidas ? ` · ${f.medidas}` : ''}. Arte decorativo pintado a mano en Entre tu Arte.`, imagen: foto })
+  const seo = seoObra(f)
+  const precio = Number(f.precio) || 0
+  const datos = {
+    '@context': 'https://schema.org', '@type': 'Product',
+    name: f.titulo || 'Cuadro decorativo', description: seo.descripcion,
+    image: foto || undefined, category: 'Cuadros decorativos', brand: { '@type': 'Brand', name: 'Entre tu Arte' },
+    ...(precio ? { offers: {
+      '@type': 'Offer', url: SITIO + ruta, priceCurrency: 'USD', price: precio,
+      availability: f.estado === 'vendida' ? 'https://schema.org/PreOrder' : f.estado === 'reservada' ? 'https://schema.org/LimitedAvailability' : 'https://schema.org/InStock',
+      areaServed: 'SV',
+    } } : {}),
+  }
+  pagina({ ruta, ...seo, imagen: foto, datos })
   urls.push({ loc: SITIO + ruta, lastmod: fecha(f.updated_at || f.created_at), prioridad: '0.8', frecuencia: 'weekly', imagen: foto, tituloImagen: f.titulo })
 }
 for (const a of artistas) {
   if (!a.slug) continue
   const ruta = `/artistas/${encodeURIComponent(a.slug)}`
-  pagina({ ruta, titulo: a.nombre, descripcion: a.bio || `Obras de ${a.nombre} en Entre tu Arte.`, imagen: a.foto_url })
+  pagina({ ruta, ...seoArtista(a), imagen: a.foto_url })
   urls.push({ loc: SITIO + ruta, lastmod: fecha(a.updated_at || a.created_at), prioridad: '0.6', frecuencia: 'weekly' })
 }
 for (const b of blogs) {
   const ruta = `/blog/${b.id}`
-  pagina({ ruta, titulo: b.titulo, descripcion: b.resumen || b.contenido, imagen: b.portada_url || b.imagen_url })
+  pagina({ ruta, ...seoArticulo(b), imagen: b.portada_url || b.imagen_url })
   urls.push({ loc: SITIO + ruta, lastmod: fecha(b.updated_at || b.created_at), prioridad: '0.5', frecuencia: 'monthly' })
 }
 
