@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { listarObras, listarCategorias } from '../catalogo/obrasService.js'
 import { precio } from '../../lib/formato.js'
 import { useConfig } from '../../context/ConfigContext.jsx'
+import { leerOrden, ordenarObras } from '../../lib/ordenObras.js'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
 import FormularioConsulta from '../../components/obras/FormularioConsulta.jsx'
 
@@ -18,7 +19,7 @@ export default function Vendidas() {
     listarObras({ estado: 'vendida' }).then(setObras).catch(() => setObras([]))
     listarCategorias().then(setCategorias).catch(() => {})
   }, [])
-  const lista = useMemo(() => (obras || []).filter(o => !filtro || (o.categorias || []).includes(filtro)), [obras, filtro])
+  const lista = useMemo(() => ordenarObras(obras || [], leerOrden(cfg)).filter(o => !filtro || (o.categorias || []).includes(filtro)), [obras, filtro, cfg])
   const fondo = obras?.[0]?.foto
 
   return (

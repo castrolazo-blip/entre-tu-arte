@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Sparkles, Search, Star, Pencil, Trash2, ExternalLink, Combine } from 'lucide-react'
+import { Sparkles, Search, Star, Pencil, Trash2, ExternalLink, Combine, ArrowUpDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { precio } from '../../../lib/formato.js'
@@ -97,6 +97,7 @@ export default function AdminObras() {
     <>
       <EncabezadoAdmin ruta="Catálogo" titulo="Obras">
         <button onClick={() => setSeleccion(s => s ? null : [])} className={`btn-chico ${seleccion ? 'btn-oscuro' : 'btn-contorno'}`}><Combine size={17} />{seleccion ? 'Cancelar selección' : 'Seleccionar / unir'}</button>
+        <Link to="/admin/ordenar" className="btn-contorno btn-chico"><ArrowUpDown size={17} />Ordenar</Link>
         <Link to="/admin/lote" className="btn-contorno btn-chico">Subir varias</Link>
         <Link to="/admin/subir" className="btn-primario btn-chico"><Sparkles size={18} />Subir obra con IA</Link>
       </EncabezadoAdmin>

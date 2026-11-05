@@ -13,6 +13,7 @@ export const CONFIG_POR_DEFECTO = {
   banner_titulo: 'Obras de la semana',
   portada_segundos: '6',
   pedido_tiempo: '3 a 4 semanas',
+  orden_obras: '[]',
   pedido_anticipo: '25',
   // Nuestra historia (mismas claves que la página anterior)
   nos_titulo: 'Nuestra historia',

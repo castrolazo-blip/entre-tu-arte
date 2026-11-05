@@ -28,6 +28,7 @@ const Login              = lazy(() => import('./modules/auth/Login.jsx'))
 const LayoutAdmin        = lazy(() => import('./modules/admin/LayoutAdmin.jsx'))
 const Resumen            = lazy(() => import('./modules/admin/Resumen.jsx'))
 const AdminObras         = lazy(() => import('./modules/admin/obras/AdminObras.jsx'))
+const OrdenarObras       = lazy(() => import('./modules/admin/obras/OrdenarObras.jsx'))
 const SubirObraIA        = lazy(() => import('./modules/admin/publicar/SubirObraIA.jsx'))
 const SubirLote          = lazy(() => import('./modules/admin/publicar/SubirLote.jsx'))
 const AdminPortadas      = lazy(() => import('./modules/admin/portadas/AdminPortadas.jsx'))
@@ -75,6 +76,7 @@ export default function App() {
                 <Route path="admin" element={<RutaAdmin><LayoutAdmin /></RutaAdmin>}>
                   <Route index element={<Resumen />} />
                   <Route path="obras" element={<AdminObras />} />
+                  <Route path="ordenar" element={<OrdenarObras />} />
                   <Route path="subir" element={<SubirObraIA />} />
                   <Route path="lote" element={<SubirLote />} />
                   <Route path="portadas" element={<AdminPortadas />} />

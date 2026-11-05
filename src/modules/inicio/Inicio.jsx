@@ -11,6 +11,7 @@ import TituloSeccion from '../../components/TituloSeccion.jsx'
 import FondoImagen from '../../components/FondoImagen.jsx'
 import { precio } from '../../lib/formato.js'
 import { useConfig } from '../../context/ConfigContext.jsx'
+import { leerOrden, ordenarObras } from '../../lib/ordenObras.js'
 
 export default function Inicio() {
   const { cfg } = useConfig()
@@ -22,9 +23,10 @@ export default function Inicio() {
     listarPortadasPublicas().then(setPortadas)
   }, [])
 
-  const enVenta = useMemo(() => obras.filter(o => o.estadoEfectivo !== 'vendida'), [obras])
+  const ordenadas = useMemo(() => ordenarObras(obras, leerOrden(cfg)), [obras, cfg])
+  const enVenta = useMemo(() => ordenadas.filter(o => o.estadoEfectivo !== 'vendida'), [ordenadas])
   const destacadas = useMemo(() => enVenta.filter(o => o.destacada).sort((a, b) => (a.orden_destacada ?? 999) - (b.orden_destacada ?? 999)), [enVenta])
-  const vendidas = useMemo(() => { const v = obras.filter(o => o.estadoEfectivo === 'vendida'); return [...v.filter(o => o.fotoReal), ...v.filter(o => !o.fotoReal)].slice(0, 4) }, [obras])
+  const vendidas = useMemo(() => { const v = ordenadas.filter(o => o.estadoEfectivo === 'vendida'); return [...v.filter(o => o.fotoReal), ...v.filter(o => !o.fotoReal)].slice(0, 4) }, [ordenadas])
   // Primero las obras con foto real; las del sitio anterior (ficha con texto) al final
   const recientes = useMemo(() => [...enVenta.filter(o => o.fotoReal), ...enVenta.filter(o => !o.fotoReal)].slice(0, 10), [enVenta])
   const conFotoReal = useMemo(() => obras.filter(o => o.fotoReal), [obras])

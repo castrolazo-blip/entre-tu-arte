@@ -6,8 +6,11 @@ import TituloSeccion from '../../components/TituloSeccion.jsx'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
 import { listarObras, listarCategorias } from './obrasService.js'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
+import { useConfig } from '../../context/ConfigContext.jsx'
+import { leerOrden, ordenarObras } from '../../lib/ordenObras.js'
 
 const ORDENES = [
+  ['recomendado', 'Recomendado'],
   ['recientes', 'Más recientes'],
   ['precio_asc', 'Precio: menor a mayor'],
   ['precio_desc', 'Precio: mayor a menor'],
@@ -19,7 +22,8 @@ const memoria = new Map()
 export default function Catalogo() {
   const [params, setParams] = useSearchParams()
   const coleccion = params.get('coleccion') || ''
-  const orden = params.get('orden') || 'recientes'
+  const orden = params.get('orden') || 'recomendado'
+  const { cfg } = useConfig()
   const q = params.get('q') || ''
   const formato = params.get('formato') || ''
   const tipo = params.get('tipo') || ''
@@ -35,12 +39,13 @@ export default function Catalogo() {
   useEffect(() => { if (params.get('buscar')) buscador.current?.focus() }, [params])
   useEffect(() => {
     setObras(memoria.get(claveLista) || null)
-    listarObras({ estado: 'publicas', categoria: coleccion || undefined, orden, busqueda: q || undefined })
+    listarObras({ estado: 'publicas', categoria: coleccion || undefined, orden: orden === 'recomendado' ? 'recientes' : orden, busqueda: q || undefined })
       .then(l => { memoria.set(claveLista, l); setObras(l) }).catch(() => { if (!memoria.has(claveLista)) setObras([]) })
   }, [coleccion, orden, q])
 
  const porPedido = o => o.estadoEfectivo === 'vendida'
-  const lista = (obras || []).filter(o => (!disp || (disp === 'pedido' ? porPedido(o) : !porPedido(o))) && (!formato || orientacionPorMedidas(o) === formato) && (!tipo || o.tipo_obra === tipo) && (!piezas || (piezas === 'juego' ? o.piezas > 1 : o.piezas === 1)))
+  const base = orden === 'recomendado' ? ordenarObras(obras || [], leerOrden(cfg)) : (obras || [])
+  const lista = base.filter(o => (!disp || (disp === 'pedido' ? porPedido(o) : !porPedido(o))) && (!formato || orientacionPorMedidas(o) === formato) && (!tipo || o.tipo_obra === tipo) && (!piezas || (piezas === 'juego' ? o.piezas > 1 : o.piezas === 1)))
     .sort((a, b) => porPedido(a) - porPedido(b))
 
   function cambiar(clave, valor) {
@@ -94,7 +99,7 @@ export default function Catalogo() {
           </select>
         </label>
         <label className="flex items-center gap-3 text-sm font-semibold">Ordenar
-          <select value={orden} onChange={e => cambiar('orden', e.target.value === 'recientes' ? '' : e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
+          <select value={orden} onChange={e => cambiar('orden', e.target.value === 'recomendado' ? '' : e.target.value)} className="h-11 rounded-full border border-crema-borde bg-white px-4">
             {ORDENES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
         </label>
