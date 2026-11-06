@@ -66,6 +66,15 @@ Nada de esto aparece en Google (`noindex` y `robots.txt`) ni en el menú de la t
    - Si el correo de confirmación no llega: Supabase › Authentication › Users › el usuario › *Confirm email*. El correo gratuito de Supabase envía pocos mensajes por hora.
 5. El mensaje a las familias dice «Pueden hacer la entrega de cartas con **el matrimonio Castro Lazo (Ronald 7000-0000 · Ana 7111-1111)**».
 
+## 1d. Clasificación de las cartas
+No hay remitentes esperados: las cartas quedan abiertas a quien quiera enviarlas. Cada carta se **clasifica**
+por quién la envía: Papá, Mamá, Hijo, Hija, Hermano, Hermana, Abuelo/a, Nieto/a, Tío/a, Primo/a, Sobrino/a,
+Suegro/a, Cuñado/a, Padrino, Madrina, Ahijado/a, Amigo/a, Compañero de trabajo, Sacerdote / religioso,
+o en grupo (Papás, Hijos, Hermanos, Abuelos, Tíos, Suegros, Amigos, Familia) u «Otro».
+- En el formulario es obligatoria (botones) y el nombre es opcional para los contactos de familia.
+- En «Registrar cartas recibidas» cada línea lleva la clasificación y un nombre opcional.
+- La ficha de cada pareja muestra el desglose («Hermana 2 · Papá 1…») y la bandeja filtra por clasificación.
+
 ## 2. Roles
 
 | Rol | Puede |

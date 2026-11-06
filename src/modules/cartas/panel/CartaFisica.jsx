@@ -4,9 +4,9 @@ import { Camera, Trash2, Paperclip, Plus, Mail, Package } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { registrarCartaFisica, tipoDeArchivo, firmaValida } from '../cartasService.js'
 import { ACEPTA, mensajeError, nombrePareja, apodo } from '../constantes.js'
-import { Modal, btn } from '../ui.jsx'
+import { Modal, SelectRelacion, btn } from '../ui.jsx'
 
-const linea = () => ({ de: '', para: 'ambos', archivos: [] })
+const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [] })
 
 // Registro de cartas que llegan en papel (paquete de la familia) o por correo (cartasrenova@gmail.com).
 // En papel no hace falta foto: la carta ya viene impresa y va directo al sobre. Por correo se adjunta el archivo para imprimirlo.
@@ -21,7 +21,6 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
   const [guardando, setGuardando] = useState(null)
   const pareja = parejas.find(p => p.id === parejaId)
   const contactos = remitentes.filter(r => r.pareja_id === parejaId && r.coordinador)
-  const esperados = remitentes.filter(r => r.pareja_id === parejaId && !r.coordinador)
   const set = (i, k, v) => setLineas(ls => ls.map((l, j) => (j === i ? { ...l, [k]: v } : l)))
 
   async function adjuntar(i, lista) {
@@ -45,18 +44,19 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
   async function guardar(e) {
     e.preventDefault()
     if (!pareja) return toast.error('Elige la pareja')
-    // Cada línea es una carta; si no se sabe quién la envía queda como «Sin identificar»
-    const finales = lineas.map(l => ({ ...l, de: l.de.trim() || 'Sin identificar' }))
+    // Cada línea es una carta; se clasifica por quién la envía (papá, hermana…). Sin dato: «Sin identificar»
+    const finales = lineas.map(l => ({ ...l, de: l.de.trim() || l.relacion.trim() || 'Sin identificar' }))
+    const sinClasificar = lineas.filter(l => !l.relacion.trim()).length
+    if (sinClasificar && !window.confirm(`${sinClasificar} ${sinClasificar === 1 ? 'carta no tiene' : 'cartas no tienen'} indicado quién la envía. ¿Registrar de todos modos?`)) return
     if (origen === 'correo' && finales.some(l => !l.archivos.length) && !window.confirm('Hay cartas por correo sin archivo adjunto. Sin el archivo no se podrán imprimir. ¿Registrar de todos modos?')) return
     const coord = contactos.find(c => c.id === coordinadorId)
     setGuardando(`0 de ${finales.length}`)
     let hechas = 0
     try {
       for (const l of finales) {
-        const rem = esperados.find(r => r.nombre.trim().toLowerCase() === l.de.toLowerCase())
         await registrarCartaFisica({
           carta: { retiro_id: retiro.id, pareja_id: pareja.id, destinatario: l.para, remitente_nombre: l.de, origen,
-            remitente_id: rem?.id || null, coordinador_id: coord?.id || null, recibida_de: coord?.nombre || entrego.trim() || null },
+            relacion: l.relacion.trim() || null, coordinador_id: coord?.id || null, recibida_de: coord?.nombre || entrego.trim() || null },
           texto: finales.length === 1 ? texto : '', archivos: l.archivos, puedeLeer,
         })
         hechas++; setGuardando(`${hechas} de ${finales.length}`)
@@ -102,7 +102,7 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
 
         {pareja && (
           <div>
-            <p className="etiqueta mb-2">Cartas (una línea por carta: «De» como viene escrito en la carta)</p>
+            <p className="etiqueta mb-2">Cartas: una línea por carta, con quién la envía y para quién</p>
             <ul className="space-y-2">
               {lineas.map((l, i) => (
                 <LineaCarta key={i} l={l} i={i} nombreA={nombreA} nombreB={nombreB} conArchivo={origen === 'correo'}
@@ -118,8 +118,8 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
               <button type="button" onClick={() => agregarVarias('ambos')} className={btn.mini}>Varias para ambos</button>
             </div>
             <p className="mt-2 text-xs text-gris">{origen === 'fisica'
-              ? 'Las cartas en papel no se abren ni se fotografían: solo se cuentan y van a su sobre. Si no se sabe quién la envía, deja «De» vacío.'
-              : 'Adjunta el archivo del correo (PDF, Word o foto del escaneo) para poder imprimirlo. En «De» copia lo que dice el asunto.'}</p>
+              ? 'Las cartas en papel no se abren ni se fotografían: se clasifican con lo que dice el sobre («De: hermano») y van a su sobre.'
+              : 'Adjunta el archivo del correo (PDF, Word o foto del escaneo) para poder imprimirlo. Toma quién la envía del asunto.'}</p>
           </div>
         )}
         {pareja && puedeLeer && lineas.length === 1 && origen === 'correo' && (
@@ -138,8 +138,9 @@ function LineaCarta({ l, i, nombreA, nombreB, conArchivo, onCambio, onAdjuntar, 
     <li className="rounded-2xl bg-crema-clara p-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="w-6 text-center text-xs font-bold text-gris">{i + 1}</span>
-        <input value={l.de} onChange={e => onCambio('de', e.target.value)} placeholder="De: hermano, papás, amiga Ana…" aria-label={`De, carta ${i + 1}`}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter() } }} className="campo h-10 min-w-[160px] flex-1 bg-white" />
+        <SelectRelacion valor={l.relacion} onCambio={v => onCambio('relacion', v)} className="min-w-[170px] flex-1" />
+        <input value={l.de} onChange={e => onCambio('de', e.target.value)} placeholder="Nombre (opcional)" aria-label={`Nombre, carta ${i + 1}`}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter() } }} className="campo h-10 min-w-[120px] flex-1 bg-white" />
         <span className="flex overflow-hidden rounded-full border border-crema-borde bg-white text-[13px] font-semibold">
           {[['A', nombreA], ['B', nombreB], ['ambos', 'Ambos']].map(([v, t]) => (
             <button type="button" key={v} onClick={() => onCambio('para', v)} aria-pressed={l.para === v}

@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
-import { ESTADOS_CARTA, ESTADOS_REMITENTE, ESTADOS_RETIRO, COLOR_SEMAFORO, TEXTO_SEMAFORO } from './constantes.js'
+import { ESTADOS_CARTA, ESTADOS_REMITENTE, ESTADOS_RETIRO, COLOR_SEMAFORO, TEXTO_SEMAFORO, RELACIONES, RELACIONES_GRUPO } from './constantes.js'
 
 // Piezas visuales pequeñas del módulo Cartas con Amor
 
@@ -79,4 +79,49 @@ export const btn = {
   contorno: 'inline-flex h-11 items-center justify-center gap-2 rounded-full border border-crema-borde bg-white px-5 text-sm font-semibold transition hover:border-tinta disabled:opacity-50',
   mini: 'inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-crema-borde bg-white px-3.5 text-[13px] font-semibold transition hover:border-tinta disabled:opacity-50',
   texto: 'inline-flex items-center gap-1.5 text-sm font-semibold text-vino hover:underline disabled:opacity-50',
+}
+
+// ── Clasificación de quién envía la carta ──
+const TODAS_RELACIONES = [...RELACIONES, ...RELACIONES_GRUPO]
+const useStateOtro = inicial => useState(!!inicial)
+
+// Botones (formulario público): rápido de tocar en el celular; «Otro» abre un campo de texto
+export function ChipsRelacion({ valor, onCambio }) {
+  const esOtro = valor !== '' && valor !== null && !TODAS_RELACIONES.includes(valor)
+  const [otro, setOtro] = useStateOtro(esOtro)
+  const chip = (r) => (
+    <button type="button" key={r} onClick={() => { setOtro(false); onCambio(r) }} aria-pressed={valor === r}
+      className={`h-10 rounded-full border px-3.5 text-[14px] font-semibold transition ${valor === r ? 'border-vino bg-vino text-white' : 'border-crema-borde bg-white hover:border-vino/60'}`}>{r}</button>
+  )
+  return (
+    <div>
+      <div className="flex flex-wrap gap-1.5">{RELACIONES.map(chip)}</div>
+      <p className="mb-1.5 mt-3 text-xs font-semibold text-gris">Si la firman varios</p>
+      <div className="flex flex-wrap gap-1.5">
+        {RELACIONES_GRUPO.map(chip)}
+        <button type="button" onClick={() => { setOtro(true); onCambio('') }} aria-pressed={otro}
+          className={`h-10 rounded-full border px-3.5 text-[14px] font-semibold ${otro ? 'border-vino bg-vino text-white' : 'border-dashed border-crema-borde bg-white'}`}>Otro…</button>
+      </div>
+      {otro && <input autoFocus value={esOtro ? valor : ''} onChange={e => onCambio(e.target.value.slice(0, 60))} placeholder="Ej.: catequista, vecina, jefe…" aria-label="Otra relación" className="campo mt-2" />}
+    </div>
+  )
+}
+
+// Lista desplegable (registro de paquetes y panel): ocupa poco espacio
+export function SelectRelacion({ valor, onCambio, className = '', vacio = '¿Quién la envía?' }) {
+  const esOtro = valor && !TODAS_RELACIONES.includes(valor)
+  const [otro, setOtro] = useStateOtro(esOtro)
+  return (
+    <span className={`flex min-w-0 gap-1.5 ${className}`}>
+      <select value={otro ? '__otro' : valor || ''} aria-label="Quién envía la carta"
+        onChange={e => { if (e.target.value === '__otro') { setOtro(true); onCambio('') } else { setOtro(false); onCambio(e.target.value) } }}
+        className={`campo h-10 min-w-0 flex-1 bg-white ${!valor && !otro ? 'text-gris' : ''}`}>
+        <option value="">{vacio}</option>
+        <optgroup label="Persona">{RELACIONES.map(r => <option key={r}>{r}</option>)}</optgroup>
+        <optgroup label="Varios">{RELACIONES_GRUPO.map(r => <option key={r}>{r}</option>)}</optgroup>
+        <option value="__otro">Otro…</option>
+      </select>
+      {otro && <input autoFocus value={valor || ''} onChange={e => onCambio(e.target.value.slice(0, 60))} placeholder="¿Cuál?" aria-label="Otra relación" className="campo h-10 w-28 min-w-0 bg-white" />}
+    </span>
+  )
 }

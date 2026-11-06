@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { Pencil, Plus, Copy, Trash2, Inbox, PackagePlus, Users } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { borrarRemitente } from '../cartasService.js'
-import { responsableDe, enlacePortal, nombreDestinatario, nombrePareja, nombreCompleto, fecha, folioTexto, mensajeError, semaforo, ORIGENES } from '../constantes.js'
+import { responsableDe, esValida, enlacePortal, nombreDestinatario, nombrePareja, nombreCompleto, fecha, folioTexto, mensajeError, semaforo, ORIGENES } from '../constantes.js'
 import { Etiqueta, Kpi, Semaforo, Vacio, btn } from '../ui.jsx'
 import { FormPareja, Avance } from './Parejas.jsx'
 import { FormRemitente, AccionesRecordatorio } from './remitentes.jsx'
@@ -23,8 +23,10 @@ export default function FichaPareja() {
   const x = indicadores.porPareja[id]
   const meta = retiro.meta_por_persona || 0
   const contactos = remitentes.filter(r => r.pareja_id === id && r.coordinador)
-  const suyos = remitentes.filter(r => r.pareja_id === id && !r.coordinador)
   const suyas = cartas.filter(c => c.pareja_id === id)
+  // Desglose por quién envía: «Hermana 2 · Papá 1…»
+  const porRelacion = Object.entries(suyas.filter(esValida).reduce((m, c) => { const k = c.relacion || 'Sin clasificar'; m[k] = (m[k] || 0) + 1; return m }, {}))
+    .sort((a, b) => b[1] - a[1])
   const color = semaforo({ retiro, cartasValidas: x.recibidas, pendientes: x.pendientes, x })
 
   async function quitar(r) {
@@ -93,27 +95,24 @@ export default function FichaPareja() {
         {!contactos.length ? <Vacio titulo="Sin contactos de familia" /> : <ul className="space-y-2.5">{contactos.map(r => <Persona key={r.id} r={r} />)}</ul>}
       </section>
 
-      <section className="mt-7">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Remitentes esperados <span className="text-sm font-normal text-gris">(opcional)</span></h2>
-          <button onClick={() => setRemitente({})} className={btn.contorno}><Plus size={16} />Agregar</button>
-        </div>
-        {!suyos.length ? <p className="text-sm text-gris">Si conocen a personas concretas de quienes esperan carta, agrégalas para darles seguimiento individual.</p>
-          : <ul className="space-y-2.5">{suyos.map(r => <Persona key={r.id} r={r} />)}</ul>}
-      </section>
 
       <section className="mt-7">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Cartas ({suyas.length})</h2>
           <Link to={`/cartas/panel/cartas?pareja=${id}`} className={btn.contorno}><Inbox size={15} />Abrir en la bandeja</Link>
         </div>
+        {porRelacion.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {porRelacion.map(([r, n]) => <span key={r} className={`rounded-full px-3 py-1 text-[13px] font-semibold ${r === 'Sin clasificar' ? 'bg-amber-50 text-amber-800' : 'bg-white'}`}>{r} · {n}</span>)}
+          </div>
+        )}
         {!suyas.length ? <Vacio titulo="Todavía no hay cartas para esta pareja" /> : (
           <ul className="divide-y divide-crema-borde overflow-hidden rounded-[20px] bg-white">
             {suyas.map(c => (
               <li key={c.id}>
                 <Link to={`/cartas/panel/cartas?pareja=${id}&carta=${c.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-crema-clara">
                   <span className="text-xs font-bold text-gris">{folioTexto(c.folio)}</span>
-                  <span className="font-semibold">{c.remitente_nombre}</span>
+                  <span className="font-semibold">{c.relacion && c.relacion !== c.remitente_nombre ? `${c.relacion} · ` : ''}{c.remitente_nombre}</span>
                   <span className="text-sm text-gris">→ {nombreDestinatario(pareja, c.destinatario)} · {ORIGENES[c.origen]}{c.recibida_de && ` · entregó ${c.recibida_de}`}</span>
                   <span className="ml-auto"><Etiqueta estado={c.estado} /></span>
                 </Link>

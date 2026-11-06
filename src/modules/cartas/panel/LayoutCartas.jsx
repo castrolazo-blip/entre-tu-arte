@@ -108,7 +108,8 @@ export default function LayoutCartas() {
         </div>
       )}
 
-      <main className="min-w-0 flex-1 px-4 py-5 lg:px-2 lg:py-3">
+      {/* overflow-x-clip: nada puede correr la pantalla hacia los lados en el celular */}
+      <main className="min-w-0 flex-1 overflow-x-clip px-4 py-5 lg:px-2 lg:py-3">
         {retiro && (
           <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
             {!enInicio && (

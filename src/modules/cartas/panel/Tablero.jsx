@@ -9,7 +9,7 @@ import { Kpi, Semaforo, Titulo, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 import { Avance } from './Parejas.jsx'
 
-const ENTIDAD = { cartas: 'Carta', parejas: 'Pareja', remitentes: 'Remitente', retiros: 'Retiro', impresion: 'Impresión' }
+const ENTIDAD = { cartas: 'Carta', parejas: 'Pareja', remitentes: 'Contacto', retiros: 'Retiro', impresion: 'Impresión' }
 
 export default function Tablero() {
   const { retiro, parejas, cartas, remitentes, indicadores, equipo, miEquipo } = useCartas()
@@ -34,18 +34,16 @@ export default function Tablero() {
       { titulo: 'Cartas esposo', valor: 'paraA' }, { titulo: 'Cartas esposa', valor: 'paraB' }, { titulo: 'Faltan para la meta', valor: 'faltan' },
       { titulo: 'Cartas recibidas', valor: 'recibidas' },
       { titulo: 'En papel', valor: 'enPapel' }, { titulo: 'A imprimir (formulario/correo)', valor: 'aImprimir' },
-      { titulo: 'Remitentes esperados', valor: 'esperados' }, { titulo: 'Pendientes', valor: 'pendientes' }, { titulo: 'Adicionales', valor: 'adicionales' }, { titulo: 'Semáforo', valor: 'estado' },
+      { titulo: 'Semáforo', valor: 'estado' },
     ]), `avance-${nombreArchivo(retiro.nombre)}.csv`)
   }
   function csvCartas() {
     const pp = Object.fromEntries(parejas.map(p => [p.id, p]))
-    const rr = Object.fromEntries(remitentes.map(r => [r.id, r]))
     descargar(aCSV(cartas, [
       { titulo: 'Folio', valor: c => folioTexto(c.folio) }, { titulo: 'Fecha', valor: c => fecha(c.created_at, true) },
       { titulo: 'Código pareja', valor: c => pp[c.pareja_id]?.codigo }, { titulo: 'Para', valor: c => nombreDestinatario(pp[c.pareja_id], c.destinatario) },
-      { titulo: 'Remitente', valor: 'remitente_nombre' }, { titulo: 'Relación', valor: 'relacion' }, { titulo: 'Origen', valor: 'origen' },
+      { titulo: 'Quién la envía', valor: c => c.relacion || 'Sin clasificar' }, { titulo: 'Nombre', valor: 'remitente_nombre' }, { titulo: 'Origen', valor: 'origen' },
       { titulo: 'Estado', valor: c => ESTADOS_CARTA[c.estado].etiqueta }, { titulo: 'Motivo', valor: 'motivo' }, { titulo: 'Entregó', valor: 'recibida_de' },
-      { titulo: 'Remitente esperado', valor: c => (c.remitente_id ? rr[c.remitente_id]?.nombre : 'Adicional') },
       { titulo: 'Archivos', valor: c => c.cca_archivos.length }, { titulo: 'Tardía', valor: c => (c.tardia ? 'Sí' : '') },
     ]), `cartas-${nombreArchivo(retiro.nombre)}.csv`)
   }
@@ -54,7 +52,7 @@ export default function Tablero() {
     descargar(await pdfResumen({ retiro, filas: filasReporte, totales: {
       'Parejas activas': t.parejas, 'Meta por persona': t.meta, 'Faltan para la meta': t.faltanMeta,
       'Parejas con meta': t.metaCumplida, 'Contactos que entregaron': `${t.contactos - t.contactosPendientes}/${t.contactos}`, 'Cartas recibidas': t.recibidas,
-      'En papel': t.enPapel, 'A imprimir': t.aImprimir, 'Remitentes pendientes': t.pendientes, 'Parejas sin cartas': t.sinCartas,
+      'En papel': t.enPapel, 'A imprimir': t.aImprimir, 'Parejas sin cartas': t.sinCartas,
       'Cartas adicionales': t.adicionales, 'Posibles duplicados': t.posiblesDuplicados,
     } }), `resumen-${nombreArchivo(retiro.nombre)}.pdf`)
   }
@@ -148,7 +146,7 @@ export default function Tablero() {
 function descripcion(a) {
   if (a.entidad === 'cartas' && a.accion === 'insert') return `nueva de ${a.datos?.remitente_nombre || '—'} (${folioTexto(a.datos?.folio)})`
   if (a.entidad === 'cartas' && a.datos?.estado) return `${ESTADOS_CARTA[a.datos.estado.antes]?.etiqueta} → ${ESTADOS_CARTA[a.datos.estado.despues]?.etiqueta}`
-  if (a.entidad === 'remitentes' && a.datos?.estado) return `${a.datos.estado.antes} → ${a.datos.estado.despues}`
+  if (a.entidad === 'remitentes' && a.datos?.estado) return a.datos.estado.despues === 'recibido' ? 'entregó cartas' : `${a.datos.estado.antes} → ${a.datos.estado.despues}`
   if (a.entidad === 'impresion') return a.accion === 'pdf' ? 'PDF generado' : a.accion === 'zip' ? 'ZIP de originales' : a.accion
   return { insert: 'creado', update: 'actualizado', delete: 'eliminado' }[a.accion] || a.accion
 }

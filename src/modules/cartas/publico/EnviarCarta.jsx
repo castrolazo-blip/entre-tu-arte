@@ -5,6 +5,7 @@ import { useNoIndexar } from '../../auth/RutaAdmin.jsx'
 import { portal, enviarCarta, subirArchivo, tipoDeArchivo, firmaValida } from '../cartasService.js'
 import { ACEPTA, mensajeError, folioTexto, fecha, rangoFechas, tamanoTexto } from '../constantes.js'
 import { Marca, serif, useTituloCartas } from './marca.jsx'
+import { ChipsRelacion } from '../ui.jsx'
 
 const MAX_TEXTO = 30000
 const claveBorrador = c => `cca_borrador_${c}`
@@ -126,7 +127,8 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
     setError('')
     if (!pareja) return setError('Elige a quién va dirigida tu carta.')
     if (!destinatario) return setError('Indica si la carta es para uno de ellos o para ambos.')
-    if (nombre.trim().length < 2) return setError('Escribe tu nombre.')
+    if (!relacion.trim()) return setError('Elige quién envía la carta (papá, mamá, hermano…).')
+    if (!esContacto && nombre.trim().length < 2) return setError('Escribe tu nombre.')
     if (!texto.trim() && !archivos.length) return setError('Escribe tu carta o adjunta un archivo.')
     if (!acepto) return setError('Debes aceptar el aviso de privacidad.')
     try {
@@ -139,7 +141,7 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
       }
       setEstado('Enviando tu carta…')
       const r = await enviarCarta({
-        p_codigo: codigo, p_pareja: pareja.id, p_destinatario: destinatario, p_nombre: nombre.trim(),
+        p_codigo: codigo, p_pareja: pareja.id, p_destinatario: destinatario, p_nombre: nombre.trim() || relacion.trim(),
         p_relacion: relacion.trim() || null, p_contacto: contacto.trim() || null, p_texto: texto.trim() || null,
         p_archivos: subidos, p_remitente_token: tokenRemitente || null, p_consentimiento: acepto, p_trampa: trampa || null,
       })
@@ -195,14 +197,13 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
         )}
       </Paso>
 
-      <Paso n="2" titulo={esContacto ? '¿Quién escribe esta carta?' : 'Tus datos'}>
-        {esContacto && <p className="mb-3 rounded-2xl bg-vino-claro p-3 text-sm text-vino">Hola {rem.nombre.split(' ')[0]}, gracias por reunir las cartas. Sube <b>una carta a la vez</b> y escribe quién la envía (ej.: hermano, padres, amigos).</p>}
-        <label className="etiqueta">{esContacto ? 'De (nombre o parentesco) *' : 'Tu nombre *'}
-          <input value={nombre} onChange={e => setNombre(e.target.value)} maxLength={120} autoComplete="name" className="campo mt-1.5" required />
+      <Paso n="2" titulo="¿Quién envía la carta?">
+        {esContacto && <p className="mb-3 rounded-2xl bg-vino-claro p-3 text-sm text-vino">Hola {rem.nombre.split(' ')[0]}, gracias por reunir las cartas. Sube <b>una carta a la vez</b> y elige quién la envía.</p>}
+        <p className="etiqueta mb-2">{esContacto ? 'Quien escribe esta carta es su… *' : 'Soy su… *'}</p>
+        <ChipsRelacion valor={relacion} onCambio={setRelacion} />
+        <label className="etiqueta mt-4">{esContacto ? 'Nombre de quien la escribe' : 'Tu nombre *'} {esContacto && <span className="font-normal text-gris">(opcional)</span>}
+          <input value={nombre} onChange={e => setNombre(e.target.value)} maxLength={120} autoComplete={esContacto ? 'off' : 'name'} className="campo mt-1.5" />
         </label>
-        {!esContacto && <label className="etiqueta mt-3">Relación con ellos <span className="font-normal text-gris">(opcional)</span>
-          <input value={relacion} onChange={e => setRelacion(e.target.value)} maxLength={80} placeholder="Ej.: hija, amigo, mamá de…" className="campo mt-1.5" />
-        </label>}
         {!esContacto && <label className="etiqueta mt-3">Teléfono o correo <span className="font-normal text-gris">(opcional, por si necesitamos contactarte)</span>
           <input value={contacto} onChange={e => setContacto(e.target.value)} maxLength={120} autoComplete="tel" className="campo mt-1.5" />
         </label>}

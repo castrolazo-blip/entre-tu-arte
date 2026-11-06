@@ -16,6 +16,7 @@ export default function Bandeja() {
   const [fisica, setFisica] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const abierta = params.get('carta')
+  const relaciones = useMemo(() => [...new Set(cartas.map(c => c.relacion).filter(Boolean))].sort(), [cartas])
   const porId = useMemo(() => Object.fromEntries(parejas.map(p => [p.id, p])), [parejas])
 
   const lista = useMemo(() => cartas.filter(c => {
@@ -25,9 +26,9 @@ export default function Bandeja() {
     if (f.estado === 'anuladas' && esValida(c)) return false
     if (f.origen && c.origen !== f.origen) return false
     if (f.destinatario && c.destinatario !== f.destinatario) return false
-    if (f.vinculo === 'adicional' && c.remitente_id) return false
-    if (f.vinculo === 'vinculada' && !c.remitente_id) return false
-    if (f.vinculo === 'duplicado' && !c.posible_duplicado) return false
+    if (f.vinculo === '__dup' && !c.posible_duplicado) return false
+    if (f.vinculo === '__sin' && c.relacion) return false
+    if (f.vinculo && !f.vinculo.startsWith('__') && c.relacion !== f.vinculo) return false
     if (f.desde && c.created_at.slice(0, 10) < f.desde) return false
     if (f.hasta && c.created_at.slice(0, 10) > f.hasta) return false
     if (f.q) {
@@ -70,8 +71,11 @@ export default function Bandeja() {
             <select value={f.destinatario} onChange={e => set('destinatario', e.target.value)} className="campo" aria-label="Destinatario">
               <option value="">Cualquier destinatario</option><option value="A">Para el esposo</option><option value="B">Para la esposa</option><option value="ambos">Ambos</option>
             </select>
-            <select value={f.vinculo} onChange={e => set('vinculo', e.target.value)} className="campo" aria-label="Vínculo">
-              <option value="">Todas</option><option value="vinculada">De remitente esperado</option><option value="adicional">Adicionales</option><option value="duplicado">Posibles duplicados</option>
+            <select value={f.vinculo} onChange={e => set('vinculo', e.target.value)} className="campo" aria-label="Quién la envía">
+              <option value="">Cualquier remitente</option>
+              {relaciones.map(r => <option key={r} value={r}>{r}</option>)}
+              <option value="__sin">Sin clasificar</option>
+              <option value="__dup">Posibles duplicados</option>
             </select>
             <input type="date" value={f.desde} onChange={e => set('desde', e.target.value)} className="campo" aria-label="Desde" />
             <input type="date" value={f.hasta} onChange={e => set('hasta', e.target.value)} className="campo" aria-label="Hasta" />
@@ -91,7 +95,7 @@ export default function Bandeja() {
                     <span className="text-[11px] text-gris">{fecha(c.created_at, true)}</span>
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{c.remitente_nombre}{c.relacion && <span className="font-normal text-gris"> · {c.relacion}</span>}</span>
+                    <span className="block truncate font-semibold">{c.relacion || <span className="text-amber-700">Sin clasificar</span>}{c.remitente_nombre !== c.relacion && <span className="font-normal text-gris"> · {c.remitente_nombre}</span>}</span>
                     <span className="block truncate text-sm text-gris">Para {nombreDestinatario(p, c.destinatario)} <span className="text-xs">({p?.codigo}{p?.apellidos ? ` · ${p.apellidos}` : ''})</span>{c.recibida_de && <span className="text-xs"> · entregó {c.recibida_de}</span>}</span>
                   </span>
                   <span className="flex flex-wrap items-center gap-1.5">

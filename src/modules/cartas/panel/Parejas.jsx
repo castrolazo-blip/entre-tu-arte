@@ -231,7 +231,7 @@ function Importar({ onCerrar, onListo }) {
     <Modal titulo="Importar" onCerrar={onCerrar} ancho="max-w-2xl"
       pie={vista && <div className="flex items-center justify-between gap-2"><span className="text-sm text-gris">{validas} de {vista.length} filas listas</span><button onClick={confirmar} disabled={!validas || guardando} className={btn.vino}>{guardando ? 'Importando…' : `Importar ${validas}`}</button></div>}>
       <div className="flex flex-wrap gap-2">
-        {[['inscripcion', 'Excel de inscripción'], ['parejas', 'CSV de parejas'], ['remitentes', 'CSV de remitentes']].map(([k, t]) => (
+        {[['inscripcion', 'Excel de inscripción'], ['parejas', 'CSV de parejas']].map(([k, t]) => (
           <button key={k} onClick={() => { setTipo(k); setVista(null) }} className={`chip ${tipo === k ? 'chip-on' : 'chip-off'}`}>{t}</button>
         ))}
       </div>

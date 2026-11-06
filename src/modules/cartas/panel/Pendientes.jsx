@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Search, Download, Users, UserX, Target } from 'lucide-react'
+import { Search, Download, Users, Target } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarRemitente } from '../cartasService.js'
 import { aCSV, descargar, nombreArchivo } from '../archivos.js'
@@ -13,7 +13,7 @@ import { Avance } from './Parejas.jsx'
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 // Seguimiento: contactos de la familia (reciben el mensaje y entregan el paquete),
-// remitentes esperados que faltan, y parejas que aún no llegan a la meta de cartas.
+// y parejas que aún no llegan a la meta de cartas. Las cartas quedan abiertas a quien quiera enviarlas.
 export default function Pendientes() {
   const { retiro, parejas, remitentes, indicadores, actualizarLocal, equipo } = useCartas()
   const meta = retiro.meta_por_persona || 0
@@ -75,7 +75,6 @@ export default function Pendientes() {
       <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setVista('contactos')} className={`chip ${vista === 'contactos' ? 'chip-on' : 'chip-off'}`}><Users size={15} className="mr-1.5" />Contactos sin entregar ({total('contactos')})</button>
         <button onClick={() => setVista('meta')} className={`chip ${vista === 'meta' ? 'chip-on' : 'chip-off'}`}><Target size={15} className="mr-1.5" />{meta ? `Parejas bajo la meta (${bajoMeta.length})` : `Parejas sin cartas (${bajoMeta.length})`}</button>
-        <button onClick={() => setVista('remitentes')} className={`chip ${vista === 'remitentes' ? 'chip-on' : 'chip-off'}`}><UserX size={15} className="mr-1.5" />Remitentes esperados ({total('remitentes')})</button>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">

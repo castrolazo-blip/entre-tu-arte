@@ -5,10 +5,10 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarCarta, textoCarta, historial, enlaceArchivo, marcarArchivo, registrarAccion } from '../cartasService.js'
 import { ESTADOS_CARTA, ORIGENES, esValida, folioTexto, fecha, nombreDestinatario, nombreCompleto, nombrePareja, tamanoTexto, mensajeError } from '../constantes.js'
-import { Etiqueta, Modal, btn } from '../ui.jsx'
+import { Etiqueta, Modal, SelectRelacion, btn } from '../ui.jsx'
 import { serif } from '../publico/marca.jsx'
 
-const NOMBRES_CAMPO = { estado: 'Estado', remitente_id: 'Remitente esperado', pareja_id: 'Pareja', destinatario: 'Destinatario',
+const NOMBRES_CAMPO = { estado: 'Estado', relacion: 'Quién la envía', pareja_id: 'Pareja', destinatario: 'Destinatario',
   motivo: 'Motivo', incidencia: 'Incidencia', posible_duplicado: 'Posible duplicado', orden: 'Orden' }
 
 export default function DetalleCarta({ cartaId, onCerrar }) {
@@ -21,12 +21,13 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
   const [guardando, setGuardando] = useState(false)
   // Las cartas son confidenciales: el contenido no se muestra hasta pedirlo, y queda registrado
   const [abierta, setAbierta] = useState(false)
+  const [relacionEditada, setRelacionEditada] = useState('')
   const { usuario } = useAuth()
 
   useEffect(() => {
     if (!carta) return
     setMotivo(carta.motivo || ''); setIncidencia(carta.incidencia || '')
-    setAbierta(false); setTexto(undefined)
+    setAbierta(false); setTexto(undefined); setRelacionEditada(carta.relacion || '')
     historial(cartaId).then(setEventos).catch(() => setEventos([]))
   }, [cartaId, carta?.updated_at]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -38,7 +39,6 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
 
   if (!carta) return <Modal titulo="Carta" onCerrar={onCerrar}><p className="text-gris">No se encontró la carta (puede que no pertenezca a este retiro).</p></Modal>
   const pareja = parejas.find(p => p.id === carta.pareja_id)
-  const deLaPareja = remitentes.filter(r => r.pareja_id === carta.pareja_id && !r.coordinador)
 
   async function cambiar(cambios, aviso = 'Guardado') {
     setGuardando(true)
@@ -133,16 +133,14 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
             )}
           </div>
 
-          <label className="etiqueta block">Remitente esperado
-            <select disabled={guardando} value={carta.remitente_id || ''} onChange={e => cambiar({ remitente_id: e.target.value || null }, e.target.value ? 'Vinculada al remitente' : 'Ahora es carta adicional')} className="campo mt-1.5 h-11 text-sm">
-              <option value="">— Adicional (sin vincular) —</option>
-              {deLaPareja.map(r => <option key={r.id} value={r.id}>{r.nombre}{r.relacion ? ` · ${r.relacion}` : ''}</option>)}
-            </select>
-            <span className="mt-1 block text-[11.5px] font-normal text-gris">Vincularla marca a esa persona como «recibido».</span>
-          </label>
+          <div>
+            <p className="etiqueta mb-1.5">Quién la envía</p>
+            <SelectRelacion valor={relacionEditada} onCambio={setRelacionEditada} />
+            {relacionEditada !== (carta.relacion || '') && <button disabled={guardando} onClick={() => cambiar({ relacion: relacionEditada.trim() || null }, 'Clasificación guardada')} className={`${btn.mini} mt-2 w-full`}>Guardar clasificación</button>}
+          </div>
 
           <label className="etiqueta block">Pareja
-            <select disabled={guardando} value={carta.pareja_id} onChange={e => cambiar({ pareja_id: e.target.value, remitente_id: null }, 'Pareja corregida')} className="campo mt-1.5 h-11 text-sm">
+            <select disabled={guardando} value={carta.pareja_id} onChange={e => cambiar({ pareja_id: e.target.value, remitente_id: null, coordinador_id: null }, 'Pareja corregida')} className="campo mt-1.5 h-11 text-sm">
               {parejas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
             </select>
           </label>
