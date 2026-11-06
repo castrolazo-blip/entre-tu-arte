@@ -5,7 +5,7 @@ resguardar e imprimir las cartas de familiares y amigos para las parejas del ret
 
 | Dirección | Para quién |
 |---|---|
-| `https://entretuarte.com/cartas/enviar?c=CÓDIGO` | Familiares y amigos (sin cuenta) |
+| `https://entretuarte.com/cartas/enviar?c=CÓDIGO&p=PAREJA` | Familiares y amigos (sin cuenta), solo para esa pareja |
 | `https://entretuarte.com/cartas/entrar` | Organizadores (con cuenta) |
 | `https://entretuarte.com/cartas/panel` | Panel |
 
@@ -94,7 +94,7 @@ una carta ni con el enlace directo. Los archivos se abren con enlaces temporales
 1. **Parejas** › Nueva pareja o *Importar CSV* (plantilla incluida; en Excel "Guardar como CSV UTF-8").
    Después importa los **remitentes esperados** (se enlazan por el código de pareja).
 2. **Compartir enlaces.**
-   - *Enlace general* (Tablero): la persona elige la pareja de una lista.
+   - Ya **no hay enlace general**: cada enlace muestra solo a su pareja, nunca la lista del retiro (migración `20261109000000_cartas_enlace_solo_pareja.sql`).
    - *Enlace de pareja* (ficha de la pareja): la pareja ya viene elegida.
    - *Enlace personal* de cada remitente (botón WhatsApp / Copiar mensaje): además vincula su carta
      automáticamente y lo marca "recibido".

@@ -60,8 +60,6 @@ export default function Tablero() {
   return (
     <div>
       <Titulo titulo="Avance" subtitulo={retiro.fecha_limite ? `Fecha límite: ${fecha(retiro.fecha_limite, true)}` : 'Sin fecha límite configurada'}>
-        <button onClick={() => copiar(enlacePortal(retiro), 'Enlace general copiado')} className={btn.vino}><Copy size={16} />Copiar enlace del formulario</button>
-        <a href={enlacePortal(retiro)} target="_blank" rel="noreferrer" className={btn.contorno}><ExternalLink size={16} />Ver formulario</a>
       </Titulo>
 
       {miEquipo && <Link to="/cartas/panel/mis-parejas" className="mb-4 flex items-center justify-between gap-3 rounded-[22px] bg-vino p-4 text-white"><span><b>Matrimonio {miEquipo.apellidos}</b><span className="block text-sm text-white/80">Ver tus parejas asignadas y su avance</span></span><span className="font-semibold">Mis parejas →</span></Link>}
