@@ -34,5 +34,5 @@ export async function enviarSolicitudes(vendedor, cuadros, alAvanzar) {
     }
     alAvanzar?.(++hechos)
   }
-  avisar({ tipo: 'marketplace', nombre: vendedor.nombre, detalle: `${hechos} ${hechos === 1 ? 'cuadro' : 'cuadros'} · ${vendedor.tipo === 'artista' ? 'artista' : 'particular'}` })
+  avisar({ tipo: 'marketplace', nombre: vendedor.nombre, telefono: vendedor.telefono, detalle: `${hechos} ${hechos === 1 ? 'cuadro' : 'cuadros'} · ${vendedor.tipo === 'artista' ? 'artista' : 'particular'}` })
 }

@@ -127,7 +127,7 @@ export async function enviarConsulta(consulta, { aviso = true } = {}) {
   if (!aviso) return
   const d = consulta.datos || {}
   avisar({
-    tipo: consulta.tipo, nombre: consulta.nombre,
+    tipo: consulta.tipo, nombre: consulta.nombre, telefono: consulta.telefono,
     detalle: consulta.tipo === 'compra' && d.total ? `${(d.items || []).length || 1} obra(s) · $${d.total}`
       : d.otra_medida ? `${consulta.ficha_titulo || 'Obra'} · en otra medida` : consulta.ficha_titulo || d.espacio || '',
   })

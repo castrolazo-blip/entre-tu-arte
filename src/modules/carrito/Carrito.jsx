@@ -19,7 +19,7 @@ const ENTREGAS = [
 export default function Carrito() {
   const { items, total, cantidad, quitar, cambiarCantidad, vaciar, reemplazar } = useCarrito()
   const { cfg } = useConfig()
-  const [form, setForm] = useState({ nombre: '', entrega: 'retiro', direccion: '', instalacion: false, notas: '' })
+  const [form, setForm] = useState({ nombre: '', telefono: '', entrega: 'retiro', direccion: '', instalacion: false, notas: '' })
   const [pedido, setPedido] = useState(null)
   const [noDisponibles, setNoDisponibles] = useState([])
   const c = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
@@ -70,6 +70,8 @@ export default function Carrito() {
     e.preventDefault()
     const validos = items.filter(x => !noDisponibles.includes(x.id))
     if (!validos.length) { toast.error('Las obras de tu carrito ya no están disponibles'); return }
+    if (!form.nombre.trim()) { toast.error('Escribe tu nombre para tu pedido'); return }
+    if (form.telefono.replace(/\D/g, '').length < 8) { toast.error('Déjanos tu WhatsApp o teléfono para confirmar tu pedido'); return }
     const resumen = validos.map(x => `${x.titulo}${x.cantidad > 1 ? ` (x${x.cantidad})` : ''}`).join(', ')
     const totalValidos = validos.reduce((s, x) => s + (Number(x.precio) || 0) * (x.cantidad || 1), 0)
     const wa = enlaceWhatsApp(cfg.whatsapp, mensajePedido(validos, totalValidos))
@@ -84,13 +86,12 @@ export default function Carrito() {
     const itemsPedido = validos.map(x => ({ id: x.id, titulo: x.titulo, precio: Number(x.precio) || null, cantidad: x.cantidad || 1, medidas: x.medidas, porPedido: !!x.porPedido }))
     const ant = anticipoPedido({ items: itemsPedido, total: totalValidos }, cfg.pedido_anticipo)
     avisar({
-      tipo: 'compra', nombre: form.nombre.trim() || 'Cliente',
+      tipo: 'compra', nombre: form.nombre.trim(), telefono: form.telefono.trim(),
       detalle: `${validos.length} ${validos.length === 1 ? 'obra' : 'obras'} · ${precio(totalValidos) || 'a consultar'}`,
       lineas: [
         ...itemsPedido.map(x => `• ${x.titulo}${x.cantidad > 1 ? ` ×${x.cantidad}` : ''}${x.precio ? ` — ${precio(x.precio * x.cantidad)}` : ''}${x.porPedido ? ' (por pedido)' : ''}`),
         `Entrega: ${form.entrega === 'envio' ? 'envío a domicilio' : 'la recoge el cliente'}${form.instalacion ? ' · con instalación' : ''}`,
         ant ? `Anticipo ${ant.pct}%: ${precio(ant.anticipo)} · saldo ${precio(ant.saldo)}` : null,
-        'El cliente terminará de enviarlo por WhatsApp.',
       ].filter(Boolean),
     })
 
@@ -99,7 +100,7 @@ export default function Carrito() {
       tipo: 'compra',
       ficha_id: validos.length === 1 ? String(validos[0].id) : null,
       ficha_titulo: validos.length === 1 ? validos[0].titulo : `Pedido de ${validos.length} obras`,
-      nombre: form.nombre.trim() || 'Cliente por WhatsApp', email: null, telefono: null,
+      nombre: form.nombre.trim(), email: null, telefono: form.telefono.trim(),
       mensaje: form.notas.trim() || null,
       datos: {
         pedido: true, canal: 'whatsapp',
@@ -189,7 +190,8 @@ export default function Carrito() {
             </fieldset>
             {form.entrega === 'envio' && <label className="etiqueta">Dirección de entrega (opcional)<textarea rows={2} value={form.direccion} onChange={c('direccion')} className="campo mt-1.5" /></label>}
             <label className="flex items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={form.instalacion} onChange={e => setForm(f => ({ ...f, instalacion: e.target.checked }))} className="h-5 w-5 accent-[#17181b]" />Quiero instalación (se cotiza aparte)</label>
-            <label className="etiqueta">Tu nombre (opcional)<input value={form.nombre} onChange={c('nombre')} autoComplete="name" className="campo mt-1.5" /></label>
+            <label className="etiqueta">Tu nombre<input required value={form.nombre} onChange={c('nombre')} autoComplete="name" className="campo mt-1.5" /></label>
+            <label className="etiqueta">WhatsApp o teléfono<input required type="tel" inputMode="tel" value={form.telefono} onChange={c('telefono')} autoComplete="tel" placeholder="7777-7777" className="campo mt-1.5" /></label>
             <label className="etiqueta">Notas (opcional)<textarea rows={2} value={form.notas} onChange={c('notas')} className="campo mt-1.5" /></label>
             <button className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] text-base font-semibold text-white transition hover:brightness-95"><MessageCircle size={20} />Enviar pedido por WhatsApp</button>
             <p className="flex gap-2.5 text-[13px] leading-relaxed text-gris"><Lock size={16} className="mt-0.5 shrink-0" />Se abre WhatsApp con tu pedido ya escrito. Ahí confirmamos disponibilidad, forma de pago y entrega.</p>

@@ -2,7 +2,7 @@
 // Vive en el mismo proyecto que la función de IA. Secretos (se ponen en Supabase > Edge Functions > Secrets):
 //   ETA_TELEGRAM_TOKEN  token del bot (lo da @BotFather)
 //   ETA_TELEGRAM_CHAT   tu número de chat (si falta, la prueba del panel te lo muestra)
-// El mensaje es corto a propósito: sin teléfono ni datos del cliente; el detalle se ve en el panel.
+// El mensaje trae el nombre completo y el teléfono del cliente (con enlace a WhatsApp); el resto se ve en el panel.
 
 const ORIGENES = ['https://entretuarte.com', 'https://www.entretuarte.com', 'https://castrolazo-blip.github.io', 'http://localhost:5173', 'http://localhost:4173']
 const PANEL = 'https://entretuarte.com/admin'
@@ -28,11 +28,13 @@ function cors(origen: string | null) {
 }
 
 const limpiar = (t: unknown, n: number) => String(t ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n)
-// "Tomás Alejandro Figueroa Martínez" -> "Tomás F." · "Ana López" -> "Ana L."
-function nombreCorto(n: string) {
-  const p = limpiar(n, 80).split(' ').filter(Boolean)
-  if (!p.length) return 'Cliente'
-  return p.length > 1 ? `${p[0]} ${p[p.length > 3 ? 2 : 1][0]}.` : p[0]
+// Teléfono legible y enlace de WhatsApp (8 dígitos = El Salvador, se antepone 503)
+function telefono(t: unknown) {
+  const visible = limpiar(t, 30)
+  const digitos = visible.replace(/\D/g, '')
+  if (digitos.length < 7) return null
+  const internacional = digitos.length === 8 ? '503' + digitos : digitos
+  return `📞 ${visible}\n💬 WhatsApp: https://wa.me/${internacional}`
 }
 
 Deno.serve(async req => {
@@ -65,7 +67,17 @@ Deno.serve(async req => {
     const [titulo, ruta] = TIPOS[limpiar(cuerpo.tipo, 20)] || TIPOS.consulta
     const detalle = limpiar(cuerpo.detalle, 120)
     const lineas = (Array.isArray(cuerpo.lineas) ? cuerpo.lineas : []).slice(0, 12).map((l: unknown) => limpiar(l, 90)).filter(Boolean)
-    texto = `${titulo}\n${nombreCorto(cuerpo.nombre)}${detalle ? ' — ' + detalle : ''}${lineas.length ? '\n\n' + lineas.join('\n') : ''}\n\nVer en el panel: ${PANEL}${ruta}`
+    const tel = telefono(cuerpo.telefono)
+    texto = [
+      titulo,
+      detalle,
+      '',
+      `👤 ${limpiar(cuerpo.nombre, 80) || 'Cliente sin nombre'}`,
+      tel || (cuerpo.sinTelefono ? '📞 Te escribirá por WhatsApp' : '📞 Sin teléfono'),
+      lineas.length ? '\n' + lineas.join('\n') : null,
+      '',
+      `Ver en el panel: ${PANEL}${ruta}`,
+    ].filter(l => l !== null && l !== undefined).join('\n').replace(/\n{3,}/g, '\n\n')
   }
 
   const r = await fetch(`${api}/sendMessage`, {
