@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Plus, Upload, Search, ChevronRight, Download, FileSpreadsheet } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
+import { useBorrador, useVentana } from '../borrador.js'
 import { guardarPareja, insertarParejas, insertarRemitentes, insertarInscripcion } from '../cartasService.js'
 import { leerCSV, leerXLSX, interpretarInscripcion, descargar, PLANTILLA_PAREJAS, PLANTILLA_REMITENTES } from '../archivos.js'
 import { mensajeError, semaforo, nombrePareja, nombreCompleto, responsableDe } from '../constantes.js'
@@ -28,7 +29,7 @@ export default function Parejas() {
   const [q, setQ] = useState('')
   const [responsable, setResponsable] = useState('')
   const [verRetiradas, setVerRetiradas] = useState(false)
-  const [nueva, setNueva] = useState(false)
+  const [nueva, abrirNueva, cerrarNueva] = useVentana('pareja-nueva')
   const [importar, setImportar] = useState(false)
   const meta = retiro.meta_por_persona || 0
   const responsables = [...new Set(parejas.map(p => responsableDe(p, equipo)).filter(Boolean))].sort()
@@ -42,7 +43,7 @@ export default function Parejas() {
     <div>
       <Titulo titulo="Parejas" subtitulo={`${parejas.filter(p => p.estado === 'activa').length} parejas activas${meta ? ` · meta: ${meta} cartas por persona (${meta * 2} por pareja)` : ''}`}>
         <button onClick={() => setImportar(true)} className={btn.contorno}><Upload size={16} />Importar</button>
-        <button onClick={() => setNueva(true)} className={btn.vino}><Plus size={17} />Nueva pareja</button>
+        <button onClick={() => abrirNueva()} className={btn.vino}><Plus size={17} />Nueva pareja</button>
       </Titulo>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -96,7 +97,7 @@ export default function Parejas() {
         </div>
       )}
       {meta > 0 && <p className="mt-3 text-xs text-gris">Una carta «para ambos» cuenta para los dos, porque cada uno la recibe.</p>}
-      {nueva && <FormPareja retiroId={retiro.id} parejas={parejas} onCerrar={() => setNueva(false)} onGuardado={async () => { setNueva(false); await recargar() }} />}
+      {nueva && <FormPareja retiroId={retiro.id} parejas={parejas} onCerrar={cerrarNueva} onGuardado={async () => { cerrarNueva(); await recargar() }} />}
       {importar && <Importar onCerrar={() => setImportar(false)} onListo={async () => { setImportar(false); await recargar() }} />}
     </div>
   )
@@ -104,7 +105,8 @@ export default function Parejas() {
 
 export function FormPareja({ retiroId, parejas, inicial, onCerrar, onGuardado }) {
   const siguiente = 'P' + String(parejas.length + 1).padStart(2, '0')
-  const [f, setF] = useState(inicial || { codigo: siguiente, nombre_a: '', nombre_b: '', estado: 'activa' })
+  const [f, setF, limpiar] = useBorrador(`pareja-${inicial?.id || 'nueva'}`, inicial || { codigo: siguiente, nombre_a: '', nombre_b: '', estado: 'activa' })
+  const cancelar = () => { limpiar(); onCerrar() }
   const [guardando, setGuardando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
 
@@ -114,7 +116,7 @@ export function FormPareja({ retiroId, parejas, inicial, onCerrar, onGuardado })
       (norm(nombreCompleto(p, 'A')) === norm(nombreCompleto(f, 'A')) && norm(nombreCompleto(p, 'B')) === norm(nombreCompleto(f, 'B')))))
     if (repetida) { toast.error(`Ya existe: ${repetida.codigo} · ${nombrePareja(repetida)}`); return }
     setGuardando(true)
-    try { await guardarPareja({ ...f, retiro_id: retiroId }); toast.success('Pareja guardada'); await onGuardado() }
+    try { await guardarPareja({ ...f, retiro_id: retiroId }); limpiar(); toast.success('Pareja guardada'); await onGuardado() }
     catch (err) { toast.error(mensajeError(err, 'No se pudo guardar')) }
     finally { setGuardando(false) }
   }
@@ -123,8 +125,8 @@ export function FormPareja({ retiroId, parejas, inicial, onCerrar, onGuardado })
     <label className="etiqueta">{etiqueta}<input value={f[k] || ''} onChange={e => set(k, e.target.value)} className="campo mt-1.5" {...props} /></label>
   )
   return (
-    <Modal titulo={f.id ? 'Editar pareja' : 'Nueva pareja'} onCerrar={onCerrar} ancho="max-w-2xl"
-      pie={<div className="flex justify-end gap-2"><button onClick={onCerrar} className={btn.contorno}>Cancelar</button><button form="form-pareja" disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button></div>}>
+    <Modal titulo={f.id ? 'Editar pareja' : 'Nueva pareja'} onCerrar={cancelar} ancho="max-w-2xl"
+      pie={<div className="flex justify-end gap-2"><button onClick={cancelar} className={btn.contorno}>Cancelar</button><button form="form-pareja" disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button></div>}>
       <form id="form-pareja" onSubmit={guardar} className="grid gap-4 sm:grid-cols-2">
         {campo('codigo', 'Código / número *', { required: true })}
         {campo('apellidos', 'Apellidos del matrimonio', { placeholder: 'Carballo Arévalo' })}

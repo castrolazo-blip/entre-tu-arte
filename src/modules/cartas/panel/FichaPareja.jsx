@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Pencil, Plus, Copy, Trash2, Inbox, PackagePlus, Users } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
+import { useBorrador, useVentana } from '../borrador.js'
 import { borrarRemitente } from '../cartasService.js'
 import { responsableDe, esValida, enlacePortal, nombreDestinatario, nombrePareja, nombreCompleto, fecha, folioTexto, mensajeError, semaforo, ORIGENES } from '../constantes.js'
 import { Etiqueta, Kpi, Semaforo, Vacio, btn } from '../ui.jsx'
@@ -14,9 +14,9 @@ import CartaFisica from './CartaFisica.jsx'
 export default function FichaPareja() {
   const { id } = useParams()
   const { parejas, remitentes, cartas, indicadores, retiro, recargar, equipo } = useCartas()
-  const [editar, setEditar] = useState(false)
-  const [remitente, setRemitente] = useState(null)
-  const [paquete, setPaquete] = useState(false)
+  const [editar, abrirEditar, cerrarEditar] = useVentana('editar')
+  const [contactoId, abrirContacto, cerrarContacto] = useVentana('contacto')
+  const [paquete, abrirPaquete, cerrarPaquete] = useVentana('registrar')
   const pareja = parejas.find(p => p.id === id)
   if (!pareja) return <Vacio titulo="Pareja no encontrada"><Link to="/cartas/panel/parejas" className={btn.texto}>Volver a parejas</Link></Vacio>
 
@@ -42,7 +42,7 @@ export default function FichaPareja() {
         <Etiqueta tipo="remitente" estado={r.estado} />
         <span className="text-sm text-gris">{[r.relacion, !r.coordinador && `para ${nombreDestinatario(pareja, r.destinatario)}`].filter(Boolean).join(' · ')}</span>
         <span className="ml-auto flex gap-1">
-          <button onClick={() => setRemitente(r)} aria-label={`Editar ${r.nombre}`} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-crema"><Pencil size={15} /></button>
+          <button onClick={() => abrirContacto(r.id)} aria-label={`Editar ${r.nombre}`} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-crema"><Pencil size={15} /></button>
           <button onClick={() => quitar(r)} aria-label={`Quitar ${r.nombre}`} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-crema"><Trash2 size={15} /></button>
         </span>
       </div>
@@ -66,9 +66,9 @@ export default function FichaPareja() {
           {(pareja.invitados_por || pareja.notas) && <p className="mt-2 max-w-xl text-sm text-gris">{[pareja.invitados_por && `Invitados por: ${pareja.invitados_por}`, pareja.notas].filter(Boolean).join(' · ')}</p>}
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setPaquete(true)} className={btn.vino}><PackagePlus size={16} />Registrar cartas recibidas</button>
+          <button onClick={() => abrirPaquete()} className={btn.vino}><PackagePlus size={16} />Registrar cartas recibidas</button>
           <button onClick={() => copiar(enlacePortal(retiro, { pareja }), 'Enlace de la pareja copiado')} className={btn.contorno}><Copy size={15} />Enlace de la pareja</button>
-          <button onClick={() => setEditar(true)} className={btn.contorno}><Pencil size={15} />Editar</button>
+          <button onClick={() => abrirEditar()} className={btn.contorno}><Pencil size={15} />Editar</button>
         </div>
       </div>
 
@@ -89,7 +89,7 @@ export default function FichaPareja() {
       <section className="mt-7">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-semibold"><Users size={18} />Contactos de la familia</h2>
-          <button onClick={() => setRemitente({ coordinador: true })} className={btn.contorno}><Plus size={16} />Agregar contacto</button>
+          <button onClick={() => abrirContacto('nuevo')} className={btn.contorno}><Plus size={16} />Agregar contacto</button>
         </div>
         <p className="mb-3 text-sm text-gris">Reciben el mensaje para las familias, reúnen las cartas y entregan el paquete. Su enlace sirve para subir cartas escritas por otras personas.</p>
         {!contactos.length ? <Vacio titulo="Sin contactos de familia" /> : <ul className="space-y-2.5">{contactos.map(r => <Persona key={r.id} r={r} />)}</ul>}
@@ -122,9 +122,9 @@ export default function FichaPareja() {
         )}
       </section>
 
-      {editar && <FormPareja retiroId={retiro.id} parejas={parejas} inicial={pareja} onCerrar={() => setEditar(false)} onGuardado={async () => { setEditar(false); await recargar() }} />}
-      {remitente && <FormRemitente pareja={pareja} inicial={remitente.id ? remitente : null} coordinador={!!remitente.coordinador} onCerrar={() => setRemitente(null)} />}
-      {paquete && <CartaFisica parejaInicial={id} onCerrar={() => setPaquete(false)} />}
+      {editar && <FormPareja retiroId={retiro.id} parejas={parejas} inicial={pareja} onCerrar={cerrarEditar} onGuardado={async () => { cerrarEditar(); await recargar() }} />}
+      {contactoId && <FormRemitente pareja={pareja} inicial={remitentes.find(r => r.id === contactoId) || null} onCerrar={cerrarContacto} />}
+      {paquete && <CartaFisica parejaInicial={id} onCerrar={cerrarPaquete} />}
     </div>
   )
 }

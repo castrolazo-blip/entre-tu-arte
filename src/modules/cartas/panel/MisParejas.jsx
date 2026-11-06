@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PackagePlus, ChevronRight, Phone } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
+import { useVentana } from '../borrador.js'
 import { nombrePareja, nombreEquipo, nombreDestinatario, folioTexto, fecha, ORIGENES, esValida, semaforo } from '../constantes.js'
 import { Etiqueta, Kpi, Semaforo, Titulo, Vacio, btn } from '../ui.jsx'
 import { Avance } from './Parejas.jsx'
@@ -13,7 +14,7 @@ import CartaFisica from './CartaFisica.jsx'
 export default function MisParejas() {
   const { retiro, equipo, parejas, remitentes, cartas, indicadores, miEquipo, esAdmin } = useCartas()
   const [params, setParams] = useSearchParams()
-  const [registrar, setRegistrar] = useState(null)
+  const [registrar, abrirRegistrar, cerrarRegistrar] = useVentana('registrar')
   const elegido = params.get('equipo')
   const actual = equipo.find(e => e.id === elegido) || miEquipo || (esAdmin ? equipo[0] : null)
   useEffect(() => { if (esAdmin && actual && !elegido) setParams({ equipo: actual.id }, { replace: true }) }, [esAdmin, actual, elegido, setParams])
@@ -85,7 +86,7 @@ export default function MisParejas() {
                   </ul>
                 )}
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button onClick={() => setRegistrar(p.id)} className={btn.vino}><PackagePlus size={16} />Registrar cartas recibidas</button>
+                  <button onClick={() => abrirRegistrar(p.id)} className={btn.vino}><PackagePlus size={16} />Registrar cartas recibidas</button>
                   <Link to={`/cartas/panel/parejas/${p.id}`} className={btn.contorno}>Ver ficha<ChevronRight size={16} /></Link>
                 </div>
               </li>
@@ -113,7 +114,7 @@ export default function MisParejas() {
         </section>
       )}
 
-      {registrar && <CartaFisica parejaInicial={registrar} onCerrar={() => setRegistrar(null)} />}
+      {registrar && <CartaFisica parejaInicial={registrar === true ? '' : registrar} onCerrar={cerrarRegistrar} />}
     </div>
   )
 }

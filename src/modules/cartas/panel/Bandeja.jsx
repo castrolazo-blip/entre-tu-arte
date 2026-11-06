@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Package, Mail, Paperclip, Copy as CopyIcon, Clock, Filter } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
+import { useVentana } from '../borrador.js'
 import { esValida, folioTexto, fecha, nombreDestinatario, nombrePareja } from '../constantes.js'
 import { Etiqueta, Titulo, Vacio, btn } from '../ui.jsx'
 import DetalleCarta from './DetalleCarta.jsx'
@@ -13,7 +14,7 @@ export default function Bandeja() {
   const { cartas, parejas } = useCartas()
   const [params, setParams] = useSearchParams()
   const [f, setF] = useState({ pareja: params.get('pareja') || '', estado: params.get('estado') || '', origen: '', destinatario: '', q: '', desde: '', hasta: '', vinculo: '' })
-  const [fisica, setFisica] = useState(false)
+  const [fisica, abrirFisica, cerrarFisica] = useVentana('registrar')
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const abierta = params.get('carta')
   const relaciones = useMemo(() => [...new Set(cartas.map(c => c.relacion).filter(Boolean))].sort(), [cartas])
@@ -43,7 +44,7 @@ export default function Bandeja() {
   return (
     <div>
       <Titulo titulo="Cartas" subtitulo={`${lista.length} de ${cartas.length} cartas`}>
-        <button onClick={() => setFisica(true)} className={btn.vino}><Package size={16} />Registrar cartas recibidas</button>
+        <button onClick={() => abrirFisica()} className={btn.vino}><Package size={16} />Registrar cartas recibidas</button>
       </Titulo>
 
       <div className="mb-4 rounded-[22px] bg-white p-3">
@@ -115,7 +116,7 @@ export default function Bandeja() {
       )}
 
       {abierta && <DetalleCarta cartaId={abierta} onCerrar={() => abrir(null)} />}
-      {fisica && <CartaFisica parejaInicial={f.pareja} onCerrar={() => setFisica(false)} />}
+      {fisica && <CartaFisica parejaInicial={f.pareja} onCerrar={cerrarFisica} clave="bandeja" />}
     </div>
   )
 }

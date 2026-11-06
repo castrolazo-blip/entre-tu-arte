@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PackagePlus, HeartHandshake, LayoutDashboard, Inbox, Users, BellRing, Printer, Link2, CalendarHeart, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
+import { useVentana } from '../borrador.js'
 import { enlacePortal, nombreEquipo, ESTADOS_RETIRO } from '../constantes.js'
 import { copiar } from './Retiros.jsx'
 import CartaFisica from './CartaFisica.jsx'
@@ -11,13 +11,13 @@ import CartaFisica from './CartaFisica.jsx'
 export default function Inicio() {
   const { perfil, esAdmin, retiros, retiro, setRetiroId, indicadores, miEquipo, equipo, parejas } = useCartas()
   const { salir } = useAuth()
-  const [registrar, setRegistrar] = useState(false)
+  const [registrar, abrirRegistrar, cerrarRegistrar] = useVentana('registrar')
   const t = indicadores.totales
   const misParejas = miEquipo ? parejas.filter(p => p.equipo_id === miEquipo.id && p.estado === 'activa').length : 0
   const aImprimir = t.aImprimir
 
   const botones = [
-    { accion: () => setRegistrar(true), Icono: PackagePlus, titulo: 'Registrar cartas recibidas', detalle: 'En papel, por correo o por enlace', principal: true },
+    { accion: () => abrirRegistrar(), Icono: PackagePlus, titulo: 'Registrar cartas recibidas', detalle: 'En papel, por correo o por enlace', principal: true },
     (miEquipo || (esAdmin && equipo.length > 0)) && {
       to: '/cartas/panel/mis-parejas', Icono: HeartHandshake, titulo: miEquipo ? 'Mis parejas' : 'Bandejas del equipo',
       detalle: miEquipo ? `${misParejas} ${misParejas === 1 ? 'pareja asignada' : 'parejas asignadas'}` : `${equipo.length} matrimonios del equipo` },
@@ -67,7 +67,7 @@ export default function Inicio() {
         className="mt-6 inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-gris hover:bg-white lg:hidden">
         <LogOut size={16} />Salir
       </button>
-      {registrar && <CartaFisica parejaInicial={misParejas === 1 ? parejas.find(p => p.equipo_id === miEquipo?.id && p.estado === 'activa')?.id : ''} onCerrar={() => setRegistrar(false)} />}
+      {registrar && <CartaFisica parejaInicial={misParejas === 1 ? parejas.find(p => p.equipo_id === miEquipo?.id && p.estado === 'activa')?.id : ''} onCerrar={cerrarRegistrar} clave="inicio" />}
     </div>
   )
 }
