@@ -5,7 +5,7 @@ import { useCartas } from '../CartasContext.jsx'
 import { useBorrador, useVentana } from '../borrador.js'
 import { registrarCartaFisica, tipoDeArchivo, firmaValida } from '../cartasService.js'
 import { ACEPTA, mensajeError, nombrePareja, apodo, enlacePortal, nombreDestinatario, fecha, folioTexto, esValida } from '../constantes.js'
-import { copiar } from './Retiros.jsx'
+import { InvitacionPareja } from './Retiros.jsx'
 import { Modal, SelectRelacion, btn } from '../ui.jsx'
 
 // Una línea = una o varias cartas del mismo tipo (p. ej. «Primo · para ambos · 3»: tres cartas, cada una de un primo)
@@ -179,7 +179,7 @@ function PorEnlace({ pareja, cartas, retiro }) {
   return (
     <div className="rounded-2xl bg-crema-clara p-4">
       <p className="text-sm">Las cartas que familiares y amigos envían por el enlace <b>llegan solas</b>: no hay que registrarlas. Esta lista se actualiza sola.</p>
-      <button type="button" onClick={() => copiar(enlacePortal(retiro, { pareja }), 'Enlace de la pareja copiado')} className={`${btn.mini} mt-3`}><Copy size={14} />Copiar enlace de esta pareja</button>
+      <div className="mt-3 flex flex-wrap gap-2"><InvitacionPareja retiro={retiro} pareja={pareja} /></div>
       <p className="etiqueta mb-2 mt-4">Recibidas por enlace ({cartas.length})</p>
       {!cartas.length ? <p className="text-sm text-gris">Todavía no ha llegado ninguna.</p> : (
         <ul className="divide-y divide-crema-borde rounded-xl bg-white text-sm">

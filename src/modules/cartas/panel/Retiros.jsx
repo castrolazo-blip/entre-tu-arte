@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { Plus, Pencil, Copy, ExternalLink, CalendarHeart } from 'lucide-react'
+import { Plus, Pencil, Copy, ExternalLink, CalendarHeart, MessageCircle } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { useBorrador, useVentana } from '../borrador.js'
 import { guardarRetiro } from '../cartasService.js'
-import { ESTADOS_RETIRO, PLANTILLA_FAMILIAS, enlacePortal, fecha, rangoFechas, mensajeError } from '../constantes.js'
+import { ESTADOS_RETIRO, PLANTILLA_FAMILIAS, mensajeInvitacion, enlacePortal, fecha, rangoFechas, mensajeError } from '../constantes.js'
 import { Etiqueta, Modal, Titulo, Vacio, btn } from '../ui.jsx'
 
 const VACIO = { nombre: '', inicio: '', fin: '', lugar: '', fecha_limite: '', estado: 'preparacion', aceptar_tardias: false,
@@ -114,5 +114,17 @@ function FormRetiro({ inicial, onCerrar, onGuardado }) {
         <label className="etiqueta">Contacto para pedir eliminación<input value={f.contacto_privacidad || ''} onChange={e => set('contacto_privacidad', e.target.value)} placeholder="WhatsApp 7729-0194" className="campo mt-1.5" /></label>
       </form>
     </Modal>
+  )
+}
+
+// Botones para compartir la invitación de una pareja (mensaje + su enlace, solo esa pareja)
+export function InvitacionPareja({ retiro, pareja, compacto = true }) {
+  const texto = mensajeInvitacion({ retiro, pareja, enlace: enlacePortal(retiro, { pareja }) })
+  const clase = compacto ? btn.mini : btn.contorno
+  return (
+    <>
+      <button type="button" onClick={() => copiar(texto, 'Invitación copiada: pégala en WhatsApp')} className={clase}><Copy size={compacto ? 13 : 15} />Copiar invitación</button>
+      <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer" className={clase}><MessageCircle size={compacto ? 13 : 15} />Compartir por WhatsApp</a>
+    </>
   )
 }

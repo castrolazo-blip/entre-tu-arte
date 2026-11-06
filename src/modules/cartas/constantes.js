@@ -188,6 +188,23 @@ export function fechaLarga(iso) {
   return new Date(iso).toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '')
 }
 
+// Invitación que acompaña el enlace de una pareja: para reenviar a quien quiera escribirles
+export function mensajeInvitacion({ retiro, pareja, enlace }) {
+  const fechas = retiro.inicio ? ` (${rangoFechas(retiro.inicio, retiro.fin)})` : ''
+  const plazo = retiro.fecha_limite ? `\n🗓️ Fecha límite: *${fechaLarga(retiro.fecha_limite)}*` : ''
+  return `💌 *Cartas con Amor · ${retiro.nombre}*
+
+*${nombrePareja(pareja)}* vivirán un encuentro matrimonial${fechas} y queremos sorprenderles con cartas de las personas que más les quieren.
+
+Te invitamos a escribirles una carta 🙏 Escríbela a mano o en tu computadora y súbela aquí (una foto o el archivo):
+${enlace}
+
+✍️ Cada carta es de una sola persona: indica quién eres para ellos (papá, hermana, amigo…).${plazo}
+
+📲 Por favor *comparte este mensaje* con familiares y amigos que también quieran escribirles.
+🤫 Es una sorpresa: no les comentes nada.`
+}
+
 export function mensajeFamilias({ retiro, pareja, remitente, enlace, responsable }) {
   const plantilla = retiro.plantilla_mensaje?.trim() || PLANTILLA_FAMILIAS
   const valores = {
