@@ -4,5 +4,6 @@ Allow: /
 Disallow: /admin
 Disallow: /login
 Disallow: /carrito
+Disallow: /cartas
 
 Sitemap: https://entretuarte.com/sitemap.xml
