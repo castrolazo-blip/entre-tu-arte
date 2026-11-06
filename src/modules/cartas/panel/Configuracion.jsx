@@ -40,7 +40,7 @@ export default function Configuracion() {
 }
 
 function Usuarios() {
-  const { retiros, perfil } = useCartas()
+  const { retiros, perfil, retiro } = useCartas()
   const [usuarios, setUsuarios] = useState([])
   const [asignados, setAsignados] = useState([])
   const [f, setF] = useState({ correo: '', nombre: '', rol: 'organizador', puede_leer: false })
@@ -52,7 +52,10 @@ function Usuarios() {
   async function agregar(e) {
     e.preventDefault()
     setGuardando(true)
-    try { await agregarUsuario(f); toast.success('Usuario agregado'); setF({ correo: '', nombre: '', rol: 'organizador', puede_leer: false }); await cargar() }
+    try {
+      const id = await agregarUsuario(f)
+      if (f.rol === 'organizador' && retiro && id) await asignarOrganizador(retiro.id, id, true)
+      toast.success(f.rol === 'organizador' && retiro ? `Usuario agregado y asignado a ${retiro.nombre}` : 'Usuario agregado'); setF({ correo: '', nombre: '', rol: 'organizador', puede_leer: false }); await cargar() }
     catch (err) { toast.error(mensajeError(err, 'No se pudo agregar')) }
     finally { setGuardando(false) }
   }
