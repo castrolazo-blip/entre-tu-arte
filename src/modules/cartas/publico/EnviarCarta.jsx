@@ -25,7 +25,8 @@ export default function EnviarCarta() {
 
   useEffect(() => {
     if (!codigo) { setInfo({ estado: 'no_disponible' }); return }
-    portal(codigo, tokenPareja, tokenRemitente).then(setInfo).catch(e => setErrorCarga(mensajeError(e)))
+    if (!tokenPareja && !tokenRemitente) { setInfo({ estado: 'sin_pareja' }); return }
+    portal(codigo, tokenPareja, tokenRemitente).then(i => setInfo(i?.parejas?.length > 1 ? { estado: 'sin_pareja' } : i)).catch(e => setErrorCarga(mensajeError(e)))
   }, [codigo, tokenPareja, tokenRemitente])
 
   return (
@@ -48,6 +49,7 @@ export default function EnviarCarta() {
         {errorCarga && <Aviso icono={AlertTriangle} titulo="No pudimos abrir el formulario">{errorCarga} <button onClick={() => window.location.reload()} className="font-semibold underline">Reintentar</button></Aviso>}
         {!info && !errorCarga && <div className="flex justify-center rounded-[28px] bg-white p-10"><Loader2 className="animate-spin text-vino" /></div>}
         {info?.estado === 'no_disponible' && <Aviso icono={AlertTriangle} titulo="Este enlace no está disponible">Puede que el retiro aún no abra la recepción de cartas o que el enlace esté incompleto. Consulta con la persona que te lo compartió.</Aviso>}
+        {info?.estado === 'sin_pareja' && <Aviso icono={AlertTriangle} titulo="Este enlace está incompleto">Cada pareja tiene su propio enlace. Pide a la familia o al equipo de cartas el enlace de la pareja a la que quieres enviar tu carta.</Aviso>}
         {info?.estado === 'cerrado' && <Aviso icono={Clock} titulo="La recepción de cartas ya cerró">La fecha límite era el {fecha(info.fecha_limite, true)}. Si aún deseas enviar tu carta, comunícate con el equipo organizador.</Aviso>}
         {info?.estado === 'abierto' && !enviado && <Formulario info={info} codigo={codigo} tokenRemitente={tokenRemitente} onEnviado={setEnviado} />}
         {enviado && <Confirmacion resultado={enviado} info={info} contacto={!!info.remitente?.coordinador} onOtra={() => { setEnviado(null); window.scrollTo(0, 0) }} />}

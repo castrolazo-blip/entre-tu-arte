@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Plus, Upload, Search, ChevronRight, Download, FileSpreadsheet } from 'lucide-react'
+import { Plus, Upload, Search, ChevronRight, Download, FileSpreadsheet, Link2 } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { useBorrador, useVentana } from '../borrador.js'
 import { guardarPareja, insertarParejas, insertarRemitentes, insertarInscripcion } from '../cartasService.js'
 import { leerCSV, leerXLSX, interpretarInscripcion, descargar, PLANTILLA_PAREJAS, PLANTILLA_REMITENTES } from '../archivos.js'
-import { mensajeError, semaforo, nombrePareja, nombreCompleto, responsableDe } from '../constantes.js'
+import { mensajeError, semaforo, nombrePareja, nombreCompleto, responsableDe, enlacePortal } from '../constantes.js'
+import { copiar } from './Retiros.jsx'
 import { Modal, Semaforo, Titulo, Vacio, btn } from '../ui.jsx'
 
 const norm = s => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -41,6 +42,7 @@ export default function Parejas() {
 
   return (
     <div>
+      <p className="mb-4 rounded-2xl bg-vino-claro p-3 text-sm text-vino">Cada pareja tiene <b>su propio enlace</b>: quien lo abre solo ve a esa pareja, nunca la lista del retiro. El mensaje de WhatsApp a cada contacto de familia ya lleva su enlace.</p>
       <Titulo titulo="Parejas" subtitulo={`${parejas.filter(p => p.estado === 'activa').length} parejas activas${meta ? ` · meta: ${meta} cartas por persona (${meta * 2} por pareja)` : ''}`}>
         <button onClick={() => setImportar(true)} className={btn.contorno}><Upload size={16} />Importar</button>
         <button onClick={() => abrirNueva()} className={btn.vino}><Plus size={17} />Nueva pareja</button>
@@ -84,6 +86,9 @@ export default function Parejas() {
                     ) : <span className="hidden text-sm text-gris sm:block">{x.recibidas} cartas</span>}
                     <ChevronRight size={18} className="text-gris" />
                   </Link>
+                  <div className="flex flex-wrap gap-2 px-4 pb-3 sm:px-5">
+                    <button onClick={() => copiar(enlacePortal(retiro, { pareja: p }), `Enlace de ${nombrePareja(p)} copiado`)} className={btn.mini}><Link2 size={13} />Copiar enlace de la pareja</button>
+                  </div>
                   {meta > 0 && (
                     <div className="flex gap-4 px-4 pb-3 sm:hidden">
                       <Avance nombre={p.apodo_a || p.nombre_a} n={x.paraA} meta={meta} />

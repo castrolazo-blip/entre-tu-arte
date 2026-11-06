@@ -45,8 +45,6 @@ export default function Retiros() {
             {r.estado !== 'activo' && <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">El formulario público solo recibe cartas cuando el retiro está «Activo».</p>}
             <div className="mt-4 flex flex-wrap gap-2">
               {r.id !== retiroId && <button onClick={() => setRetiroId(r.id)} className={btn.mini}><CalendarHeart size={14} />Trabajar en este</button>}
-              <button onClick={() => copiar(enlacePortal(r), 'Enlace general copiado')} className={btn.mini}><Copy size={14} />Copiar enlace general</button>
-              <a href={enlacePortal(r)} target="_blank" rel="noreferrer" className={btn.mini}><ExternalLink size={14} />Ver formulario</a>
               {esAdmin && <button onClick={() => abrirRetiro(r.id)} className={btn.mini}><Pencil size={14} />Editar</button>}
             </div>
           </article>
