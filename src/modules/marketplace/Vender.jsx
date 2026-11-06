@@ -37,6 +37,8 @@ export default function Vender() {
     if (sinFoto >= 0) { toast.error(`Agrega al menos una foto del cuadro ${sinFoto + 1}`); return }
     const sinArtista = vendedor.tipo === 'coleccionista' ? cuadros.findIndex(c => !c.anonimo && !c.autor.trim()) : -1
     if (sinArtista >= 0) { toast.error(`Cuadro ${sinArtista + 1}: escribe el artista o marca "No sé quién es el artista"`); return }
+    const sinMedidas = cuadros.findIndex(c => !(parseFloat(String(c.alto).replace(',', '.')) > 0) || !(parseFloat(String(c.ancho).replace(',', '.')) > 0))
+    if (sinMedidas >= 0) { toast.error(`Cuadro ${sinMedidas + 1}: escribe el alto y el ancho en centímetros`); return }
     const sinPrecio = cuadros.findIndex(c => !numeroPrecio(c.precio))
     if (sinPrecio >= 0) { toast.error(`Cuadro ${sinPrecio + 1}: escribe el precio de venta que propones`); return }
     if (!acepto) { toast.error('Para enviar, acepta las Condiciones comerciales'); return }
@@ -137,8 +139,8 @@ export default function Vender() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="etiqueta">Nombre del cuadro (opcional)<input value={c.titulo} onChange={e => cambiar(c.id, 'titulo', e.target.value)} className="campo mt-1.5" /></label>
               <label className="etiqueta">Técnica (opcional)<input value={c.tecnica} onChange={e => cambiar(c.id, 'tecnica', e.target.value)} placeholder="Óleo, acrílico…" className="campo mt-1.5" /></label>
-              <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={c.alto} onChange={e => cambiar(c.id, 'alto', e.target.value)} className="campo mt-1.5" /></label>
-              <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={c.ancho} onChange={e => cambiar(c.id, 'ancho', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta">Alto (cm) *<input inputMode="decimal" placeholder="Ej.: 60" value={c.alto} onChange={e => cambiar(c.id, 'alto', e.target.value)} className="campo mt-1.5" /></label>
+              <label className="etiqueta">Ancho (cm) *<input inputMode="decimal" placeholder="Ej.: 80" value={c.ancho} onChange={e => cambiar(c.id, 'ancho', e.target.value)} className="campo mt-1.5" /></label>
               <label className="etiqueta sm:col-span-2">Precio de venta que propones (USD)<input inputMode="decimal" value={c.precio} onChange={e => cambiar(c.id, 'precio', e.target.value)} placeholder="Ej. 500" className="campo mt-1.5 text-lg font-bold" />
                 <span className="mt-1.5 block text-sm font-normal text-gris">La comisión de Entre tu Arte se acuerda contigo antes de publicar la obra.</span>
               </label>

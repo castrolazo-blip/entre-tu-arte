@@ -100,13 +100,16 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
   const sugerido = s.precio_deseado ? Number(s.precio_deseado) : ''
   const [f, setF] = useState({
     titulo: s.titulo || '', precio: sugerido, comision: String(COMISION_SUGERIDA),
+    alto: s.alto_cm ?? '', ancho: s.ancho_cm ?? '', piezas: String(s.piezas || 1), tecnica: s.tecnica || '',
     // Crédito público: el artista del cuadro; si no se sabe, "Artista anónimo"
     credito: s.autor || (s.autor_anonimo ? 'Artista anónimo' : s.tipo_vendedor === 'artista' ? s.nombre : 'Colección privada'),
   })
   const [publicando, setPublicando] = useState(false)
   const [subiendo, setSubiendo] = useState(0)
   const publicada = s.estado === 'aprobada' && s.ficha_id
-  const medidas = medidasTexto({ alto_cm: s.alto_cm, ancho_cm: s.ancho_cm, piezas: s.piezas })
+  const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return n > 0 ? n : null }
+  const editadas = { alto_cm: num(f.alto), ancho_cm: num(f.ancho), piezas: Math.max(1, parseInt(f.piezas, 10) || 1), tecnica: f.tecnica.trim() || null }
+  const medidas = medidasTexto(s.estado === 'pendiente' ? editadas : { alto_cm: s.alto_cm, ancho_cm: s.ancho_cm, piezas: s.piezas })
   const venta = Number(String(f.precio).replace(/[^0-9.]/g, '')) || 0
   const pct = Math.min(100, Math.max(0, Number(String(f.comision).replace(',', '.')) || 0))
   const alVendedor = Math.round(venta * (100 - pct)) / 100
@@ -116,10 +119,11 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
   async function publicar() {
     const precioVenta = Number(String(f.precio).replace(/[^0-9.]/g, ''))
     if (!precioVenta) { toast.error('Pon el precio de venta'); return }
+    if (!editadas.alto_cm || !editadas.ancho_cm) { toast.error('Pon el alto y el ancho del cuadro (cm)'); return }
     setPublicando(true)
     const registro = {
-      titulo: f.titulo.trim() || null, descripcion: s.descripcion || null, tecnica: s.tecnica || null,
-      alto_cm: s.alto_cm, ancho_cm: s.ancho_cm, piezas: s.piezas || 1, medidas: medidas || null,
+      titulo: f.titulo.trim() || null, descripcion: s.descripcion || null, tecnica: editadas.tecnica,
+      alto_cm: editadas.alto_cm, ancho_cm: editadas.ancho_cm, piezas: editadas.piezas, medidas: medidas || null,
       precio: precioVenta, fotos: await conMiniaturas(s.fotos || []), imagen_url: s.fotos?.[0]?.url || null,
       artista_nombre: f.credito.trim() || null, origen: 'marketplace', estado: 'disponible', existencias: 1, categorias: [],
     }
@@ -130,7 +134,7 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
       toast.error(/origen/.test(error.message) ? 'Falta activar el Marketplace: ejecuta docs/ACTUALIZAR_BASE.sql en Supabase.' : 'No se pudo publicar: ' + error.message, { duration: 8000 })
       return
     }
-    await actualizar(s, { estado: 'aprobada', ficha_id: String(data.id), precio_publicado: precioVenta, comision_pct: pct }, 'Publicado en el Marketplace. Puedes completarlo con IA en Obras › Editar.')
+    await actualizar(s, { ...editadas, estado: 'aprobada', ficha_id: String(data.id), precio_publicado: precioVenta, comision_pct: pct }, 'Publicado en el Marketplace. Puedes completarlo con IA en Obras › Editar.')
     setPublicando(false)
   }
 
@@ -222,6 +226,12 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
             <label className="etiqueta">Crédito público<input value={f.credito} onChange={e => setF(x => ({ ...x, credito: e.target.value }))} className="campo mt-1.5" /></label>
             <label className="etiqueta">Precio de publicación (USD)<input inputMode="decimal" value={f.precio} onChange={e => setF(x => ({ ...x, precio: e.target.value }))} className="campo mt-1.5 font-bold" /></label>
             <label className="etiqueta">Comisión acordada (%)<input inputMode="decimal" value={f.comision} onChange={e => setF(x => ({ ...x, comision: e.target.value }))} className="campo mt-1.5 font-bold" /></label>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <label className="etiqueta">Alto (cm)<input inputMode="decimal" value={f.alto} onChange={e => setF(x => ({ ...x, alto: e.target.value }))} placeholder="Falta" className={`campo mt-1.5 ${num(f.alto) ? '' : 'ring-2 ring-mostaza'}`} /></label>
+            <label className="etiqueta">Ancho (cm)<input inputMode="decimal" value={f.ancho} onChange={e => setF(x => ({ ...x, ancho: e.target.value }))} placeholder="Falta" className={`campo mt-1.5 ${num(f.ancho) ? '' : 'ring-2 ring-mostaza'}`} /></label>
+            <label className="etiqueta">Piezas<input inputMode="numeric" value={f.piezas} onChange={e => setF(x => ({ ...x, piezas: e.target.value }))} className="campo mt-1.5" /></label>
+            <label className="etiqueta">Técnica<input value={f.tecnica} onChange={e => setF(x => ({ ...x, tecnica: e.target.value }))} placeholder="Acrílico sobre lienzo" className="campo mt-1.5" /></label>
           </div>
           {venta > 0 && <p className="text-sm">Al vendedor ({100 - pct}%): <strong>{precio(alVendedor)}</strong> · Entre tu Arte ({pct}%): <strong>{precio(venta - alVendedor)}</strong>. Acuerda el precio y la comisión con el vendedor antes de publicar (condiciones 3 y 4).</p>}
           <div className="flex flex-wrap gap-2">
