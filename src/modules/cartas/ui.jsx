@@ -95,10 +95,9 @@ export function ChipsRelacion({ valor, onCambio }) {
   )
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5">{RELACIONES.map(chip)}</div>
-      <p className="mb-1.5 mt-3 text-xs font-semibold text-gris">Si la firman varios</p>
+      {/* Cada carta es de una sola persona: no hay opciones de grupo (Papás, Hijos…) */}
       <div className="flex flex-wrap gap-1.5">
-        {RELACIONES_GRUPO.map(chip)}
+        {RELACIONES.map(chip)}
         <button type="button" onClick={() => { setOtro(true); onCambio('') }} aria-pressed={otro}
           className={`h-10 rounded-full border px-3.5 text-[14px] font-semibold ${otro ? 'border-vino bg-vino text-white' : 'border-dashed border-crema-borde bg-white'}`}>Otro…</button>
       </div>
@@ -117,8 +116,7 @@ export function SelectRelacion({ valor, onCambio, className = '', vacio = '¿Qui
         onChange={e => { if (e.target.value === '__otro') { setOtro(true); onCambio('') } else { setOtro(false); onCambio(e.target.value) } }}
         className={`campo h-10 min-w-0 flex-1 bg-white ${!valor && !otro ? 'text-gris' : ''}`}>
         <option value="">{vacio}</option>
-        <optgroup label="Persona">{RELACIONES.map(r => <option key={r}>{r}</option>)}</optgroup>
-        <optgroup label="Varios">{RELACIONES_GRUPO.map(r => <option key={r}>{r}</option>)}</optgroup>
+        {RELACIONES.map(r => <option key={r}>{r}</option>)}
         <option value="__otro">Otro…</option>
       </select>
       {otro && <input autoFocus value={valor || ''} onChange={e => onCambio(e.target.value.slice(0, 60))} placeholder="¿Cuál?" aria-label="Otra relación" className="campo h-10 w-28 min-w-0 bg-white" />}

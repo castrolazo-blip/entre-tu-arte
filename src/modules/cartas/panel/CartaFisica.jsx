@@ -8,7 +8,7 @@ import { ACEPTA, mensajeError, nombrePareja, apodo, enlacePortal, nombreDestinat
 import { copiar } from './Retiros.jsx'
 import { Modal, SelectRelacion, btn } from '../ui.jsx'
 
-// Una línea = una o varias cartas iguales (p. ej. «Hermanos · para ambos · 3»)
+// Una línea = una o varias cartas del mismo tipo (p. ej. «Primo · para ambos · 3»: tres cartas, cada una de un primo)
 const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [], cantidad: 1 })
 
 // Registro de cartas que llegan en papel (paquete de la familia) o por correo (cartasrenova@gmail.com).
@@ -123,7 +123,7 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
               <button type="button" onClick={() => setLineas(ls => [...ls, linea()])} className={btn.contorno}><Plus size={16} />Agregar otra carta</button>
             </div>
             <p className="mt-2 text-xs text-gris">{origen === 'fisica'
-              ? 'Ejemplo: «Hermanos · Ambos · 3» si llegaron tres cartas de los hermanos para los dos. Las cartas en papel no se abren: se clasifican con lo que dice el sobre y van a su sobre.'
+              ? 'Ejemplo: «Primo · Ambos · 3» si llegaron tres cartas, cada una de un primo distinto, para los dos. Las cartas en papel no se abren: se clasifican con lo que dice el sobre y van a su sobre.'
               : 'Adjunta el archivo del correo (PDF, Word o foto del escaneo) para poder imprimirlo. Toma quién la envía del asunto.'}</p>
           </div>
         )}
