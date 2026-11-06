@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { UserPlus, Archive, Trash2, Loader2, ShieldCheck } from 'lucide-react'
 import { supabase } from '../../../lib/supabase.js'
 import { useCartas } from '../CartasContext.jsx'
-import { listarUsuarios, agregarUsuario, actualizarUsuario, listarOrganizadores, asignarOrganizador,
+import { guardarRetiro, listarUsuarios, agregarUsuario, actualizarUsuario, listarOrganizadores, asignarOrganizador,
   textosCartas, bytesArchivo, eliminarContenidoRetiro, listarRecordatorios } from '../cartasService.js'
 import { crearZip, descargar, nombreArchivo } from '../archivos.js'
 import { fecha, mensajeError, folioTexto } from '../constantes.js'
@@ -21,7 +21,8 @@ export default function Configuracion() {
   if (!esAdmin) return <p className="text-gris">Solo los administradores pueden entrar a Configuración.</p>
   return (
     <div>
-      <Titulo titulo="Configuración" subtitulo="Equipo de cartas, repartición de parejas, usuarios y datos. Plazos y meta se ajustan en Retiros › Editar." />
+      <Titulo titulo="Configuración" subtitulo="Meta de cartas, equipo, repartición de parejas, usuarios y datos. La fecha límite se ajusta en Retiros › Editar." />
+      {retiro && <MetaCartas />}
       <div className="mb-4 flex flex-wrap gap-2" role="tablist">
         {PESTANAS.map(([k, t]) => (
           <button key={k} role="tab" aria-selected={pestana === k} onClick={() => setParams({ p: k }, { replace: true })}
@@ -193,6 +194,42 @@ function Retencion() {
         <button onClick={eliminar} disabled={borrando || confirmacion.trim() !== retiro.nombre.trim()} className="inline-flex h-11 items-center gap-2 rounded-full bg-rose-600 px-5 text-sm font-semibold text-white disabled:opacity-40">
           {borrando ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}Eliminar contenido
         </button>
+      </div>
+    </section>
+  )
+}
+
+// Meta de cartas: número por persona (la pareja es el doble). Mueve avance, semáforo y el mensaje a las familias.
+function MetaCartas() {
+  const { retiro, recargarRetiros } = useCartas()
+  const [meta, setMeta] = useState(retiro.meta_por_persona || 0)
+  const [guardando, setGuardando] = useState(false)
+  useEffect(() => { setMeta(retiro.meta_por_persona || 0) }, [retiro.id, retiro.meta_por_persona])
+  const cambio = meta !== (retiro.meta_por_persona || 0)
+
+  async function guardar() {
+    setGuardando(true)
+    try {
+      await guardarRetiro({ id: retiro.id, meta_por_persona: meta })
+      await recargarRetiros()
+      toast.success(meta ? `Meta: ${meta} cartas por persona (${meta * 2} por pareja)` : 'Sin meta de cartas')
+    } catch (err) { toast.error(mensajeError(err, 'No se pudo guardar la meta')) }
+    finally { setGuardando(false) }
+  }
+
+  return (
+    <section className="mb-5 rounded-[24px] bg-white p-5">
+      <h2 className="text-lg font-semibold">Número de cartas</h2>
+      <p className="mt-1 text-sm text-gris">Cuántas cartas debe recibir <b>cada persona</b>. Se usa en el avance, el semáforo y el mensaje a las familias.</p>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <span className="flex items-center rounded-full border border-crema-borde bg-crema-clara">
+          <button type="button" onClick={() => setMeta(m => Math.max(0, m - 1))} aria-label="Una menos" className="flex h-12 w-12 items-center justify-center text-2xl font-semibold">−</button>
+          <input type="number" min="0" max="100" value={meta} onChange={e => setMeta(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+            aria-label="Cartas por persona" className="h-12 w-14 bg-transparent text-center text-xl font-bold tabular-nums outline-none" />
+          <button type="button" onClick={() => setMeta(m => Math.min(100, m + 1))} aria-label="Una más" className="flex h-12 w-12 items-center justify-center text-2xl font-semibold">+</button>
+        </span>
+        <span className="text-sm">{meta ? <>por persona = <b className="text-vino">{meta * 2} por pareja</b></> : 'sin meta'}</span>
+        {cambio && <button onClick={guardar} disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button>}
       </div>
     </section>
   )
