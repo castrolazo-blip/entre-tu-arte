@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ExternalLink, Mail, Check, X, Copy, Pencil, Loader2 } from 'lucide-react'
+import { ExternalLink, Mail, Check, X, Copy, Pencil, Loader2, ImagePlus, Star, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supabase } from '../../../lib/supabase.js'
 import { precio, medidasTexto, fechaCorta } from '../../../lib/formato.js'
 import { faltanColumnasTipo, sinCamposTipo } from '../../../components/admin/SelectorTipoObra.jsx'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
-import { conMiniaturas } from '../adminService.js'
+import { conMiniaturas, subirArchivo, reducirImagen } from '../adminService.js'
+import BotonArchivo from '../../../components/admin/BotonArchivo.jsx'
 import MenuWhatsApp from '../../../components/admin/MenuWhatsApp.jsx'
 import { mensajesVendedor } from './mensajesVendedor.js'
 import { COMISION_SUGERIDA } from '../../marketplace/condiciones.js'
@@ -103,6 +104,8 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
     credito: s.autor || (s.autor_anonimo ? 'Artista anónimo' : s.tipo_vendedor === 'artista' ? s.nombre : 'Colección privada'),
   })
   const [publicando, setPublicando] = useState(false)
+  const [subiendo, setSubiendo] = useState(0)
+  const publicada = s.estado === 'aprobada' && s.ficha_id
   const medidas = medidasTexto({ alto_cm: s.alto_cm, ancho_cm: s.ancho_cm, piezas: s.piezas })
   const venta = Number(String(f.precio).replace(/[^0-9.]/g, '')) || 0
   const pct = Math.min(100, Math.max(0, Number(String(f.comision).replace(',', '.')) || 0))
@@ -131,6 +134,29 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
     setPublicando(false)
   }
 
+  // Fotos: el administrador puede agregar (mejores fotos, ambiente, detalle), elegir la principal o quitar
+  async function guardarFotos(fotos, mensaje) {
+    const conRoles = fotos.map((x, i) => ({ ...x, rol: i === 0 ? 'principal' : x.rol === 'principal' ? 'detalle' : (x.rol || 'detalle') }))
+    return actualizar(s, { fotos: conRoles }, mensaje)
+  }
+  async function agregarFotos(archivos) {
+    setSubiendo(archivos.length)
+    try {
+      const nuevas = await Promise.all(archivos.map(async a => ({ url: await subirArchivo('obras', await reducirImagen(a, 1800, 0.85), null, { upsert: false }), rol: 'detalle' })))
+      await guardarFotos([...(s.fotos || []), ...nuevas], nuevas.length === 1 ? 'Foto agregada' : `${nuevas.length} fotos agregadas`)
+    } catch (e) { toast.error('No se pudo subir: ' + (e.message || e)) }
+    finally { setSubiendo(0) }
+  }
+  function hacerPrincipal(i) {
+    const fotos = [...(s.fotos || [])]; const [x] = fotos.splice(i, 1)
+    guardarFotos([x, ...fotos], 'Foto principal cambiada')
+  }
+  function quitarFoto(i) {
+    if ((s.fotos || []).length <= 1) { toast.error('Debe quedar al menos una foto'); return }
+    if (!window.confirm('¿Quitar esta foto?')) return
+    guardarFotos((s.fotos || []).filter((_, n) => n !== i), 'Foto quitada')
+  }
+
   async function eliminar() {
     if (!window.confirm('¿Eliminar esta solicitud? No se puede deshacer.')) return
     const { error } = await supabase.from('marketplace_solicitudes').delete().eq('id', s.id)
@@ -143,13 +169,29 @@ function Solicitud({ s, ficha, actualizar, recargar }) {
         <p className="text-xs font-semibold text-gris">{fechaCorta(s.created_at)} · {s.tipo_vendedor === 'artista' ? 'Artista' : 'Coleccionista / particular'}</p>
         <EstadoSolicitud s={s} ficha={ficha} />
       </div>
-      <div className="mt-3 flex gap-2 overflow-x-auto">
-        {(s.fotos || []).map(x => (
-          <a key={x.url} href={x.url} target="_blank" rel="noreferrer" className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-crema">
-            <img src={x.url} alt="" className="h-full w-full object-cover" />
-          </a>
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {(s.fotos || []).map((x, i) => (
+          <div key={x.url} className="relative h-28 w-28 shrink-0">
+            <a href={x.url} target="_blank" rel="noreferrer" className="block h-full w-full overflow-hidden rounded-2xl bg-crema">
+              <img src={x.url} alt="" className="h-full w-full object-cover" />
+            </a>
+            {i === 0 && (s.fotos || []).length > 1 && <span className="absolute left-1.5 top-1.5 rounded-full bg-mostaza px-2 py-0.5 text-[10px] font-bold">Principal</span>}
+            {!publicada && (
+              <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+                {i > 0 && <button type="button" onClick={() => hacerPrincipal(i)} aria-label="Hacer principal" title="Hacer principal" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 shadow"><Star size={15} /></button>}
+                <button type="button" onClick={() => quitarFoto(i)} aria-label="Quitar foto" title="Quitar foto" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-red-700 shadow"><Trash2 size={15} /></button>
+              </div>
+            )}
+          </div>
         ))}
+        {!publicada && (
+          <BotonArchivo multiple onArchivos={agregarFotos} disabled={!!subiendo} etiqueta="Agregar fotos"
+            className="flex h-28 w-28 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-crema-borde text-xs font-bold text-gris">
+            {subiendo ? <><Loader2 size={22} className="animate-spin" />Subiendo {subiendo}…</> : <><ImagePlus size={24} />Agregar fotos</>}
+          </BotonArchivo>
+        )}
       </div>
+      {publicada && <p className="mt-1 text-xs text-gris">Ya está publicada: cambia sus fotos en <Link to="/admin/obras" className="font-semibold underline">Obras › Editar</Link>.</p>}
       <h3 className="mt-3 text-lg font-bold">{s.titulo || 'Sin nombre'}</h3>
       <p className="text-sm font-semibold">Artista: {s.autor || (s.autor_anonimo ? 'anónimo (el vendedor no lo sabe)' : 'no indicado')}</p>
       <p className="text-sm text-gris">{[s.tecnica, medidas].filter(Boolean).join(' · ') || 'Sin medidas'}</p>
