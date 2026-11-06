@@ -27,13 +27,34 @@ function limpiarRetiro(r) {
 
 // ── Datos de un retiro completo (los volúmenes de un retiro son pequeños: se carga todo) ──
 export async function cargarRetiro(retiroId) {
-  const [parejas, remitentes, cartas] = await Promise.all([
+  const [parejas, remitentes, cartas, equipo] = await Promise.all([
     supabase.from('cca_parejas').select('*').eq('retiro_id', retiroId).order('codigo'),
     supabase.from('cca_remitentes').select('*').eq('retiro_id', retiroId).order('nombre'),
     supabase.from('cca_cartas').select('*, cca_archivos(id, nombre_original, tipo, tamano, ruta, ilegible)')
       .eq('retiro_id', retiroId).order('created_at', { ascending: false }),
+    supabase.from('cca_equipo').select('*').eq('retiro_id', retiroId).order('apellidos'),
   ])
-  return { parejas: ok(parejas), remitentes: ok(remitentes), cartas: ok(cartas) }
+  // Si aún no se ejecutó la migración del equipo, el panel sigue funcionando sin él
+  return { parejas: ok(parejas), remitentes: ok(remitentes), cartas: ok(cartas), equipo: equipo.error ? [] : equipo.data }
+}
+
+// ── Equipo de servidores ──
+export async function guardarEquipo(e) {
+  const t = v => (typeof v === 'string' ? v.trim() || null : v ?? null)
+  const fila = { retiro_id: e.retiro_id, apellidos: e.apellidos.trim().replace(/\s+/g, ' '), notas: t(e.notas),
+    esposo_nombre: t(e.esposo_nombre), esposo_telefono: t(e.esposo_telefono), esposo_correo: t(e.esposo_correo)?.toLowerCase() || null,
+    esposa_nombre: t(e.esposa_nombre), esposa_telefono: t(e.esposa_telefono), esposa_correo: t(e.esposa_correo)?.toLowerCase() || null }
+  return e.id
+    ? ok(await supabase.from('cca_equipo').update(fila).eq('id', e.id).select().single())
+    : ok(await supabase.from('cca_equipo').insert(fila).select().single())
+}
+export const borrarEquipo = async (id) => ok(await supabase.from('cca_equipo').delete().eq('id', id))
+export const asignarParejas = async (ids, equipoId) =>
+  ok(await supabase.from('cca_parejas').update({ equipo_id: equipoId || null }).in('id', ids).select('id, equipo_id'))
+// Un miembro del equipo que entra con su correo registrado obtiene acceso (sin lectura de cartas)
+export async function reclamarAcceso() {
+  const { data, error } = await supabase.rpc('cca_reclamar_acceso')
+  return error ? 0 : data
 }
 
 // ── Parejas ──

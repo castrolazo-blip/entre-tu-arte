@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { UserPlus, Archive, Trash2, Loader2, ShieldCheck } from 'lucide-react'
 import { supabase } from '../../../lib/supabase.js'
@@ -8,16 +9,30 @@ import { listarUsuarios, agregarUsuario, actualizarUsuario, listarOrganizadores,
 import { crearZip, descargar, nombreArchivo } from '../archivos.js'
 import { fecha, mensajeError, folioTexto } from '../constantes.js'
 import { Titulo, btn } from '../ui.jsx'
+import { EquipoAdmin, Reparticion } from './Equipo.jsx'
+
+const PESTANAS = [['equipo', 'Equipo'], ['reparticion', 'Repartición'], ['usuarios', 'Usuarios'], ['datos', 'Respaldo y datos']]
 
 export default function Configuracion() {
   const { esAdmin, retiro } = useCartas()
+  const [params, setParams] = useSearchParams()
+  const pestana = params.get('p') || 'equipo'
   if (!esAdmin) return <p className="text-gris">Solo los administradores pueden entrar a Configuración.</p>
   return (
-    <div className="space-y-6">
-      <Titulo titulo="Configuración" subtitulo="Usuarios y permisos, respaldo y conservación de datos. Plazos y límites se ajustan en Retiros › Editar." />
-      <Usuarios />
-      {retiro && <Respaldo />}
-      {retiro && <Retencion />}
+    <div>
+      <Titulo titulo="Configuración" subtitulo="Equipo de cartas, repartición de parejas, usuarios y datos. Plazos y meta se ajustan en Retiros › Editar." />
+      <div className="mb-4 flex flex-wrap gap-2" role="tablist">
+        {PESTANAS.map(([k, t]) => (
+          <button key={k} role="tab" aria-selected={pestana === k} onClick={() => setParams({ p: k }, { replace: true })}
+            className={`chip ${pestana === k ? 'chip-on' : 'chip-off'}`}>{t}</button>
+        ))}
+      </div>
+      <div className="space-y-6">
+        {pestana === 'equipo' && (retiro ? <EquipoAdmin /> : <p className="text-gris">Crea primero un retiro.</p>)}
+        {pestana === 'reparticion' && (retiro ? <Reparticion /> : <p className="text-gris">Crea primero un retiro.</p>)}
+        {pestana === 'usuarios' && <Usuarios />}
+        {pestana === 'datos' && retiro && <><Respaldo /><Retencion /></>}
+      </div>
     </div>
   )
 }

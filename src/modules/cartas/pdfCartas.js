@@ -184,11 +184,11 @@ export async function pdfControl({ retiro, filas }) {
   let p = null, y = 0
   const nueva = () => {
     p = ctx.doc.addPage([ANCHO, ALTO]); y = ALTO - 60
-    p.drawText(limpiar(`Control de entrega · ${retiro.nombre}`, ctx.f.sansNegrita), { x: 40, y, size: 12, font: ctx.f.sansNegrita, color: ctx.color(VINO) })
+    p.drawText(limpiar(`Lista de cartas · ${retiro.nombre}`, ctx.f.sansNegrita), { x: 40, y, size: 12, font: ctx.f.sansNegrita, color: ctx.color(VINO) })
     y -= 16
     p.drawText(`Generado el ${fecha(new Date().toISOString(), true)}`, { x: 40, y, size: 8, font: ctx.f.sans, color: ctx.color(GRIS) })
     y -= 24
-    const cab = ['', 'Folio', 'Pareja', 'Para', 'De', 'Estado']
+    const cab = ['', 'Folio', 'Pareja', 'Para', 'De', 'Origen']
     const xs = [40, 60, 115, 270, 370, 500]
     cab.forEach((t, i) => p.drawText(t, { x: xs[i], y, size: 8, font: ctx.f.sansNegrita }))
     y -= 14

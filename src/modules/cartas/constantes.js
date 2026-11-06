@@ -2,20 +2,17 @@
 
 export const BUCKET_CARTAS = 'cca-cartas'
 
+// El control llega hasta «recibida»: las cartas no se leen ni se aprueban, y todas se entregan en el retiro.
+// Solo existen dos salidas por error: anulada (spam, carta equivocada) o duplicada, siempre con motivo.
+// (La base acepta estados antiguos; aquí cualquier estado válido se muestra como «Recibida».)
+const RECIBIDA = { etiqueta: 'Recibida', clase: 'bg-emerald-100 text-emerald-800' }
 export const ESTADOS_CARTA = {
-  recibida:    { etiqueta: 'Recibida',          clase: 'bg-sky-100 text-sky-800' },
-  en_revision: { etiqueta: 'En revisión',       clase: 'bg-amber-100 text-amber-800' },
-  aprobada:    { etiqueta: 'Aprobada',          clase: 'bg-emerald-100 text-emerald-800' },
-  lista:       { etiqueta: 'Lista para imprimir', clase: 'bg-teal-100 text-teal-800' },
-  impresa:     { etiqueta: 'Impresa',           clase: 'bg-indigo-100 text-indigo-800' },
-  entregada:   { etiqueta: 'Entregada',         clase: 'bg-vino text-white' },
-  rechazada:   { etiqueta: 'Rechazada',         clase: 'bg-neutral-200 text-neutral-700 line-through' },
-  duplicada:   { etiqueta: 'Duplicada',         clase: 'bg-neutral-200 text-neutral-700' },
+  recibida: RECIBIDA, en_revision: RECIBIDA, aprobada: RECIBIDA, lista: RECIBIDA, impresa: RECIBIDA, entregada: RECIBIDA,
+  rechazada: { etiqueta: 'Anulada', clase: 'bg-neutral-200 text-neutral-700 line-through' },
+  duplicada: { etiqueta: 'Duplicada', clase: 'bg-neutral-200 text-neutral-700' },
 }
-// Orden del flujo normal; rechazada y duplicada requieren motivo
-export const FLUJO = ['recibida', 'en_revision', 'aprobada', 'lista', 'impresa', 'entregada']
 export const NO_VALIDAS = ['rechazada', 'duplicada']
-export const APROBADAS = ['aprobada', 'lista', 'impresa', 'entregada']
+export const esValida = c => !NO_VALIDAS.includes(c.estado)
 
 export const ESTADOS_REMITENTE = {
   pendiente: { etiqueta: 'Pendiente',          clase: 'bg-amber-100 text-amber-800' },
@@ -65,7 +62,9 @@ export function mensajeError(error, porDefecto = 'No se pudo completar. Revisa t
   const m = /cca:([a-z_]+)/.exec(texto)
   if (m && ERRORES[m[1]]) return ERRORES[m[1]]
   if (/timeout|Failed to fetch|NetworkError|network/i.test(texto)) return 'La conexión está lenta o se cortó. Inténtalo de nuevo.'
-  if (texto && !/^(JWT|PGRST|new row violates)/.test(texto) && texto.length < 200 && !/cca:/.test(texto)) return texto
+  // Los errores técnicos (en inglés, de la base o del servidor) nunca se muestran tal cual
+  const tecnico = /^(JWT|PGRST)|schema cache|Could not find|function|relation|permission denied|violates|duplicate key|column|syntax|null value|invalid input|cca:/i
+  if (texto && !tecnico.test(texto) && texto.length < 200) return texto
   return porDefecto
 }
 
@@ -111,6 +110,23 @@ export function nombreDestinatario(pareja, destinatario) {
   return `${apodo(pareja, 'A')} y ${apodo(pareja, 'B')}`
 }
 export const nombrePareja = p => (p ? `${apodo(p, 'A')} y ${apodo(p, 'B')}${p.apellidos ? ' ' + p.apellidos : ''}` : '')
+// Equipo de servidores
+export const nombreEquipo = e => (e ? `Matrimonio ${e.apellidos}` : '')
+// Para el mensaje a las familias: "el matrimonio Castro Lazo (Ronald 7000-0000 · Ana 7000-0001)"
+export function contactoEquipo(e) {
+  if (!e) return ''
+  const personas = [[e.esposo_nombre, e.esposo_telefono], [e.esposa_nombre, e.esposa_telefono]]
+    .filter(([n]) => n).map(([n, t]) => `${n.split(' ')[0]}${t ? ' ' + t : ''}`)
+  return `el matrimonio ${e.apellidos}${personas.length ? ` (${personas.join(' · ')})` : ''}`
+}
+// Responsable de una pareja: el matrimonio del equipo asignado o el texto del Excel
+export const responsableDe = (p, equipo = []) => nombreEquipo(equipo.find(e => e.id === p?.equipo_id)) || p?.responsable || ''
+// Clasificación de quién envía la carta (se elige al subirla o registrarla)
+export const RELACIONES = ['Papá', 'Mamá', 'Hijo', 'Hija', 'Hermano', 'Hermana', 'Abuelo', 'Abuela', 'Nieto', 'Nieta',
+  'Tío', 'Tía', 'Primo', 'Prima', 'Sobrino', 'Sobrina', 'Suegro', 'Suegra', 'Cuñado', 'Cuñada',
+  'Padrino', 'Madrina', 'Ahijado', 'Ahijada', 'Amigo', 'Amiga', 'Compañero de trabajo', 'Sacerdote / religioso']
+// Relaciones en grupo (p. ej. «Papás», «Hijos») cuando la carta la firman varios
+export const RELACIONES_GRUPO = ['Papás', 'Hijos', 'Hermanos', 'Abuelos', 'Tíos', 'Suegros', 'Amigos', 'Familia']
 export const ORIGENES = { digital: 'Digital (formulario)', fisica: 'En papel', correo: 'Por correo' }
 
 // ── Enlaces del portal ──
@@ -171,19 +187,19 @@ export function fechaLarga(iso) {
   return new Date(iso).toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '')
 }
 
-export function mensajeFamilias({ retiro, pareja, remitente, enlace }) {
+export function mensajeFamilias({ retiro, pareja, remitente, enlace, responsable }) {
   const plantilla = retiro.plantilla_mensaje?.trim() || PLANTILLA_FAMILIAS
   const valores = {
     nombre: (remitente?.nombre || '').split(' ')[0], pareja: nombrePareja(pareja),
-    responsable: pareja.responsable || 'el equipo de cartas', meta: retiro.meta_por_persona || 10,
+    responsable: responsable || pareja.responsable || 'el equipo de cartas', meta: retiro.meta_por_persona || 10,
     fecha_limite: fechaLarga(retiro.fecha_limite), enlace,
   }
   return plantilla.replace(/\{(nombre|pareja|responsable|meta|fecha_limite|enlace)\}/g, (_, k) => valores[k])
 }
 
 // Ojo: el mensaje es para familiares y amigos; las parejas no deben enterarse (es sorpresa).
-export function mensajeRecordatorio({ retiro, pareja, remitente, enlace }) {
-  if (remitente.coordinador) return mensajeFamilias({ retiro, pareja, remitente, enlace })
+export function mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable }) {
+  if (remitente.coordinador) return mensajeFamilias({ retiro, pareja, remitente, enlace, responsable })
   const para = nombreDestinatario(pareja, remitente.destinatario)
   const plazo = retiro.fecha_limite ? ` Te pedimos enviarla a más tardar el ${fecha(retiro.fecha_limite)}.` : ''
   const nombre = (remitente.nombre || '').split(' ')[0]

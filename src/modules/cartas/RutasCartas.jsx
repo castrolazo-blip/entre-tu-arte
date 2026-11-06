@@ -16,6 +16,7 @@ const Bandeja      = lazy(() => import('./panel/Bandeja.jsx'))
 const Pendientes   = lazy(() => import('./panel/Pendientes.jsx'))
 const Impresion    = lazy(() => import('./panel/Impresion.jsx'))
 const Configuracion = lazy(() => import('./panel/Configuracion.jsx'))
+const MisParejas   = lazy(() => import('./panel/MisParejas.jsx'))
 
 export default function RutasCartas() {
   return (
@@ -32,6 +33,7 @@ export default function RutasCartas() {
           <Route path="pendientes" element={<Pendientes />} />
           <Route path="impresion" element={<Impresion />} />
           <Route path="configuracion" element={<Configuracion />} />
+          <Route path="mis-parejas" element={<MisParejas />} />
         </Route>
         <Route path="*" element={<Navigate to="/cartas/panel" replace />} />
       </Routes>

@@ -4,14 +4,14 @@ import { MessageCircle, Mail, Copy, Link2 } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { guardarRemitente, registrarRecordatorio } from '../cartasService.js'
-import { enlacePortal, mensajeRecordatorio, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE } from '../constantes.js'
+import { enlacePortal, mensajeRecordatorio, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE } from '../constantes.js'
 import { Modal, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 
 // Formulario de remitente esperado (familiar o amigo)
 export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }) {
   const { retiro, actualizarLocal } = useCartas()
-  const [f, setF] = useState(inicial || { nombre: '', telefono: '', correo: '', relacion: '', destinatario: 'ambos', estado: 'pendiente', motivo: '', notas: '', coordinador })
+  const [f, setF] = useState(inicial || { nombre: '', telefono: '', correo: '', relacion: '', destinatario: 'ambos', estado: 'pendiente', motivo: '', notas: '', coordinador: true })
   const [guardando, setGuardando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
 
@@ -35,10 +35,6 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
         <label className="etiqueta">Teléfono (WhatsApp)<input value={f.telefono || ''} onChange={e => set('telefono', e.target.value)} inputMode="tel" className="campo mt-1.5" /></label>
         <label className="etiqueta">Correo<input type="email" value={f.correo || ''} onChange={e => set('correo', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta">Relación / vínculo<input value={f.relacion || ''} onChange={e => set('relacion', e.target.value)} placeholder="Hija, mamá de…, amigo" className="campo mt-1.5" /></label>
-        <label className="flex items-start gap-3 text-sm sm:col-span-2">
-          <input type="checkbox" checked={!!f.coordinador} onChange={e => set('coordinador', e.target.checked)} className="mt-0.5 h-5 w-5 accent-[#7a2621]" />
-          <span><b>Contacto de la familia (coordinador):</b> recibe el mensaje para las familias, reúne las cartas de otros y entrega el paquete.</span>
-        </label>
         {!f.coordinador && <label className="etiqueta">Carta prevista para
           <select value={f.destinatario} onChange={e => set('destinatario', e.target.value)} className="campo mt-1.5">
             <option value="A">{pareja.apodo_a || pareja.nombre_a}</option><option value="B">{pareja.apodo_b || pareja.nombre_b}</option><option value="ambos">Ambos</option>
@@ -63,10 +59,11 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
 
 // Botones para enviar el recordatorio por WhatsApp o correo (se abre la app; nada se envía solo)
 export function AccionesRecordatorio({ remitente, pareja, compacto = false }) {
-  const { retiro, actualizarLocal } = useCartas()
+  const { retiro, actualizarLocal, equipo } = useCartas()
   const { usuario } = useAuth()
   const enlace = enlacePortal(retiro, { remitente })
-  const mensaje = mensajeRecordatorio({ retiro, pareja, remitente, enlace })
+  const responsable = contactoEquipo(equipo.find(e => e.id === pareja.equipo_id))
+  const mensaje = mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable })
   const tel = telefonoWhatsApp(remitente.telefono)
 
   async function registrar(canal) {

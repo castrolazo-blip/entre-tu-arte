@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Search, Download, Users, UserX, Target } from 'lucide-react'
+import { Search, Download, Users, Target } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarRemitente } from '../cartasService.js'
 import { aCSV, descargar, nombreArchivo } from '../archivos.js'
-import { fecha, nombreDestinatario, nombrePareja, mensajeError, ESTADOS_REMITENTE, enlacePortal } from '../constantes.js'
+import { fecha, nombreDestinatario, nombrePareja, mensajeError, ESTADOS_REMITENTE, enlacePortal, responsableDe } from '../constantes.js'
 import { Etiqueta, Titulo, Vacio, btn } from '../ui.jsx'
 import { AccionesRecordatorio } from './remitentes.jsx'
 import { Avance } from './Parejas.jsx'
@@ -13,9 +13,9 @@ import { Avance } from './Parejas.jsx'
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 // Seguimiento: contactos de la familia (reciben el mensaje y entregan el paquete),
-// remitentes esperados que faltan, y parejas que aún no llegan a la meta de cartas.
+// y parejas que aún no llegan a la meta de cartas. Las cartas quedan abiertas a quien quiera enviarlas.
 export default function Pendientes() {
-  const { retiro, parejas, remitentes, indicadores, actualizarLocal } = useCartas()
+  const { retiro, parejas, remitentes, indicadores, actualizarLocal, equipo } = useCartas()
   const meta = retiro.meta_por_persona || 0
   const [vista, setVista] = useState('contactos')
   const [q, setQ] = useState('')
@@ -23,8 +23,8 @@ export default function Pendientes() {
   const [recordado, setRecordado] = useState('')
   const [responsable, setResponsable] = useState('')
   const porId = useMemo(() => Object.fromEntries(parejas.map(p => [p.id, p])), [parejas])
-  const responsables = [...new Set(parejas.map(p => p.responsable).filter(Boolean))].sort()
-  const deResponsable = p => !responsable || p.responsable === responsable
+  const responsables = [...new Set(parejas.map(p => responsableDe(p, equipo)).filter(Boolean))].sort()
+  const deResponsable = p => !responsable || responsableDe(p, equipo) === responsable
 
   const lista = useMemo(() => remitentes.filter(r => {
     const p = porId[r.pareja_id]
@@ -54,7 +54,7 @@ export default function Pendientes() {
     const csv = aCSV(lista, [
       { titulo: 'Código pareja', valor: r => porId[r.pareja_id].codigo },
       { titulo: 'Pareja', valor: r => nombrePareja(porId[r.pareja_id]) },
-      { titulo: 'Responsable', valor: r => porId[r.pareja_id].responsable },
+      { titulo: 'Responsable', valor: r => responsableDe(porId[r.pareja_id], equipo) },
       { titulo: vista === 'contactos' ? 'Contacto' : 'Remitente', valor: 'nombre' }, { titulo: 'Relación', valor: 'relacion' },
       { titulo: 'Teléfono', valor: 'telefono' }, { titulo: 'Correo', valor: 'correo' },
       { titulo: 'Estado', valor: r => ESTADOS_REMITENTE[r.estado].etiqueta },
@@ -75,7 +75,6 @@ export default function Pendientes() {
       <div className="mb-4 flex flex-wrap gap-2">
         <button onClick={() => setVista('contactos')} className={`chip ${vista === 'contactos' ? 'chip-on' : 'chip-off'}`}><Users size={15} className="mr-1.5" />Contactos sin entregar ({total('contactos')})</button>
         <button onClick={() => setVista('meta')} className={`chip ${vista === 'meta' ? 'chip-on' : 'chip-off'}`}><Target size={15} className="mr-1.5" />{meta ? `Parejas bajo la meta (${bajoMeta.length})` : `Parejas sin cartas (${bajoMeta.length})`}</button>
-        <button onClick={() => setVista('remitentes')} className={`chip ${vista === 'remitentes' ? 'chip-on' : 'chip-off'}`}><UserX size={15} className="mr-1.5" />Remitentes esperados ({total('remitentes')})</button>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -113,7 +112,7 @@ export default function Pendientes() {
                 <li key={p.id}><Link to={`/cartas/panel/parejas/${p.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3.5 hover:bg-crema-clara">
                   <span className="w-10 text-xs font-bold text-gris">{p.codigo}</span>
                   <span className="min-w-[180px] flex-1"><span className="block font-semibold">{nombrePareja(p)}</span>
-                    <span className="text-xs text-gris">{[p.responsable, meta ? `faltan ${x.faltan}` : 'sin cartas', `${x.contactos - x.contactosPendientes}/${x.contactos} contactos entregaron`].filter(Boolean).join(' · ')}</span></span>
+                    <span className="text-xs text-gris">{[responsableDe(p, equipo), meta ? `faltan ${x.faltan}` : 'sin cartas', `${x.contactos - x.contactosPendientes}/${x.contactos} contactos entregaron`].filter(Boolean).join(' · ')}</span></span>
                   {meta > 0 && <span className="flex w-full gap-4 sm:w-64"><Avance nombre={p.apodo_a || p.nombre_a} n={x.paraA} meta={meta} /><Avance nombre={p.apodo_b || p.nombre_b} n={x.paraB} meta={meta} /></span>}
                 </Link></li>
               )

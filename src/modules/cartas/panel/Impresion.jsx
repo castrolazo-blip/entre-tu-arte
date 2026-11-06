@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowUp, ArrowDown, FileDown, Archive, ListChecks, Printer, PackageCheck, Lock, Loader2, Save, Tags } from 'lucide-react'
+import { ArrowUp, ArrowDown, FileDown, Archive, ListChecks, Lock, Loader2, Save, Tags, Package } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarCartas, textosCartas, bytesArchivo, registrarAccion } from '../cartasService.js'
 import { crearZip, descargar, nombreArchivo, aCSV } from '../archivos.js'
-import { ESTADOS_CARTA, NO_VALIDAS, APROBADAS, ORIGENES, folioTexto, nombreDestinatario, nombrePareja, nombreCompleto, mensajeError, fecha } from '../constantes.js'
+import { esValida, ORIGENES, folioTexto, nombreDestinatario, nombrePareja, nombreCompleto, mensajeError, fecha } from '../constantes.js'
 
 // Las cartas en papel sin archivo ya están impresas: van directo al sobre, no al PDF
 const sinImprimir = c => c.origen === 'fisica' && !c.cca_archivos.length
-import { Etiqueta, Titulo, Vacio, btn } from '../ui.jsx'
+import { Titulo, Vacio, btn } from '../ui.jsx'
 
 const PESO = { A: 0, B: 1, ambos: 2 }
 
@@ -27,14 +27,17 @@ export default function Impresion() {
   // Los datos pueden llegar después de abrir la pantalla (o al cambiar de retiro)
   useEffect(() => { if (!pareja && activas[0]) setParejaId(activas[0].id) }, [pareja, activas])
 
-  const suyas = useMemo(() => cartas.filter(c => c.pareja_id === parejaId && !NO_VALIDAS.includes(c.estado)), [cartas, parejaId])
+  // Solo se imprimen las del formulario y las de correo; las de papel van directo al sobre
+  const validas = useMemo(() => cartas.filter(c => c.pareja_id === parejaId && esValida(c)), [cartas, parejaId])
+  const suyas = useMemo(() => validas.filter(c => !sinImprimir(c)), [validas])
+  const enPapel = validas.length - suyas.length
 
   // Orden inicial: el guardado; si no hay, por destinatario (A, B, ambos) y fecha
   useEffect(() => {
     const ordenadas = [...suyas].sort((a, b) =>
       (a.orden ?? 1e9) - (b.orden ?? 1e9) || PESO[a.destinatario] - PESO[b.destinatario] || a.created_at.localeCompare(b.created_at))
     setOrden(ordenadas.map(c => c.id))
-    setSeleccion(new Set(ordenadas.filter(c => c.estado !== 'entregada' && (sinImprimir(c) || APROBADAS.includes(c.estado))).map(c => c.id)))
+    setSeleccion(new Set(ordenadas.map(c => c.id)))
   }, [parejaId, suyas.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const porId = Object.fromEntries(suyas.map(c => [c.id, c]))
@@ -53,10 +56,8 @@ export default function Impresion() {
   }
 
   async function generarPdf() {
-    const aImprimir = elegidas.filter(c => !sinImprimir(c))
-    if (!aImprimir.length) return toast.error('No hay cartas para imprimir: las seleccionadas están en papel y van directo al sobre')
-    const sinAprobar = aImprimir.filter(c => !APROBADAS.includes(c.estado))
-    if (sinAprobar.length && !window.confirm(`${sinAprobar.length} carta(s) aún no están aprobadas. ¿Incluirlas de todos modos?`)) return
+    const aImprimir = elegidas
+    if (!aImprimir.length) return toast.error('Selecciona al menos una carta')
     setProgreso('Preparando…')
     try {
       const textos = await textosCartas(aImprimir.map(c => c.id))
@@ -83,7 +84,7 @@ export default function Impresion() {
       for (const [i, c] of elegidas.entries()) {
         setProgreso(`Original ${i + 1} de ${elegidas.length}…`)
         const carpeta = `${String(i + 1).padStart(2, '0')}-${folioTexto(c.folio)}-${nombreArchivo(c.remitente_nombre)}`
-        entradas[`${carpeta}/datos.txt`] = `Folio: ${folioTexto(c.folio)}\nPara: ${nombreDestinatario(pareja, c.destinatario)}\nDe: ${c.remitente_nombre}${c.relacion ? ` (${c.relacion})` : ''}\nOrigen: ${c.origen}\nRecibida: ${fecha(c.created_at, true)}\nEstado: ${ESTADOS_CARTA[c.estado].etiqueta}\n`
+        entradas[`${carpeta}/datos.txt`] = `Folio: ${folioTexto(c.folio)}\nPara: ${nombreDestinatario(pareja, c.destinatario)}\nDe: ${c.remitente_nombre}${c.relacion ? ` (${c.relacion})` : ''}\nOrigen: ${c.origen}\nRecibida: ${fecha(c.created_at, true)}\n`
         if (textos[c.id]) entradas[`${carpeta}/carta.txt`] = textos[c.id]
         for (const a of c.cca_archivos) entradas[`${carpeta}/${nombreArchivo(a.nombre_original)}`] = await bytesArchivo(a.ruta)
       }
@@ -94,39 +95,29 @@ export default function Impresion() {
   }
 
   async function listaControl(todoElRetiro) {
-    const base = todoElRetiro ? cartas.filter(c => !NO_VALIDAS.includes(c.estado)) : elegidas
+    const base = todoElRetiro ? cartas.filter(esValida) : validas
     if (!base.length) return toast.error('No hay cartas para la lista')
     const pp = Object.fromEntries(parejas.map(p => [p.id, p]))
     const filas = [...base].sort((a, b) => pp[a.pareja_id].codigo.localeCompare(pp[b.pareja_id].codigo) || (a.orden ?? 1e9) - (b.orden ?? 1e9))
-      .map(c => ({ folio: folioTexto(c.folio), pareja: `${pp[c.pareja_id].codigo} ${nombrePareja(pp[c.pareja_id])}`, para: nombreDestinatario(pp[c.pareja_id], c.destinatario), de: c.remitente_nombre, estado: ESTADOS_CARTA[c.estado].etiqueta }))
+      .map(c => ({ folio: folioTexto(c.folio), pareja: `${pp[c.pareja_id].codigo} ${nombrePareja(pp[c.pareja_id])}`, para: nombreDestinatario(pp[c.pareja_id], c.destinatario), de: c.remitente_nombre, estado: ORIGENES[c.origen] }))
     const { pdfControl } = await import('../pdfCartas.js')
-    descargar(await pdfControl({ retiro, filas }), `control-entrega-${nombreArchivo(todoElRetiro ? retiro.nombre : pareja.codigo)}.pdf`)
-    descargar(aCSV(filas, [{ titulo: 'Folio', valor: 'folio' }, { titulo: 'Pareja', valor: 'pareja' }, { titulo: 'Para', valor: 'para' }, { titulo: 'De', valor: 'de' }, { titulo: 'Estado', valor: 'estado' }, { titulo: 'Entregada (firma)', valor: () => '' }]),
-      `control-entrega-${nombreArchivo(todoElRetiro ? retiro.nombre : pareja.codigo)}.csv`)
+    descargar(await pdfControl({ retiro, filas }), `lista-cartas-${nombreArchivo(todoElRetiro ? retiro.nombre : pareja.codigo)}.pdf`)
+    descargar(aCSV(filas, [{ titulo: 'Folio', valor: 'folio' }, { titulo: 'Pareja', valor: 'pareja' }, { titulo: 'Para', valor: 'para' }, { titulo: 'De', valor: 'de' }, { titulo: 'Origen', valor: 'estado' }, { titulo: 'En su sobre', valor: () => '' }]),
+      `lista-cartas-${nombreArchivo(todoElRetiro ? retiro.nombre : pareja.codigo)}.csv`)
   }
 
   async function etiquetas() {
     const { pdfEtiquetas } = await import('../pdfCartas.js')
-    const cuenta = (p, d) => cartas.filter(c => c.pareja_id === p.id && !NO_VALIDAS.includes(c.estado) && (c.destinatario === d || c.destinatario === 'ambos')).length
+    const cuenta = (p, d) => cartas.filter(c => c.pareja_id === p.id && esValida(c) && (c.destinatario === d || c.destinatario === 'ambos')).length
     const personas = activas.flatMap(p => ['A', 'B'].map(d => ({ nombre: nombreCompleto(p, d), matrimonio: `Matrimonio ${p.apellidos || nombrePareja(p)}`, codigo: p.codigo, cartas: cuenta(p, d) })))
     descargar(await pdfEtiquetas({ retiro, personas }), `etiquetas-sobres-${nombreArchivo(retiro.nombre)}.pdf`)
-  }
-
-  async function marcar(estado) {
-    if (!elegidas.length) return toast.error('Selecciona al menos una carta')
-    if (estado === 'entregada' && !window.confirm(`¿Confirmas que ${elegidas.length} carta(s) ya se entregaron en mano a ${nombrePareja(pareja)}?`)) return
-    try {
-      await actualizarCartas(elegidas.map(c => c.id), { estado })
-      toast.success(`${elegidas.length} marcadas como ${ESTADOS_CARTA[estado].etiqueta.toLowerCase()}`)
-      recargar()
-    } catch (err) { toast.error(mensajeError(err)) }
   }
 
   if (!activas.length) return <Vacio titulo="No hay parejas activas" />
 
   return (
     <div>
-      <Titulo titulo="Impresión y entrega" subtitulo="Arma el PDF de cada pareja, descarga los originales y lleva el control de lo entregado." />
+      <Titulo titulo="Impresión y sobres" subtitulo="Imprime las cartas que llegaron por el formulario o por correo, y las etiquetas de los sobres. Las de papel ya vienen listas." />
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[22px] bg-white p-3">
         <select value={parejaId} onChange={e => setParejaId(e.target.value)} className="campo min-w-[240px] flex-1" aria-label="Pareja">
@@ -136,9 +127,10 @@ export default function Impresion() {
         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={conSeparadores} onChange={e => setConSeparadores(e.target.checked)} className="h-4 w-4 accent-[#7a2621]" />Separador por carta</label>
       </div>
 
-      {!puedeLeer && <p className="mb-4 flex items-center gap-2 rounded-2xl bg-crema p-4 text-sm text-gris"><Lock size={16} />Tu usuario no puede leer el contenido: puedes marcar estados, pero no generar el PDF ni descargar originales.</p>}
+      {!puedeLeer && <p className="mb-4 flex items-center gap-2 rounded-2xl bg-crema p-4 text-sm text-gris"><Lock size={16} />Por confidencialidad, tu usuario no puede generar el PDF ni descargar originales. Pídelo a quien tiene permiso de impresión.</p>}
 
-      {!enOrden.length ? <Vacio titulo="Esta pareja no tiene cartas válidas todavía" /> : (
+      {enPapel > 0 && <p className="mb-3 flex items-center gap-2 text-sm text-gris"><Package size={16} />{enPapel} {enPapel === 1 ? 'carta en papel va' : 'cartas en papel van'} directo al sobre (no se imprimen).</p>}
+      {!enOrden.length ? <Vacio titulo="Esta pareja no tiene cartas para imprimir" /> : (
         <>
           <ul className="divide-y divide-crema-borde overflow-hidden rounded-[22px] bg-white">
             {enOrden.map((c, i) => (
@@ -147,9 +139,8 @@ export default function Impresion() {
                 <span className="w-6 text-center text-xs font-bold text-gris">{i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">{c.remitente_nombre} <span className="font-normal text-gris">→ {nombreDestinatario(pareja, c.destinatario)}</span></span>
-                  <span className="text-xs text-gris">{folioTexto(c.folio)} · {ORIGENES[c.origen]}{sinImprimir(c) ? ' · va directo al sobre' : ''}{c.cca_archivos.length ? ` · ${c.cca_archivos.length} archivo(s)` : ''}{c.cca_archivos.some(a => a.ilegible) && ' · tiene archivo ilegible (se omite)'}</span>
+                  <span className="text-xs text-gris">{folioTexto(c.folio)} · {ORIGENES[c.origen]}{c.cca_archivos.length ? ` · ${c.cca_archivos.length} archivo(s)` : ''}{c.cca_archivos.some(a => a.ilegible) && ' · tiene archivo ilegible (se omite)'}</span>
                 </span>
-                <Etiqueta estado={c.estado} />
                 <span className="flex">
                   <button onClick={() => mover(i, -1)} disabled={i === 0} aria-label="Subir" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-crema disabled:opacity-30"><ArrowUp size={16} /></button>
                   <button onClick={() => mover(i, 1)} disabled={i === enOrden.length - 1} aria-label="Bajar" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-crema disabled:opacity-30"><ArrowDown size={16} /></button>
@@ -157,34 +148,22 @@ export default function Impresion() {
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-gris">{elegidas.length} de {enOrden.length} seleccionadas. Por defecto: las aprobadas (digitales y por correo) y las de papel, que aún no se entregan. El PDF solo incluye las que hay que imprimir.</p>
+          <p className="mt-2 text-xs text-gris">{elegidas.length} de {enOrden.length} seleccionadas para el PDF.</p>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <div className="rounded-[22px] bg-white p-4">
-              <p className="mb-3 text-sm font-semibold">Archivos</p>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={generarPdf} disabled={!puedeLeer || !!progreso} className={btn.vino}><FileDown size={16} />PDF para imprimir</button>
-                <button onClick={zipOriginales} disabled={!puedeLeer || !!progreso} className={btn.contorno}><Archive size={16} />ZIP de originales</button>
-                <button onClick={() => listaControl(false)} disabled={!!progreso} className={btn.contorno}><ListChecks size={16} />Lista de control</button>
-                <button onClick={guardarOrden} disabled={!!progreso} className={btn.contorno}><Save size={16} />Guardar orden</button>
-              </div>
-              {progreso && <p className="mt-3 flex items-center gap-2 text-sm text-gris"><Loader2 size={15} className="animate-spin" />{progreso}</p>}
+          <div className="mt-5 rounded-[22px] bg-white p-4">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={generarPdf} disabled={!puedeLeer || !!progreso} className={btn.vino}><FileDown size={16} />PDF para imprimir</button>
+              <button onClick={zipOriginales} disabled={!puedeLeer || !!progreso} className={btn.contorno}><Archive size={16} />ZIP de originales</button>
+              <button onClick={guardarOrden} disabled={!!progreso} className={btn.contorno}><Save size={16} />Guardar orden</button>
             </div>
-            <div className="rounded-[22px] bg-white p-4">
-              <p className="mb-3 text-sm font-semibold">Control de entrega (selección)</p>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => marcar('lista')} className={btn.contorno}><ListChecks size={16} />Lista para imprimir</button>
-                <button onClick={() => marcar('impresa')} className={btn.contorno}><Printer size={16} />Impresa</button>
-                <button onClick={() => marcar('entregada')} className={btn.contorno}><PackageCheck size={16} />Entregada</button>
-              </div>
-              <p className="mt-2 text-xs text-gris">Cada cambio guarda quién y cuándo. Imprimir no marca nada como entregado.</p>
-            </div>
+            {progreso && <p className="mt-3 flex items-center gap-2 text-sm text-gris"><Loader2 size={15} className="animate-spin" />{progreso}</p>}
           </div>
         </>
       )}
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
         <button onClick={etiquetas} className={btn.texto}><Tags size={15} />Etiquetas para los sobres (una por persona, todas las parejas)</button>
-        <button onClick={() => listaControl(true)} className={btn.texto}><ListChecks size={15} />Lista de control de todo el retiro</button>
+        <button onClick={() => listaControl(false)} className={btn.texto}><ListChecks size={15} />Lista de cartas de esta pareja</button>
+        <button onClick={() => listaControl(true)} className={btn.texto}><ListChecks size={15} />Lista de cartas de todo el retiro</button>
       </div>
     </div>
   )

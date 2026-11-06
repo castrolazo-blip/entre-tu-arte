@@ -5,7 +5,7 @@ import { Plus, Upload, Search, ChevronRight, Download, FileSpreadsheet } from 'l
 import { useCartas } from '../CartasContext.jsx'
 import { guardarPareja, insertarParejas, insertarRemitentes, insertarInscripcion } from '../cartasService.js'
 import { leerCSV, leerXLSX, interpretarInscripcion, descargar, PLANTILLA_PAREJAS, PLANTILLA_REMITENTES } from '../archivos.js'
-import { mensajeError, semaforo, nombrePareja, nombreCompleto } from '../constantes.js'
+import { mensajeError, semaforo, nombrePareja, nombreCompleto, responsableDe } from '../constantes.js'
 import { Modal, Semaforo, Titulo, Vacio, btn } from '../ui.jsx'
 
 const norm = s => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -24,18 +24,18 @@ export function Avance({ nombre, n, meta }) {
 }
 
 export default function Parejas() {
-  const { parejas, indicadores, retiro, recargar } = useCartas()
+  const { parejas, indicadores, retiro, recargar, equipo } = useCartas()
   const [q, setQ] = useState('')
   const [responsable, setResponsable] = useState('')
   const [verRetiradas, setVerRetiradas] = useState(false)
   const [nueva, setNueva] = useState(false)
   const [importar, setImportar] = useState(false)
   const meta = retiro.meta_por_persona || 0
-  const responsables = [...new Set(parejas.map(p => p.responsable).filter(Boolean))].sort()
+  const responsables = [...new Set(parejas.map(p => responsableDe(p, equipo)).filter(Boolean))].sort()
 
   const lista = useMemo(() => parejas
     .filter(p => verRetiradas || p.estado === 'activa')
-    .filter(p => !responsable || (responsable === '-' ? !p.responsable : p.responsable === responsable))
+    .filter(p => !responsable || (responsable === '-' ? !responsableDe(p, equipo) : responsableDe(p, equipo) === responsable))
     .filter(p => !q || textoBusqueda(p).includes(norm(q))), [parejas, q, verRetiradas, responsable])
 
   return (
@@ -73,7 +73,7 @@ export default function Parejas() {
                     <span className="w-10 shrink-0 text-xs font-bold text-gris">{p.codigo}</span>
                     <span className="min-w-0 flex-1">
                       <span className={`block truncate font-semibold ${p.estado !== 'activa' ? 'text-gris line-through' : ''}`}>{nombrePareja(p)}</span>
-                      <span className="block truncate text-xs text-gris">{[p.responsable && `Responsable: ${p.responsable}`, `${x.recibidas} cartas`, x.contactos && `${x.contactos} contactos`].filter(Boolean).join(' · ')}</span>
+                      <span className="block truncate text-xs text-gris">{[responsableDe(p, equipo) && `Responsable: ${responsableDe(p, equipo)}`, `${x.recibidas} cartas`, x.contactos && `${x.contactos} contactos`].filter(Boolean).join(' · ')}</span>
                     </span>
                     {meta > 0 ? (
                       <span className="hidden w-64 gap-4 sm:flex">
@@ -231,7 +231,7 @@ function Importar({ onCerrar, onListo }) {
     <Modal titulo="Importar" onCerrar={onCerrar} ancho="max-w-2xl"
       pie={vista && <div className="flex items-center justify-between gap-2"><span className="text-sm text-gris">{validas} de {vista.length} filas listas</span><button onClick={confirmar} disabled={!validas || guardando} className={btn.vino}>{guardando ? 'Importando…' : `Importar ${validas}`}</button></div>}>
       <div className="flex flex-wrap gap-2">
-        {[['inscripcion', 'Excel de inscripción'], ['parejas', 'CSV de parejas'], ['remitentes', 'CSV de remitentes']].map(([k, t]) => (
+        {[['inscripcion', 'Excel de inscripción'], ['parejas', 'CSV de parejas']].map(([k, t]) => (
           <button key={k} onClick={() => { setTipo(k); setVista(null) }} className={`chip ${tipo === k ? 'chip-on' : 'chip-off'}`}>{t}</button>
         ))}
       </div>

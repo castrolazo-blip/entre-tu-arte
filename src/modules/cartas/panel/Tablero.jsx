@@ -4,15 +4,15 @@ import { Copy, Download, FileText, Clock, ExternalLink } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { actividadReciente } from '../cartasService.js'
 import { aCSV, descargar, nombreArchivo } from '../archivos.js'
-import { enlacePortal, fecha, folioTexto, nombrePareja, nombreDestinatario, semaforo, ESTADOS_CARTA, TEXTO_SEMAFORO } from '../constantes.js'
+import { responsableDe, enlacePortal, fecha, folioTexto, nombrePareja, nombreDestinatario, semaforo, ESTADOS_CARTA, TEXTO_SEMAFORO } from '../constantes.js'
 import { Kpi, Semaforo, Titulo, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 import { Avance } from './Parejas.jsx'
 
-const ENTIDAD = { cartas: 'Carta', parejas: 'Pareja', remitentes: 'Remitente', retiros: 'Retiro', impresion: 'Impresión' }
+const ENTIDAD = { cartas: 'Carta', parejas: 'Pareja', remitentes: 'Contacto', retiros: 'Retiro', impresion: 'Impresión' }
 
 export default function Tablero() {
-  const { retiro, parejas, cartas, remitentes, indicadores } = useCartas()
+  const { retiro, parejas, cartas, remitentes, indicadores, equipo, miEquipo } = useCartas()
   const [actividad, setActividad] = useState([])
   const t = indicadores.totales
 
@@ -26,29 +26,25 @@ export default function Tablero() {
   const conteo = filas.reduce((c, f) => ({ ...c, [f.color]: (c[f.color] || 0) + 1 }), {})
   const dias = retiro.fecha_limite ? Math.ceil((new Date(retiro.fecha_limite) - Date.now()) / 86400000) : null
 
-  const filasReporte = filas.map(({ p, x, color }) => ({ codigo: p.codigo, pareja: nombrePareja(p), responsable: p.responsable, paraA: x.paraA, paraB: x.paraB, faltan: x.faltan, recibidas: x.recibidas, aprobadas: x.aprobadas,
-    listas: x.listas, entregadas: x.entregadas, esperados: x.esperados, pendientes: x.pendientes, adicionales: x.adicionales, estado: TEXTO_SEMAFORO[color] }))
+  const filasReporte = filas.map(({ p, x, color }) => ({ codigo: p.codigo, pareja: nombrePareja(p), responsable: responsableDe(p, equipo), paraA: x.paraA, paraB: x.paraB, faltan: x.faltan, recibidas: x.recibidas, enPapel: x.enPapel, aImprimir: x.aImprimir, esperados: x.esperados, pendientes: x.pendientes, adicionales: x.adicionales, estado: TEXTO_SEMAFORO[color] }))
 
   function csvAvance() {
     descargar(aCSV(filasReporte, [
       { titulo: 'Código', valor: 'codigo' }, { titulo: 'Pareja', valor: 'pareja' }, { titulo: 'Responsable', valor: 'responsable' },
       { titulo: 'Cartas esposo', valor: 'paraA' }, { titulo: 'Cartas esposa', valor: 'paraB' }, { titulo: 'Faltan para la meta', valor: 'faltan' },
       { titulo: 'Cartas recibidas', valor: 'recibidas' },
-      { titulo: 'Aprobadas', valor: 'aprobadas' }, { titulo: 'Listas para imprimir', valor: 'listas' }, { titulo: 'Entregadas', valor: 'entregadas' },
-      { titulo: 'Remitentes esperados', valor: 'esperados' }, { titulo: 'Pendientes', valor: 'pendientes' }, { titulo: 'Adicionales', valor: 'adicionales' }, { titulo: 'Semáforo', valor: 'estado' },
+      { titulo: 'En papel', valor: 'enPapel' }, { titulo: 'A imprimir (formulario/correo)', valor: 'aImprimir' },
+      { titulo: 'Semáforo', valor: 'estado' },
     ]), `avance-${nombreArchivo(retiro.nombre)}.csv`)
   }
   function csvCartas() {
     const pp = Object.fromEntries(parejas.map(p => [p.id, p]))
-    const rr = Object.fromEntries(remitentes.map(r => [r.id, r]))
     descargar(aCSV(cartas, [
       { titulo: 'Folio', valor: c => folioTexto(c.folio) }, { titulo: 'Fecha', valor: c => fecha(c.created_at, true) },
       { titulo: 'Código pareja', valor: c => pp[c.pareja_id]?.codigo }, { titulo: 'Para', valor: c => nombreDestinatario(pp[c.pareja_id], c.destinatario) },
-      { titulo: 'Remitente', valor: 'remitente_nombre' }, { titulo: 'Relación', valor: 'relacion' }, { titulo: 'Origen', valor: 'origen' },
-      { titulo: 'Estado', valor: c => ESTADOS_CARTA[c.estado].etiqueta }, { titulo: 'Motivo', valor: 'motivo' },
-      { titulo: 'Remitente esperado', valor: c => (c.remitente_id ? rr[c.remitente_id]?.nombre : 'Adicional') },
+      { titulo: 'Quién la envía', valor: c => c.relacion || 'Sin clasificar' }, { titulo: 'Nombre', valor: 'remitente_nombre' }, { titulo: 'Origen', valor: 'origen' },
+      { titulo: 'Estado', valor: c => ESTADOS_CARTA[c.estado].etiqueta }, { titulo: 'Motivo', valor: 'motivo' }, { titulo: 'Entregó', valor: 'recibida_de' },
       { titulo: 'Archivos', valor: c => c.cca_archivos.length }, { titulo: 'Tardía', valor: c => (c.tardia ? 'Sí' : '') },
-      { titulo: 'Impresa', valor: c => fecha(c.impresa_en, true) }, { titulo: 'Entregada', valor: c => fecha(c.entregada_en, true) },
     ]), `cartas-${nombreArchivo(retiro.nombre)}.csv`)
   }
   async function pdf() {
@@ -56,8 +52,8 @@ export default function Tablero() {
     descargar(await pdfResumen({ retiro, filas: filasReporte, totales: {
       'Parejas activas': t.parejas, 'Meta por persona': t.meta, 'Faltan para la meta': t.faltanMeta,
       'Parejas con meta': t.metaCumplida, 'Contactos que entregaron': `${t.contactos - t.contactosPendientes}/${t.contactos}`, 'Cartas recibidas': t.recibidas,
-      'Cartas aprobadas': t.aprobadas, 'Remitentes pendientes': t.pendientes, 'Parejas sin cartas': t.sinCartas,
-      'Cartas adicionales': t.adicionales, 'Por revisar': t.porRevisar, 'Entregadas': t.entregadas,
+      'En papel': t.enPapel, 'A imprimir': t.aImprimir, 'Parejas sin cartas': t.sinCartas,
+      'Cartas adicionales': t.adicionales, 'Posibles duplicados': t.posiblesDuplicados,
     } }), `resumen-${nombreArchivo(retiro.nombre)}.pdf`)
   }
 
@@ -68,6 +64,7 @@ export default function Tablero() {
         <a href={enlacePortal(retiro)} target="_blank" rel="noreferrer" className={btn.contorno}><ExternalLink size={16} />Ver formulario</a>
       </Titulo>
 
+      {miEquipo && <Link to="/cartas/panel/mis-parejas" className="mb-4 flex items-center justify-between gap-3 rounded-[22px] bg-vino p-4 text-white"><span><b>Matrimonio {miEquipo.apellidos}</b><span className="block text-sm text-white/80">Ver tus parejas asignadas y su avance</span></span><span className="font-semibold">Mis parejas →</span></Link>}
       {retiro.estado !== 'activo' && <p className="mb-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">Este retiro está «{retiro.estado}»: el formulario público no recibe cartas. Cámbialo a «Activo» en Retiros cuando quieras abrir la recepción.</p>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -75,7 +72,7 @@ export default function Tablero() {
         <Kpi valor={t.recibidas} etiqueta="Cartas recibidas" tono="vino" detalle={t.meta ? `meta: ${t.parejas * t.meta * 2} (${t.meta * 2} por pareja)` : `${t.adicionales} adicionales`} />
         {t.meta > 0
           ? <Kpi valor={t.faltanMeta} etiqueta="Faltan para la meta" tono={t.faltanMeta ? 'alerta' : 'ok'} detalle={`${t.meta} por persona`} />
-          : <Kpi valor={t.aprobadas} etiqueta="Cartas aprobadas" tono="ok" />}
+          : <Kpi valor={t.aImprimir} etiqueta="Cartas a imprimir" detalle="formulario y correo" />}
         {t.meta > 0 && <Kpi valor={`${t.metaCumplida}/${t.parejas}`} etiqueta="Parejas con meta cumplida" tono="ok" />}
         <Kpi valor={`${t.contactos - t.contactosPendientes}/${t.contactos}`} etiqueta="Contactos que entregaron" detalle="paquetes o cartas recibidos" />
         <Kpi valor={t.sinCartas} etiqueta="Parejas sin cartas" tono={t.sinCartas ? 'alerta' : 'normal'} />
@@ -149,7 +146,7 @@ export default function Tablero() {
 function descripcion(a) {
   if (a.entidad === 'cartas' && a.accion === 'insert') return `nueva de ${a.datos?.remitente_nombre || '—'} (${folioTexto(a.datos?.folio)})`
   if (a.entidad === 'cartas' && a.datos?.estado) return `${ESTADOS_CARTA[a.datos.estado.antes]?.etiqueta} → ${ESTADOS_CARTA[a.datos.estado.despues]?.etiqueta}`
-  if (a.entidad === 'remitentes' && a.datos?.estado) return `${a.datos.estado.antes} → ${a.datos.estado.despues}`
+  if (a.entidad === 'remitentes' && a.datos?.estado) return a.datos.estado.despues === 'recibido' ? 'entregó cartas' : `${a.datos.estado.antes} → ${a.datos.estado.despues}`
   if (a.entidad === 'impresion') return a.accion === 'pdf' ? 'PDF generado' : a.accion === 'zip' ? 'ZIP de originales' : a.accion
   return { insert: 'creado', update: 'actualizado', delete: 'eliminado' }[a.accion] || a.accion
 }
