@@ -59,7 +59,8 @@ Nada de esto aparece en Google (`noindex` y `robots.txt`) ni en el menú de la t
    - Primero los **dos apellidos** («Castro Lazo»); avisa si ya existe uno igual.
    - Después, de cada cónyuge: nombre, teléfono y correo.
 3. **Configuración › Repartición:** a cada pareja participante se le elige el matrimonio responsable. Se puede asignar una por una o «las N de la lista» de una vez.
-4. **Enlace privado de cada matrimonio (recomendado, sin cuenta):** en Equipo, «Enviar a Ronald / Ana» manda por WhatsApp su enlace `/cartas/equipo?t=…`. Ven solo sus parejas, el mensaje para las familias y registran paquetes en papel; nunca leen cartas. «Cambiar» crea un enlace nuevo y anula el anterior. Requiere la migración `20261108000000_cartas_enlace_equipo.sql`.
+4. **Entrada del equipo sin contraseña (recomendado):** en Equipo, «Enviar a Ronald / Ana» manda por WhatsApp el enlace `/cartas/entrar?equipo=…`. Al abrirlo eligen «Soy Ronald / Soy Ana» y entran a la aplicación general como organizadores **sin lectura de cartas**, directo en «Mis parejas»; el teléfono queda conectado. «Cambiar» crea un enlace nuevo y desconecta a quienes entraron con el anterior.
+   - Requiere la migración `20261108000000_cartas_enlace_equipo.sql` y activar en Supabase › Authentication › Sign In / Providers › **Allow anonymous sign-ins**. Esas sesiones no tienen ningún permiso en Entre tu Arte.
 5. **Bandeja de cada matrimonio («Mis parejas», con cuenta):** muestra solo sus parejas asignadas, con el avance por persona, los contactos de la familia, WhatsApp y «Registrar cartas recibidas».
    - Para entrar, cada cónyuge va a `/cartas/entrar` › **Crear mi cuenta** con el **mismo correo** registrado en el equipo, y confirma el correo que le llega.
    - Entra como organizador **sin lectura de cartas**.

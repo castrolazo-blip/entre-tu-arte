@@ -27,7 +27,7 @@ export function EquipoAdmin() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Equipo de cartas</h2>
-          <p className="mt-1 text-sm text-gris">Matrimonios servidores que recolectan las cartas. Cada uno tiene un <b>enlace privado</b>: sin cuenta ni contraseña, ve solo sus parejas asignadas y registra las cartas que recibe. Nunca puede leer cartas.</p>
+          <p className="mt-1 text-sm text-gris">Matrimonios servidores que recolectan las cartas. Cada uno recibe un <b>enlace privado</b> para entrar a la aplicación <b>sin contraseña</b>: eligen quién es cada uno y llegan a «Mis parejas». Nunca pueden leer cartas. «Cambiar» anula el enlace y las sesiones que entraron con él.</p>
         </div>
         <button onClick={() => setEditando({})} className={btn.vino}><Plus size={16} />Nuevo matrimonio</button>
       </div>
@@ -65,9 +65,9 @@ export function EquipoAdmin() {
 // Enlace privado del matrimonio: se envía por WhatsApp a él o a ella, se copia o se cambia
 function EnlaceMatrimonio({ e, onCambio }) {
   const enlace = enlaceEquipo(e.token)
-  const mensaje = n => `Hola ${(n || '').split(' ')[0]}, este es el enlace del Matrimonio ${e.apellidos} para dar seguimiento a las cartas de sus parejas asignadas (Cartas con Amor):\n\n${enlace}\n\nEs privado: por favor no lo compartan. Ahí verán el avance de cada pareja, el mensaje para las familias y podrán registrar las cartas que reciban.`
+  const mensaje = n => `Hola ${(n || '').split(' ')[0]}, este es el enlace del Matrimonio ${e.apellidos} para entrar a Cartas con Amor (sin contraseña):\n\n${enlace}\n\nÁbranlo en su celular y elijan quién es cada uno. Verán sus parejas asignadas, el mensaje para las familias y podrán registrar las cartas que reciban. Es privado: por favor no lo compartan.`
   async function cambiar() {
-    if (!window.confirm(`¿Crear un enlace nuevo para el ${nombreEquipo(e)}? El anterior dejará de funcionar.`)) return
+    if (!window.confirm(`¿Crear un enlace nuevo para el ${nombreEquipo(e)}? El anterior dejará de funcionar y tendrán que entrar de nuevo con el nuevo.`)) return
     try { await cambiarEnlaceEquipo(e.id); toast.success('Enlace nuevo creado: envíaselo de nuevo'); await onCambio() }
     catch (err) { toast.error(mensajeError(err)) }
   }

@@ -56,6 +56,7 @@ const ERRORES = {
   archivo_grande: 'Uno de los archivos supera el tamaño permitido.',
   tipo_no_permitido: 'Solo se aceptan archivos PDF, Word (DOCX), JPG o PNG.',
   archivo_repetido: 'Ese archivo ya se había enviado.',
+  anonimo_apagado: 'La entrada sin contraseña aún no está activada. Pide al administrador que la active en Supabase.',
 }
 export function mensajeError(error, porDefecto = 'No se pudo completar. Revisa tu conexión e inténtalo de nuevo.') {
   const texto = String(error?.message || error || '')

@@ -90,7 +90,7 @@ export default function LayoutCartas() {
   const pie = (
     <div className="border-t border-white/10 pt-3">
       <p className="truncate px-4 text-xs text-white/60">{perfil.nombre} · {perfil.rol}{!esAdmin && !perfil.puede_leer ? ' (sin lectura)' : ''}</p>
-      <button onClick={salir} className="mt-1 flex h-10 w-full items-center gap-3 rounded-full px-4 text-sm text-white/80 hover:bg-white/10"><LogOut size={16} />Salir</button>
+      <button onClick={() => { if (!perfil.correo && !window.confirm('Para volver a entrar necesitarás el enlace de tu matrimonio. ¿Salir?')) return; salir() }} className="mt-1 flex h-10 w-full items-center gap-3 rounded-full px-4 text-sm text-white/80 hover:bg-white/10"><LogOut size={16} />Salir</button>
     </div>
   )
 

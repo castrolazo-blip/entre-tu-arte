@@ -108,7 +108,8 @@ export function CartasProvider({ children }) {
 
   // Matrimonio del equipo al que pertenece quien entró (por su correo)
   const correo = (usuario?.email || '').toLowerCase()
-  const miEquipo = datos.equipo.find(e => correo && (e.esposo_correo === correo || e.esposa_correo === correo)) || null
+  const miEquipo = datos.equipo.find(e => e.id === perfil?.equipo_id)
+    || datos.equipo.find(e => correo && (e.esposo_correo === correo || e.esposa_correo === correo)) || null
 
   const valor = {
     miEquipo,

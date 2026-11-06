@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Mail } from 'lucide-react'
+import { Mail, Loader2, AlertTriangle } from 'lucide-react'
+import { equipoInfo, entrarEquipo } from '../cartasService.js'
+import { mensajeError } from '../constantes.js'
 import { supabase } from '../../../lib/supabase.js'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useNoIndexar } from '../../auth/RutaAdmin.jsx'
@@ -10,6 +12,13 @@ import { Marca } from '../publico/marca.jsx'
 
 // Acceso de organizadores (cuentas de Supabase Auth registradas en cca_usuarios)
 export default function Entrar() {
+  const [params] = useSearchParams()
+  // Enlace de un matrimonio del equipo: entra sin contraseña
+  if (params.get('equipo')) return <EntradaEquipo token={params.get('equipo')} />
+  return <EntrarConCuenta />
+}
+
+function EntrarConCuenta() {
   const { usuario, entrar } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -112,6 +121,62 @@ export default function Entrar() {
             <p className="mt-5 border-t border-crema-borde pt-4 text-center text-sm text-gris">¿Eres del equipo de cartas y es tu primera vez? <button type="button" onClick={() => setRegistro(true)} className="font-semibold text-vino underline">Crear mi cuenta</button></p>
           </form>
         )}
+      </div>
+    </div>
+  )
+}
+
+// «Matrimonio Castro Lazo · ¿Quién eres?» → sesión sin contraseña → Mis parejas
+function EntradaEquipo({ token }) {
+  const navigate = useNavigate()
+  const [info, setInfo] = useState(null)
+  const [entrando, setEntrando] = useState(null)
+  const [error, setError] = useState('')
+  useNoIndexar()
+  useTituloCartas('Entrada del equipo')
+
+  useEffect(() => { equipoInfo(token).then(setInfo).catch(e => setError(mensajeError(e))) }, [token])
+
+  async function entrar(quien) {
+    setEntrando(quien); setError('')
+    try {
+      const id = await entrarEquipo(token, quien)
+      // Recarga completa para que el panel tome la sesión y el perfil nuevos
+      window.location.replace(`${import.meta.env.BASE_URL}cartas/panel/mis-parejas?equipo=${id}`)
+    } catch (e) { setError(mensajeError(e, 'No se pudo entrar. Revisa tu conexión e inténtalo de nuevo.')); setEntrando(null) }
+  }
+
+  const personas = info?.estado === 'ok' ? [['esposo', info.esposo_nombre], ['esposa', info.esposa_nombre]].filter(([, n]) => n) : []
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-vino p-5">
+      <div className="w-full max-w-sm rounded-[28px] bg-white p-8">
+        <Marca />
+        {!info && !error && <div className="mt-8 flex justify-center"><Loader2 className="animate-spin text-vino" /></div>}
+        {info && info.estado !== 'ok' && (
+          <div className="mt-7 text-center">
+            <AlertTriangle className="mx-auto text-vino" size={30} />
+            <h1 className="mt-3 text-xl font-semibold">Este enlace ya no funciona</h1>
+            <p className="mt-2 text-sm text-gris">Puede que lo hayan cambiado. Pide el enlace actualizado al equipo coordinador.</p>
+          </div>
+        )}
+        {info?.estado === 'ok' && (
+          <>
+            <p className="mt-7 text-xs font-bold uppercase tracking-[0.14em] text-oro">{info.retiro}</p>
+            <h1 className="mt-1 text-2xl font-semibold">Matrimonio {info.apellidos}</h1>
+            <p className="mt-2 text-sm text-gris">Bienvenidos al equipo de cartas. ¿Quién eres?</p>
+            <div className="mt-5 grid gap-2.5">
+              {personas.map(([quien, nombre]) => (
+                <button key={quien} onClick={() => entrar(quien)} disabled={!!entrando}
+                  className="flex h-14 items-center justify-center gap-2 rounded-full bg-vino text-[16px] font-semibold text-white disabled:opacity-60">
+                  {entrando === quien && <Loader2 size={18} className="animate-spin" />}Soy {nombre.split(' ')[0]}
+                </button>
+              ))}
+              {!personas.length && <button onClick={() => entrar('esposo')} disabled={!!entrando} className="h-14 rounded-full bg-vino font-semibold text-white">Entrar</button>}
+            </div>
+            <p className="mt-4 text-center text-xs text-gris">Sin contraseña: este teléfono queda conectado. No compartan el enlace.</p>
+          </>
+        )}
+        {error && <p role="alert" className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
       </div>
     </div>
   )
