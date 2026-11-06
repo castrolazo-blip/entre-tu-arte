@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CheckCircle2, Paperclip, Search, Trash2, ShieldCheck, Clock, Heart, AlertTriangle, Loader2 } from 'lucide-react'
+import { CheckCircle2, Camera, Paperclip, Search, Trash2, ShieldCheck, Clock, Heart, AlertTriangle, Loader2 } from 'lucide-react'
 import { useNoIndexar } from '../../auth/RutaAdmin.jsx'
 import { portal, enviarCarta, subirArchivo, tipoDeArchivo, firmaValida } from '../cartasService.js'
 import { ACEPTA, mensajeError, folioTexto, fecha, rangoFechas, tamanoTexto } from '../constantes.js'
 import { Marca, serif, useTituloCartas } from './marca.jsx'
 import { ChipsRelacion } from '../ui.jsx'
 
-const MAX_TEXTO = 30000
 const claveBorrador = c => `cca_borrador_${c}`
 const leerBorrador = c => { try { return JSON.parse(localStorage.getItem(claveBorrador(c)) || 'null') } catch { return null } }
 const guardarBorrador = (c, v) => { try { v ? localStorage.setItem(claveBorrador(c), JSON.stringify(v)) : localStorage.removeItem(claveBorrador(c)) } catch { /* sin almacenamiento */ } }
@@ -18,7 +17,7 @@ export default function EnviarCarta() {
   const tokenPareja = params.get('p') || ''
   const tokenRemitente = params.get('r') || ''
   useNoIndexar()
-  useTituloCartas('Escribe tu carta')
+  useTituloCartas('Envía tu carta')
 
   const [info, setInfo] = useState(null)
   const [errorCarga, setErrorCarga] = useState(null)
@@ -37,7 +36,7 @@ export default function EnviarCarta() {
           {info?.nombre && (
             <div className="mt-7">
               <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-white/70">{info.nombre}</p>
-              <h1 style={serif} className="mt-1 text-[34px] font-semibold leading-tight">Escribe una carta que llegue al corazón</h1>
+              <h1 style={serif} className="mt-1 text-[34px] font-semibold leading-tight">Envía una carta que llegue al corazón</h1>
               {(info.inicio || info.lugar) && <p className="mt-2 text-sm text-white/80">{[rangoFechas(info.inicio, info.fin), info.lugar].filter(Boolean).join(' · ')}</p>}
               {info.estado === 'abierto' && info.fecha_limite && !info.tardio && <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 text-[13px]"><Clock size={14} className="shrink-0" /><span>Recibimos cartas hasta el <b>{fecha(info.fecha_limite, true)}</b></span></p>}
             </div>
@@ -80,7 +79,6 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
   const [nombre, setNombre] = useState((!esContacto && rem?.nombre) || borrador?.nombre || '')
   const [relacion, setRelacion] = useState((!esContacto && rem?.relacion) || borrador?.relacion || '')
   const [contacto, setContacto] = useState(borrador?.contacto || '')
-  const [texto, setTexto] = useState(borrador?.texto || '')
   const [archivos, setArchivos] = useState([])
   const [acepto, setAcepto] = useState(false)
   const [trampa, setTrampa] = useState('')
@@ -88,6 +86,7 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
   const [estado, setEstado] = useState(null)        // texto de progreso
   const [error, setError] = useState('')
   const inputArchivo = useRef(null)
+  const inputCamara = useRef(null)
 
   const pareja = info.parejas.find(p => p.id === parejaId)
   const filtradas = useMemo(() => {
@@ -98,9 +97,9 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
 
   // Borrador local: si se cae la conexión o se cierra la pestaña, no se pierde lo escrito
   useEffect(() => {
-    const t = setTimeout(() => guardarBorrador(codigo, { parejaId, destinatario, nombre, relacion, contacto, texto }), 600)
+    const t = setTimeout(() => guardarBorrador(codigo, { parejaId, destinatario, nombre, relacion, contacto }), 600)
     return () => clearTimeout(t)
-  }, [codigo, parejaId, destinatario, nombre, relacion, contacto, texto])
+  }, [codigo, parejaId, destinatario, nombre, relacion, contacto])
 
   async function agregarArchivos(lista) {
     setError('')
@@ -129,7 +128,7 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
     if (!destinatario) return setError('Indica si la carta es para uno de ellos o para ambos.')
     if (!relacion.trim()) return setError('Elige quién envía la carta (papá, mamá, hermano…).')
     if (!esContacto && nombre.trim().length < 2) return setError('Escribe tu nombre.')
-    if (!texto.trim() && !archivos.length) return setError('Escribe tu carta o adjunta un archivo.')
+    if (!archivos.length) return setError('Adjunta la foto o el archivo de tu carta.')
     if (!acepto) return setError('Debes aceptar el aviso de privacidad.')
     try {
       const subidos = []
@@ -142,7 +141,7 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
       setEstado('Enviando tu carta…')
       const r = await enviarCarta({
         p_codigo: codigo, p_pareja: pareja.id, p_destinatario: destinatario, p_nombre: nombre.trim() || relacion.trim(),
-        p_relacion: relacion.trim() || null, p_contacto: contacto.trim() || null, p_texto: texto.trim() || null,
+        p_relacion: relacion.trim() || null, p_contacto: contacto.trim() || null, p_texto: null,
         p_archivos: subidos, p_remitente_token: tokenRemitente || null, p_consentimiento: acepto, p_trampa: trampa || null,
       })
       guardarBorrador(codigo, null)
@@ -211,33 +210,33 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
         <input value={trampa} onChange={e => setTrampa(e.target.value)} name="sitio_web" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
       </Paso>
 
-      <Paso n="3" titulo="Tu carta">
-        <p className="mb-2 text-sm text-gris">Escríbela aquí, adjunta una foto o un documento, o ambas cosas.</p>
-        <textarea value={texto} onChange={e => setTexto(e.target.value.slice(0, MAX_TEXTO))} rows={10}
-          placeholder={pareja && destinatario ? `Querid${destinatario === 'ambos' ? 'os' : 'o/a'} ${destinatario === 'ambos' ? `${pareja.a} y ${pareja.b}` : destinatario === 'A' ? pareja.a : pareja.b}:` : 'Escribe aquí tu carta…'}
-          style={serif} className="campo min-h-[240px] text-[19px] leading-relaxed" aria-label="Texto de la carta" />
-        <p className="mt-1 text-right text-xs text-gris">{texto.length ? `${texto.length.toLocaleString('es')} caracteres · se guarda en este dispositivo mientras escribes` : ''}</p>
-
-        <div className="mt-3">
-          <input ref={inputArchivo} type="file" accept={ACEPTA} multiple className="hidden" onChange={e => agregarArchivos([...e.target.files])} />
-          <button type="button" onClick={() => inputArchivo.current?.click()} disabled={archivos.length >= info.max_archivos}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-dashed border-vino/50 font-semibold text-vino transition hover:bg-vino-claro disabled:opacity-50">
-            <Paperclip size={18} />Adjuntar foto o documento
+      <Paso n="3" titulo="Adjunta tu carta">
+        <p className="mb-3 text-sm text-gris">Escríbela a mano o en tu computadora y adjúntala aquí: una <b>foto</b> de la carta, un <b>escaneo</b> o el <b>archivo</b> (PDF o Word). Si tiene varias páginas, adjunta una foto por página.</p>
+        <input ref={inputArchivo} type="file" accept={ACEPTA} multiple className="hidden" onChange={e => agregarArchivos([...e.target.files])} />
+        <input ref={inputCamara} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { agregarArchivos([...e.target.files]); e.target.value = '' }} />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button type="button" onClick={() => inputCamara.current?.click()} disabled={archivos.length >= info.max_archivos}
+            className="flex h-14 items-center justify-center gap-2 rounded-full bg-vino font-semibold text-white transition hover:bg-vino-oscuro disabled:opacity-50">
+            <Camera size={19} />Tomar foto de la carta
           </button>
-          <p className="mt-1.5 text-center text-xs text-gris">PDF, Word (DOCX), JPG o PNG · hasta {info.max_mb} MB · máximo {info.max_archivos}</p>
-          {archivos.length > 0 && (
-            <ul className="mt-3 space-y-2">
-              {archivos.map((f, i) => (
-                <li key={i} className="flex items-center gap-3 rounded-2xl bg-crema-clara px-4 py-2.5 text-sm">
-                  <Paperclip size={15} className="shrink-0 text-gris" />
-                  <span className="min-w-0 flex-1 truncate">{f.name}</span>
-                  <span className="text-xs text-gris">{tamanoTexto(f.size)}</span>
-                  <button type="button" onClick={() => setArchivos(a => a.filter((_, j) => j !== i))} aria-label={`Quitar ${f.name}`} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white"><Trash2 size={16} /></button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <button type="button" onClick={() => inputArchivo.current?.click()} disabled={archivos.length >= info.max_archivos}
+            className="flex h-14 items-center justify-center gap-2 rounded-full border border-vino/50 font-semibold text-vino transition hover:bg-vino-claro disabled:opacity-50">
+            <Paperclip size={18} />Elegir archivo
+          </button>
         </div>
+        <p className="mt-2 text-center text-xs text-gris">PDF, Word (DOCX), JPG o PNG · hasta {info.max_mb} MB · máximo {info.max_archivos}</p>
+        {archivos.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {archivos.map((f, i) => (
+              <li key={i} className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-2.5 text-sm">
+                <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                <span className="text-xs text-gris">{tamanoTexto(f.size)}</span>
+                <button type="button" onClick={() => setArchivos(a => a.filter((_, j) => j !== i))} aria-label={`Quitar ${f.name}`} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white"><Trash2 size={16} /></button>
+              </li>
+            ))}
+          </ul>
+        )}
       </Paso>
 
       <div className="rounded-[24px] bg-white p-5 shadow-sm">
@@ -246,7 +245,7 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
           <div className="mt-3 space-y-2 leading-relaxed">
             <p><b>Finalidad:</b> recibir y resguardar tu carta para entregarla a sus destinatarios durante {info.nombre}. No se publica ni se comparte con nadie más.</p>
             <p><b>Responsable:</b> {info.responsable || 'el equipo organizador del retiro'}. Solo las personas autorizadas del equipo pueden ver las cartas.</p>
-            <p><b>Datos:</b> tu nombre, relación, contacto (si lo das), el texto y los archivos. Se usan únicamente para este fin.</p>
+            <p><b>Datos:</b> tu nombre, relación, contacto (si lo das) y el archivo de tu carta. Se usan únicamente para este fin.</p>
             <p><b>Conservación:</b> se eliminan o archivan de forma segura {info.retencion_dias} días después del retiro.</p>
             <p><b>Eliminación:</b> puedes pedir que se borre tu carta escribiendo a {info.contacto_privacidad || 'el equipo organizador'} e indicando tu número de recepción.</p>
           </div>

@@ -21,8 +21,8 @@ function pagina(titulo, descripcion, imagen) {
 }
 
 mkdirSync('dist/cartas', { recursive: true })
-writeFileSync('dist/cartas/enviar.html', pagina('Escribe una carta · Cartas con Amor',
-  'Escribe una carta para una pareja que vivirá un encuentro matrimonial. Es privada y será una sorpresa.',
+writeFileSync('dist/cartas/enviar.html', pagina('Envía tu carta · Cartas con Amor',
+  'Adjunta la foto o el archivo de tu carta para una pareja que vivirá un encuentro matrimonial. Es privada y será una sorpresa.',
   'https://entretuarte.com/cartas/renova-rojo.png'))
 writeFileSync('dist/cartas/equipo.html', pagina('Mis parejas · Cartas con Amor', 'Enlace privado del equipo de cartas.'))
 const privada = pagina('Cartas con Amor · Organizadores', 'Acceso para el equipo organizador del retiro.')

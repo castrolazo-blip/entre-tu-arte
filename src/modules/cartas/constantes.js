@@ -162,7 +162,7 @@ Pueden hacer la entrega de cartas con {responsable}
 - 🗓️ *La FECHA LÍMITE* para la entrega de cartas será el *{fecha_limite}*
 
 📲 *POR ESTE ENLACE:* 📲
-También pueden escribir la carta o subir una foto o escaneo aquí (una carta a la vez). Es privado y solo llegará a *{pareja}*:
+También pueden enviar la carta por este enlace: solo adjunten una *foto* de la carta escrita o el *archivo* (una carta a la vez). Es privado y solo llegará a *{pareja}*:
 {enlace}
 
 📩 *CORREO ELECTRÓNICO:* 📩
