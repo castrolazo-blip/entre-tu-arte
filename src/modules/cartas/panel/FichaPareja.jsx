@@ -80,8 +80,8 @@ export default function FichaPareja() {
       )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi valor={x.recibidas} etiqueta="Cartas recibidas" />
-        <Kpi valor={x.aprobadas} etiqueta="Aprobadas" tono="ok" />
-        <Kpi valor={x.entregadas} etiqueta="Entregadas" />
+        <Kpi valor={x.enPapel} etiqueta="En papel" detalle="van directo al sobre" />
+        <Kpi valor={x.aImprimir} etiqueta="Formulario o correo" detalle="se imprimen" />
         <Kpi valor={`${x.contactos - x.contactosPendientes}/${x.contactos}`} etiqueta="Contactos que ya entregaron" />
       </div>
 

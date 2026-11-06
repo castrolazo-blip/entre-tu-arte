@@ -4,7 +4,7 @@ import { ExternalLink, Download, EyeOff, Eye, AlertTriangle, History, Lock, Load
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarCarta, textoCarta, historial, enlaceArchivo, marcarArchivo, registrarAccion } from '../cartasService.js'
-import { ESTADOS_CARTA, FLUJO, ORIGENES, folioTexto, fecha, nombreDestinatario, nombreCompleto, nombrePareja, tamanoTexto, mensajeError } from '../constantes.js'
+import { ESTADOS_CARTA, ORIGENES, esValida, folioTexto, fecha, nombreDestinatario, nombreCompleto, nombrePareja, tamanoTexto, mensajeError } from '../constantes.js'
 import { Etiqueta, Modal, btn } from '../ui.jsx'
 import { serif } from '../publico/marca.jsx'
 
@@ -52,9 +52,9 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
   }
 
   function estado(nuevo) {
-    if (['rechazada', 'duplicada'].includes(nuevo) && !motivo.trim()) { toast.error('Escribe el motivo primero'); return }
-    if (nuevo === 'entregada' && !window.confirm('¿Confirmas que esta carta ya fue entregada en mano?')) return
-    cambiar({ estado: nuevo, motivo: motivo.trim() || null }, `Marcada como ${ESTADOS_CARTA[nuevo].etiqueta.toLowerCase()}`)
+    if (nuevo !== 'recibida' && !motivo.trim()) { toast.error('Escribe el motivo primero'); return }
+    cambiar({ estado: nuevo, motivo: nuevo === 'recibida' ? null : motivo.trim(), posible_duplicado: false },
+      nuevo === 'recibida' ? 'Carta restaurada' : `Carta ${ESTADOS_CARTA[nuevo].etiqueta.toLowerCase()}: ya no se cuenta`)
   }
 
   return (
@@ -83,7 +83,7 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
 
           <div className="mt-5">
             {!puedeLeer ? (
-              <p className="flex items-center gap-2 rounded-2xl bg-crema p-4 text-sm text-gris"><Lock size={16} />Tu usuario controla estados, pero no puede leer el contenido de las cartas.</p>
+              <p className="flex items-center gap-2 rounded-2xl bg-crema p-4 text-sm text-gris"><Lock size={16} />Las cartas son confidenciales: tu usuario no puede abrir su contenido.</p>
             ) : !abierta ? (
               <button onClick={verContenido} className={btn.contorno}><Eye size={16} />Ver contenido{carta.cca_archivos?.length ? ' y archivos' : ''}</button>
             ) : texto === undefined ? <Loader2 className="animate-spin text-gris" /> : texto ? (
@@ -115,19 +115,22 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
 
         <aside className="space-y-5">
           <div>
-            <p className="etiqueta mb-2">Cambiar estado</p>
-            <div className="flex flex-wrap gap-1.5">
-              {FLUJO.map(e => (
-                <button key={e} disabled={guardando || carta.estado === e} onClick={() => estado(e)}
-                  className={`h-9 rounded-full border px-3 text-[13px] font-semibold transition ${carta.estado === e ? 'border-vino bg-vino text-white' : 'border-crema-borde hover:border-tinta'}`}>{ESTADOS_CARTA[e].etiqueta}</button>
-              ))}
-            </div>
-            <input value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo (obligatorio para rechazar)" className="campo mt-3 h-11 text-sm" />
-            <div className="mt-2 flex gap-1.5">
-              <button disabled={guardando} onClick={() => estado('rechazada')} className={`${btn.mini} flex-1`}>Rechazar</button>
-              <button disabled={guardando} onClick={() => estado('duplicada')} className={`${btn.mini} flex-1`}>Duplicada</button>
-            </div>
-            <p className="mt-2 text-[11.5px] text-gris">Imprimir no la marca como entregada: eso se confirma aparte.</p>
+            {esValida(carta) ? (
+              <>
+                <p className="etiqueta mb-1">¿Hay un error con esta carta?</p>
+                <p className="mb-2 text-[11.5px] text-gris">Anúlala solo si es spam, está equivocada o vino repetida. Deja de contarse.</p>
+                <input value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo" className="campo h-11 text-sm" />
+                <div className="mt-2 flex gap-1.5">
+                  <button disabled={guardando} onClick={() => estado('rechazada')} className={`${btn.mini} flex-1`}>Anular</button>
+                  <button disabled={guardando} onClick={() => estado('duplicada')} className={`${btn.mini} flex-1`}>Es duplicada</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="etiqueta mb-2">Esta carta no se cuenta</p>
+                <button disabled={guardando} onClick={() => estado('recibida')} className={`${btn.mini} w-full`}>Restaurar como recibida</button>
+              </>
+            )}
           </div>
 
           <label className="etiqueta block">Remitente esperado
@@ -156,13 +159,6 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
             <button disabled={guardando || incidencia === (carta.incidencia || '')} onClick={() => cambiar({ incidencia: incidencia.trim() || null }, 'Incidencia guardada')} className={`${btn.mini} mt-2 w-full`}>Guardar incidencia</button>
           </div>
 
-          {(carta.impresa_en || carta.entregada_en || carta.preparada_en) && (
-            <div className="rounded-2xl bg-crema p-3 text-xs text-gris">
-              {carta.preparada_en && <p>Preparada: {fecha(carta.preparada_en, true)}</p>}
-              {carta.impresa_en && <p>Impresa: {fecha(carta.impresa_en, true)}</p>}
-              {carta.entregada_en && <p>Entregada: {fecha(carta.entregada_en, true)}</p>}
-            </div>
-          )}
         </aside>
       </div>
     </Modal>

@@ -2,20 +2,17 @@
 
 export const BUCKET_CARTAS = 'cca-cartas'
 
+// El control llega hasta «recibida»: las cartas no se leen ni se aprueban, y todas se entregan en el retiro.
+// Solo existen dos salidas por error: anulada (spam, carta equivocada) o duplicada, siempre con motivo.
+// (La base acepta estados antiguos; aquí cualquier estado válido se muestra como «Recibida».)
+const RECIBIDA = { etiqueta: 'Recibida', clase: 'bg-emerald-100 text-emerald-800' }
 export const ESTADOS_CARTA = {
-  recibida:    { etiqueta: 'Recibida',          clase: 'bg-sky-100 text-sky-800' },
-  en_revision: { etiqueta: 'En revisión',       clase: 'bg-amber-100 text-amber-800' },
-  aprobada:    { etiqueta: 'Aprobada',          clase: 'bg-emerald-100 text-emerald-800' },
-  lista:       { etiqueta: 'Lista para imprimir', clase: 'bg-teal-100 text-teal-800' },
-  impresa:     { etiqueta: 'Impresa',           clase: 'bg-indigo-100 text-indigo-800' },
-  entregada:   { etiqueta: 'Entregada',         clase: 'bg-vino text-white' },
-  rechazada:   { etiqueta: 'Rechazada',         clase: 'bg-neutral-200 text-neutral-700 line-through' },
-  duplicada:   { etiqueta: 'Duplicada',         clase: 'bg-neutral-200 text-neutral-700' },
+  recibida: RECIBIDA, en_revision: RECIBIDA, aprobada: RECIBIDA, lista: RECIBIDA, impresa: RECIBIDA, entregada: RECIBIDA,
+  rechazada: { etiqueta: 'Anulada', clase: 'bg-neutral-200 text-neutral-700 line-through' },
+  duplicada: { etiqueta: 'Duplicada', clase: 'bg-neutral-200 text-neutral-700' },
 }
-// Orden del flujo normal; rechazada y duplicada requieren motivo
-export const FLUJO = ['recibida', 'en_revision', 'aprobada', 'lista', 'impresa', 'entregada']
 export const NO_VALIDAS = ['rechazada', 'duplicada']
-export const APROBADAS = ['aprobada', 'lista', 'impresa', 'entregada']
+export const esValida = c => !NO_VALIDAS.includes(c.estado)
 
 export const ESTADOS_REMITENTE = {
   pendiente: { etiqueta: 'Pendiente',          clase: 'bg-amber-100 text-amber-800' },

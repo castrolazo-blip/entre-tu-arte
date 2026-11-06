@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { miPerfil, listarRetiros, cargarRetiro } from './cartasService.js'
-import { NO_VALIDAS, APROBADAS } from './constantes.js'
+import { NO_VALIDAS } from './constantes.js'
 
 // Estado del panel: perfil del usuario, retiros a los que tiene acceso, retiro elegido y sus datos.
 const Ctx = createContext(null)
@@ -88,16 +88,14 @@ export const useCartas = () => useContext(Ctx)
 export function calcularIndicadores({ parejas, remitentes, cartas }, meta = 0) {
   const porPareja = {}
   for (const p of parejas) {
-    porPareja[p.id] = { recibidas: 0, aprobadas: 0, listas: 0, entregadas: 0, revision: 0, adicionales: 0,
+    porPareja[p.id] = { recibidas: 0, enPapel: 0, aImprimir: 0, duplicados: 0, adicionales: 0,
       esperados: 0, pendientes: 0, recibidos: 0, exentos: 0, paraA: 0, paraB: 0, contactos: 0, contactosPendientes: 0 }
   }
   for (const c of cartas) {
     const x = porPareja[c.pareja_id]; if (!x || NO_VALIDAS.includes(c.estado)) continue
     x.recibidas++
-    if (APROBADAS.includes(c.estado)) x.aprobadas++
-    if (c.estado === 'lista') x.listas++
-    if (c.estado === 'entregada') x.entregadas++
-    if (['recibida', 'en_revision'].includes(c.estado)) x.revision++
+    if (c.origen === 'fisica' && !c.cca_archivos?.length) x.enPapel++; else x.aImprimir++
+    if (c.posible_duplicado) x.duplicados++
     if (!c.remitente_id) x.adicionales++
     if (c.destinatario !== 'B') x.paraA++
     if (c.destinatario !== 'A') x.paraB++
@@ -123,12 +121,10 @@ export function calcularIndicadores({ parejas, remitentes, cartas }, meta = 0) {
       parejas: activas.length,
       esperados: suma('esperados'),
       recibidas: suma('recibidas'),
-      aprobadas: suma('aprobadas'),
-      porRevisar: suma('revision'),
+      enPapel: suma('enPapel'), aImprimir: suma('aImprimir'), posiblesDuplicados: suma('duplicados'),
       pendientes: suma('pendientes'),
       adicionales: suma('adicionales'),
       sinCartas: activas.filter(p => porPareja[p.id].recibidas === 0).length,
-      entregadas: suma('entregadas'),
       meta, faltanMeta: suma('faltan'), metaCumplida: activas.filter(p => porPareja[p.id].metaCumplida).length,
       contactosPendientes: suma('contactosPendientes'), contactos: suma('contactos'),
     },

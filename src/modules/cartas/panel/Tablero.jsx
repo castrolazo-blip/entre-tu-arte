@@ -26,15 +26,14 @@ export default function Tablero() {
   const conteo = filas.reduce((c, f) => ({ ...c, [f.color]: (c[f.color] || 0) + 1 }), {})
   const dias = retiro.fecha_limite ? Math.ceil((new Date(retiro.fecha_limite) - Date.now()) / 86400000) : null
 
-  const filasReporte = filas.map(({ p, x, color }) => ({ codigo: p.codigo, pareja: nombrePareja(p), responsable: p.responsable, paraA: x.paraA, paraB: x.paraB, faltan: x.faltan, recibidas: x.recibidas, aprobadas: x.aprobadas,
-    listas: x.listas, entregadas: x.entregadas, esperados: x.esperados, pendientes: x.pendientes, adicionales: x.adicionales, estado: TEXTO_SEMAFORO[color] }))
+  const filasReporte = filas.map(({ p, x, color }) => ({ codigo: p.codigo, pareja: nombrePareja(p), responsable: p.responsable, paraA: x.paraA, paraB: x.paraB, faltan: x.faltan, recibidas: x.recibidas, enPapel: x.enPapel, aImprimir: x.aImprimir, esperados: x.esperados, pendientes: x.pendientes, adicionales: x.adicionales, estado: TEXTO_SEMAFORO[color] }))
 
   function csvAvance() {
     descargar(aCSV(filasReporte, [
       { titulo: 'Código', valor: 'codigo' }, { titulo: 'Pareja', valor: 'pareja' }, { titulo: 'Responsable', valor: 'responsable' },
       { titulo: 'Cartas esposo', valor: 'paraA' }, { titulo: 'Cartas esposa', valor: 'paraB' }, { titulo: 'Faltan para la meta', valor: 'faltan' },
       { titulo: 'Cartas recibidas', valor: 'recibidas' },
-      { titulo: 'Aprobadas', valor: 'aprobadas' }, { titulo: 'Listas para imprimir', valor: 'listas' }, { titulo: 'Entregadas', valor: 'entregadas' },
+      { titulo: 'En papel', valor: 'enPapel' }, { titulo: 'A imprimir (formulario/correo)', valor: 'aImprimir' },
       { titulo: 'Remitentes esperados', valor: 'esperados' }, { titulo: 'Pendientes', valor: 'pendientes' }, { titulo: 'Adicionales', valor: 'adicionales' }, { titulo: 'Semáforo', valor: 'estado' },
     ]), `avance-${nombreArchivo(retiro.nombre)}.csv`)
   }
@@ -45,10 +44,9 @@ export default function Tablero() {
       { titulo: 'Folio', valor: c => folioTexto(c.folio) }, { titulo: 'Fecha', valor: c => fecha(c.created_at, true) },
       { titulo: 'Código pareja', valor: c => pp[c.pareja_id]?.codigo }, { titulo: 'Para', valor: c => nombreDestinatario(pp[c.pareja_id], c.destinatario) },
       { titulo: 'Remitente', valor: 'remitente_nombre' }, { titulo: 'Relación', valor: 'relacion' }, { titulo: 'Origen', valor: 'origen' },
-      { titulo: 'Estado', valor: c => ESTADOS_CARTA[c.estado].etiqueta }, { titulo: 'Motivo', valor: 'motivo' },
+      { titulo: 'Estado', valor: c => ESTADOS_CARTA[c.estado].etiqueta }, { titulo: 'Motivo', valor: 'motivo' }, { titulo: 'Entregó', valor: 'recibida_de' },
       { titulo: 'Remitente esperado', valor: c => (c.remitente_id ? rr[c.remitente_id]?.nombre : 'Adicional') },
       { titulo: 'Archivos', valor: c => c.cca_archivos.length }, { titulo: 'Tardía', valor: c => (c.tardia ? 'Sí' : '') },
-      { titulo: 'Impresa', valor: c => fecha(c.impresa_en, true) }, { titulo: 'Entregada', valor: c => fecha(c.entregada_en, true) },
     ]), `cartas-${nombreArchivo(retiro.nombre)}.csv`)
   }
   async function pdf() {
@@ -56,8 +54,8 @@ export default function Tablero() {
     descargar(await pdfResumen({ retiro, filas: filasReporte, totales: {
       'Parejas activas': t.parejas, 'Meta por persona': t.meta, 'Faltan para la meta': t.faltanMeta,
       'Parejas con meta': t.metaCumplida, 'Contactos que entregaron': `${t.contactos - t.contactosPendientes}/${t.contactos}`, 'Cartas recibidas': t.recibidas,
-      'Cartas aprobadas': t.aprobadas, 'Remitentes pendientes': t.pendientes, 'Parejas sin cartas': t.sinCartas,
-      'Cartas adicionales': t.adicionales, 'Por revisar': t.porRevisar, 'Entregadas': t.entregadas,
+      'En papel': t.enPapel, 'A imprimir': t.aImprimir, 'Remitentes pendientes': t.pendientes, 'Parejas sin cartas': t.sinCartas,
+      'Cartas adicionales': t.adicionales, 'Posibles duplicados': t.posiblesDuplicados,
     } }), `resumen-${nombreArchivo(retiro.nombre)}.pdf`)
   }
 
@@ -75,7 +73,7 @@ export default function Tablero() {
         <Kpi valor={t.recibidas} etiqueta="Cartas recibidas" tono="vino" detalle={t.meta ? `meta: ${t.parejas * t.meta * 2} (${t.meta * 2} por pareja)` : `${t.adicionales} adicionales`} />
         {t.meta > 0
           ? <Kpi valor={t.faltanMeta} etiqueta="Faltan para la meta" tono={t.faltanMeta ? 'alerta' : 'ok'} detalle={`${t.meta} por persona`} />
-          : <Kpi valor={t.aprobadas} etiqueta="Cartas aprobadas" tono="ok" />}
+          : <Kpi valor={t.aImprimir} etiqueta="Cartas a imprimir" detalle="formulario y correo" />}
         {t.meta > 0 && <Kpi valor={`${t.metaCumplida}/${t.parejas}`} etiqueta="Parejas con meta cumplida" tono="ok" />}
         <Kpi valor={`${t.contactos - t.contactosPendientes}/${t.contactos}`} etiqueta="Contactos que entregaron" detalle="paquetes o cartas recibidos" />
         <Kpi valor={t.sinCartas} etiqueta="Parejas sin cartas" tono={t.sinCartas ? 'alerta' : 'normal'} />
