@@ -135,19 +135,23 @@ export default function LayoutCartas() {
         {!retiro && !enInicio && (
           <button onClick={regresar} className="mb-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-white pl-3 pr-4 text-[14px] font-semibold text-vino shadow-sm"><ArrowLeft size={18} />Atrás</button>
         )}
-        {!retiro && !pathname.endsWith('/retiros') && !pathname.endsWith('/configuracion') ? <SinRetiro esAdmin={esAdmin} /> : <Outlet />}
+        {!retiro && !pathname.endsWith('/retiros') && !pathname.endsWith('/configuracion') ? <SinRetiro esAdmin={esAdmin} onSalir={() => { if (!perfil.correo && !window.confirm('Para volver a entrar necesitarás el enlace de tu matrimonio. ¿Salir?')) return; salir() }} /> : <Outlet />}
       </main>
     </div>
   )
 }
 
-function SinRetiro({ esAdmin }) {
+function SinRetiro({ esAdmin, onSalir }) {
   return (
     <div className="mx-auto mt-10 max-w-md rounded-[28px] bg-white p-8 text-center">
       <CalendarHeart className="mx-auto text-vino" size={36} strokeWidth={1.6} />
       <h1 className="mt-3 text-xl font-semibold">Aún no hay retiros</h1>
       <p className="mt-2 text-sm text-gris">{esAdmin ? 'Crea el primer retiro para empezar a recibir cartas.' : 'Pide a un administrador que te asigne a un retiro.'}</p>
       {esAdmin && <NavLink to="/cartas/panel/retiros" className="mt-5 inline-flex h-11 items-center rounded-full bg-vino px-6 text-sm font-semibold text-white">Crear retiro</NavLink>}
+      <div className="mt-5 flex flex-col gap-2">
+        {!esAdmin && <button onClick={() => window.location.reload()} className="h-11 rounded-full bg-vino px-6 text-sm font-semibold text-white">Volver a intentar</button>}
+        <button onClick={onSalir} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-crema-borde px-6 text-sm font-semibold"><LogOut size={16} />Cerrar sesión</button>
+      </div>
     </div>
   )
 }
