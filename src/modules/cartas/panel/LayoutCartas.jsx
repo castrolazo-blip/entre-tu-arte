@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
-import { LayoutDashboard, CalendarHeart, Users, Inbox, BellRing, Printer, Settings, LogOut, Menu, X, RefreshCw } from 'lucide-react'
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, CalendarHeart, Users, Inbox, BellRing, Printer, Settings, LogOut, Menu, X, RefreshCw, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useNoIndexar } from '../../auth/RutaAdmin.jsx'
 import CargandoModulo from '../../../components/CargandoModulo.jsx'
@@ -23,6 +23,14 @@ export default function LayoutCartas() {
   const { perfil, esAdmin, retiros, retiro, setRetiroId, indicadores, recargar, cargandoDatos } = useCartas()
   const [abierto, setAbierto] = useState(false)
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const enInicio = pathname.replace(/\/$/, '') === '/cartas/panel'
+  // Atrás: vuelve a la pantalla anterior; si se entró directo (sin historial), sube un nivel
+  function regresar() {
+    if ((window.history.state?.idx ?? 0) > 0) { navigate(-1); return }
+    const ficha = /^\/cartas\/panel\/parejas\/[^/]+/.test(pathname)
+    navigate(ficha ? '/cartas/panel/parejas' : '/cartas/panel')
+  }
   useNoIndexar()
   useTituloCartas('Panel')
   useEffect(() => { setAbierto(false) }, [pathname])
@@ -78,7 +86,7 @@ export default function LayoutCartas() {
   return (
     <div className="min-h-screen bg-[#f4efea] lg:flex lg:gap-5 lg:p-5">
       <aside className="hidden w-64 shrink-0 flex-col gap-4 rounded-[28px] bg-vino p-4 text-white lg:sticky lg:top-5 lg:flex lg:h-[calc(100vh-40px)]">
-        <div className="px-2 pt-2"><Marca claro compacta /></div>
+        <Link to="/cartas/panel" aria-label="Ir al inicio del panel" className="block rounded-2xl px-2 pt-2"><Marca claro compacta /></Link>
         {selector}
         <div className="flex-1 overflow-y-auto">{menu}</div>
         {pie}
@@ -86,7 +94,7 @@ export default function LayoutCartas() {
 
       <header className="sticky top-0 z-30 bg-vino px-4 py-3 text-white lg:hidden">
         <div className="flex items-center justify-between">
-          <Marca claro compacta />
+          <Link to="/cartas/panel" aria-label="Ir al inicio del panel"><Marca claro compacta /></Link>
           <button onClick={() => setAbierto(!abierto)} aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={abierto} className="flex h-11 w-11 items-center justify-center">{abierto ? <X /> : <Menu />}</button>
         </div>
       </header>
@@ -99,12 +107,21 @@ export default function LayoutCartas() {
       <main className="min-w-0 flex-1 px-4 py-5 lg:px-2 lg:py-3">
         {retiro && (
           <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+            {!enInicio && (
+              <button onClick={regresar} aria-label="Regresar a la pantalla anterior"
+                className="-ml-1 inline-flex h-10 items-center gap-1.5 rounded-full bg-white pl-3 pr-4 text-[14px] font-semibold text-vino shadow-sm hover:bg-vino-claro">
+                <ArrowLeft size={18} />Atrás
+              </button>
+            )}
             <span className="font-semibold">{retiro.nombre}</span>
             <Etiqueta tipo="retiro" estado={retiro.estado} />
             <button onClick={recargar} disabled={cargandoDatos} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold text-gris hover:bg-white disabled:opacity-50">
               <RefreshCw size={14} className={cargandoDatos ? 'animate-spin' : ''} />Actualizar
             </button>
           </div>
+        )}
+        {!retiro && !enInicio && (
+          <button onClick={regresar} className="mb-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-white pl-3 pr-4 text-[14px] font-semibold text-vino shadow-sm"><ArrowLeft size={18} />Atrás</button>
         )}
         {!retiro && !pathname.endsWith('/retiros') && !pathname.endsWith('/configuracion') ? <SinRetiro esAdmin={esAdmin} /> : <Outlet />}
       </main>

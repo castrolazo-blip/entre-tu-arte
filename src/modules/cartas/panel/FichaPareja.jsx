@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Pencil, Plus, Copy, Trash2, Inbox, PackagePlus, Users } from 'lucide-react'
+import { Pencil, Plus, Copy, Trash2, Inbox, PackagePlus, Users } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { borrarRemitente } from '../cartasService.js'
 import { enlacePortal, nombreDestinatario, nombrePareja, nombreCompleto, fecha, folioTexto, mensajeError, semaforo, ORIGENES } from '../constantes.js'
@@ -55,7 +55,6 @@ export default function FichaPareja() {
 
   return (
     <div>
-      <Link to="/cartas/panel/parejas" className={`${btn.texto} mb-3`}><ArrowLeft size={16} />Parejas</Link>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-gris">{pareja.codigo}{pareja.responsable && ` · responsable: ${pareja.responsable}`}{pareja.estado === 'retirada' && ' · se retiró del evento'}</p>

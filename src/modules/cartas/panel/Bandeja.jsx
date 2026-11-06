@@ -98,7 +98,6 @@ export default function Bandeja() {
                     {c.origen === 'fisica' && <Marca icono={Package} t="Papel" />}
                     {c.origen === 'correo' && <Marca icono={Mail} t="Correo" />}
                     {c.cca_archivos?.length > 0 && <Marca icono={Paperclip} t={c.cca_archivos.length} />}
-                    {!c.remitente_id && <span className="rounded-full bg-oro-claro px-2 py-0.5 text-[11px] font-bold text-oro">Adicional</span>}
                     {c.posible_duplicado && <Marca icono={CopyIcon} t="¿Duplicada?" alerta />}
                     {c.tardia && <Marca icono={Clock} t="Tardía" alerta />}
                     {c.incidencia && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-700">Incidencia</span>}
