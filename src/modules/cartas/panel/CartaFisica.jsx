@@ -13,7 +13,8 @@ const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [], cantid
 // Registro de cartas que llegan en papel (paquete de la familia) o por correo (cartasrenova@gmail.com).
 // En papel no hace falta foto: la carta ya viene impresa y va directo al sobre. Por correo se adjunta el archivo para imprimirlo.
 export default function CartaFisica({ parejaInicial, onCerrar }) {
-  const { retiro, parejas, remitentes, cartas, puedeLeer, recargar } = useCartas()
+  const { retiro, parejas: todas, remitentes, cartas, puedeLeer, recargar, miEquipo, esAdmin } = useCartas()
+  const parejas = miEquipo && !esAdmin ? todas.filter(p => p.equipo_id === miEquipo.id) : todas
   const [origen, setOrigen] = useState('fisica')
   const [parejaId, setParejaId] = useState(parejaInicial || '')
   const [coordinadorId, setCoordinadorId] = useState('')

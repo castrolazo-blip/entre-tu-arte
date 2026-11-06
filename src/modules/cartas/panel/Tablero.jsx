@@ -59,7 +59,7 @@ export default function Tablero() {
 
   return (
     <div>
-      <Titulo titulo="Tablero" subtitulo={retiro.fecha_limite ? `Fecha límite: ${fecha(retiro.fecha_limite, true)}` : 'Sin fecha límite configurada'}>
+      <Titulo titulo="Avance" subtitulo={retiro.fecha_limite ? `Fecha límite: ${fecha(retiro.fecha_limite, true)}` : 'Sin fecha límite configurada'}>
         <button onClick={() => copiar(enlacePortal(retiro), 'Enlace general copiado')} className={btn.vino}><Copy size={16} />Copiar enlace del formulario</button>
         <a href={enlacePortal(retiro)} target="_blank" rel="noreferrer" className={btn.contorno}><ExternalLink size={16} />Ver formulario</a>
       </Titulo>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, CalendarHeart, Users, Inbox, BellRing, Printer, Settings, LogOut, Menu, X, RefreshCw, ArrowLeft, HeartHandshake } from 'lucide-react'
+import { LayoutDashboard, CalendarHeart, Users, Inbox, BellRing, Printer, Settings, LogOut, RefreshCw, ArrowLeft, HeartHandshake, Home } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useNoIndexar } from '../../auth/RutaAdmin.jsx'
 import CargandoModulo from '../../../components/CargandoModulo.jsx'
@@ -9,7 +9,8 @@ import { Marca, useTituloCartas } from '../publico/marca.jsx'
 import { Etiqueta } from '../ui.jsx'
 
 const MENU = [
-  { to: '/cartas/panel', etiqueta: 'Tablero', Icono: LayoutDashboard, fin: true },
+  { to: '/cartas/panel', etiqueta: 'Inicio', Icono: Home, fin: true },
+  { to: '/cartas/panel/tablero', etiqueta: 'Avance', Icono: LayoutDashboard },
   { to: '/cartas/panel/mis-parejas', etiqueta: 'Mis parejas', Icono: HeartHandshake, equipo: true },
   { to: '/cartas/panel/cartas', etiqueta: 'Cartas', Icono: Inbox, contador: 'posiblesDuplicados' },
   { to: '/cartas/panel/parejas', etiqueta: 'Parejas', Icono: Users },
@@ -22,7 +23,6 @@ const MENU = [
 export default function LayoutCartas() {
   const { usuario, cargando, salir } = useAuth()
   const { perfil, esAdmin, retiros, retiro, setRetiroId, indicadores, recargar, cargandoDatos, miEquipo, equipo } = useCartas()
-  const [abierto, setAbierto] = useState(false)
   const { pathname } = useLocation()
   const navigate = useNavigate()
   // Versión nueva publicada: el panel no se recarga solo (se perdería un registro a medias), avisa
@@ -41,7 +41,6 @@ export default function LayoutCartas() {
   }
   useNoIndexar()
   useTituloCartas('Panel')
-  useEffect(() => { setAbierto(false) }, [pathname])
 
   if (cargando || (usuario && perfil === undefined)) return <CargandoModulo />
   if (!usuario) return <Navigate to="/cartas/entrar" replace />
@@ -106,14 +105,9 @@ export default function LayoutCartas() {
       <header className="sticky top-0 z-30 bg-vino px-4 py-3 text-white lg:hidden">
         <div className="flex items-center justify-between">
           <Link to="/cartas/panel" aria-label="Ir al inicio del panel"><Marca claro compacta /></Link>
-          <button onClick={() => setAbierto(!abierto)} aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={abierto} className="flex h-11 w-11 items-center justify-center">{abierto ? <X /> : <Menu />}</button>
+          {!enInicio && <Link to="/cartas/panel" aria-label="Inicio" className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10"><Home size={22} /></Link>}
         </div>
       </header>
-      {abierto && (
-        <div className="fixed inset-0 top-[66px] z-20 flex flex-col gap-4 overflow-y-auto bg-vino p-4 text-white lg:hidden">
-          {selector}{menu}{pie}
-        </div>
-      )}
 
       {/* overflow-x-clip: nada puede correr la pantalla hacia los lados en el celular */}
       <main className="min-w-0 flex-1 overflow-x-clip px-4 py-5 lg:px-2 lg:py-3">
