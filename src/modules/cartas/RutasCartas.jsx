@@ -6,6 +6,7 @@ import { CartasProvider } from './CartasContext.jsx'
 // Cartas con Amor · módulo TEMPORAL. Todo vive bajo /cartas y en esta carpeta.
 // Para quitarlo: ver docs/cartas/QUITAR_CARTAS.md
 const EnviarCarta  = lazy(() => import('./publico/EnviarCarta.jsx'))
+const BandejaEquipo = lazy(() => import('./publico/BandejaEquipo.jsx'))
 const Entrar       = lazy(() => import('./panel/Entrar.jsx'))
 const LayoutCartas = lazy(() => import('./panel/LayoutCartas.jsx'))
 const Tablero      = lazy(() => import('./panel/Tablero.jsx'))
@@ -23,6 +24,7 @@ export default function RutasCartas() {
     <Suspense fallback={<CargandoModulo />}>
       <Routes>
         <Route path="enviar" element={<EnviarCarta />} />
+        <Route path="equipo" element={<BandejaEquipo />} />
         <Route path="entrar" element={<Entrar />} />
         <Route path="panel" element={<CartasProvider><LayoutCartas /></CartasProvider>}>
           <Route index element={<Tablero />} />

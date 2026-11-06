@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Plus, Pencil, Trash2, Phone, Mail, Copy, ArrowRight, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, Phone, Mail, Copy, ArrowRight, Search, MessageCircle, RefreshCw, Link2 } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
-import { guardarEquipo, borrarEquipo, asignarParejas } from '../cartasService.js'
-import { mensajeError, nombrePareja, nombreEquipo } from '../constantes.js'
+import { guardarEquipo, borrarEquipo, asignarParejas, cambiarEnlaceEquipo, enlaceEquipo } from '../cartasService.js'
+import { mensajeError, nombrePareja, nombreEquipo, telefonoWhatsApp } from '../constantes.js'
 import { Modal, Vacio, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 
@@ -27,7 +27,7 @@ export function EquipoAdmin() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Equipo de cartas</h2>
-          <p className="mt-1 text-sm text-gris">Matrimonios servidores que recolectan las cartas. Si un cónyuge crea su cuenta en <b>/cartas/entrar</b> con el correo registrado aquí, entra solo y ve sus parejas (sin poder leer cartas).</p>
+          <p className="mt-1 text-sm text-gris">Matrimonios servidores que recolectan las cartas. Cada uno tiene un <b>enlace privado</b>: sin cuenta ni contraseña, ve solo sus parejas asignadas y registra las cartas que recibe. Nunca puede leer cartas.</p>
         </div>
         <button onClick={() => setEditando({})} className={btn.vino}><Plus size={16} />Nuevo matrimonio</button>
       </div>
@@ -52,13 +52,37 @@ export function EquipoAdmin() {
                   </span>
                 </div>
               ))}
+              {e.token && <EnlaceMatrimonio e={e} onCambio={recargar} />}
             </li>
           ))}
         </ul>
       )}
-      <button onClick={() => copiar(window.location.origin + import.meta.env.BASE_URL + 'cartas/entrar', 'Enlace de acceso copiado')} className={`${btn.texto} mt-4`}><Copy size={14} />Copiar enlace de acceso para el equipo</button>
       {editando && <FormEquipo inicial={editando} retiroId={retiro.id} equipo={equipo} onCerrar={() => setEditando(null)} onGuardado={async () => { setEditando(null); await recargar() }} />}
     </section>
+  )
+}
+
+// Enlace privado del matrimonio: se envía por WhatsApp a él o a ella, se copia o se cambia
+function EnlaceMatrimonio({ e, onCambio }) {
+  const enlace = enlaceEquipo(e.token)
+  const mensaje = n => `Hola ${(n || '').split(' ')[0]}, este es el enlace del Matrimonio ${e.apellidos} para dar seguimiento a las cartas de sus parejas asignadas (Cartas con Amor):\n\n${enlace}\n\nEs privado: por favor no lo compartan. Ahí verán el avance de cada pareja, el mensaje para las familias y podrán registrar las cartas que reciban.`
+  async function cambiar() {
+    if (!window.confirm(`¿Crear un enlace nuevo para el ${nombreEquipo(e)}? El anterior dejará de funcionar.`)) return
+    try { await cambiarEnlaceEquipo(e.id); toast.success('Enlace nuevo creado: envíaselo de nuevo'); await onCambio() }
+    catch (err) { toast.error(mensajeError(err)) }
+  }
+  return (
+    <div className="mt-3 border-t border-crema-borde pt-3">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-gris"><Link2 size={13} />Enlace privado del matrimonio</p>
+      <div className="flex flex-wrap gap-1.5">
+        {[[e.esposo_nombre, e.esposo_telefono], [e.esposa_nombre, e.esposa_telefono]].filter(([n, t]) => n && t).map(([n, t]) => (
+          <a key={n} href={`https://wa.me/${telefonoWhatsApp(t)}?text=${encodeURIComponent(mensaje(n))}`} target="_blank" rel="noreferrer" className={btn.mini}><MessageCircle size={13} />Enviar a {n.split(' ')[0]}</a>
+        ))}
+        <button onClick={() => copiar(enlace, 'Enlace copiado')} className={btn.mini}><Copy size={13} />Copiar</button>
+        <a href={enlace} target="_blank" rel="noreferrer" className={btn.mini}>Abrir</a>
+        <button onClick={cambiar} className={btn.mini} title="El enlace anterior deja de funcionar"><RefreshCw size={13} />Cambiar</button>
+      </div>
+    </div>
   )
 }
 
@@ -116,7 +140,7 @@ function FormEquipo({ inicial, retiroId, equipo, onCerrar, onGuardado }) {
         <form id="form-equipo" onSubmit={guardar} className="grid gap-4 sm:grid-cols-2">
           {conyuge('esposo', 'Él')}
           {conyuge('esposa', 'Ella')}
-          <p className="text-xs text-gris sm:col-span-2">El correo sirve para que entren al panel con su propia cuenta y vean solo sus parejas.</p>
+          <p className="text-xs text-gris sm:col-span-2">Con el teléfono se les envía por WhatsApp su enlace privado.</p>
         </form>
       )}
     </Modal>

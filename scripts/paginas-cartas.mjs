@@ -23,7 +23,8 @@ function pagina(titulo, descripcion) {
 mkdirSync('dist/cartas', { recursive: true })
 writeFileSync('dist/cartas/enviar.html', pagina('Escribe una carta · Cartas con Amor',
   'Escribe una carta para una pareja que vivirá un encuentro matrimonial. Es privada y será una sorpresa.'))
+writeFileSync('dist/cartas/equipo.html', pagina('Mis parejas · Cartas con Amor', 'Enlace privado del equipo de cartas.'))
 const privada = pagina('Cartas con Amor · Organizadores', 'Acceso para el equipo organizador del retiro.')
 writeFileSync('dist/cartas/entrar.html', privada)
 writeFileSync('dist/cartas/panel.html', privada)
-console.log('Páginas de Cartas con Amor: dist/cartas/{enviar,entrar,panel}.html')
+console.log('Páginas de Cartas con Amor: dist/cartas/{enviar,equipo,entrar,panel}.html')

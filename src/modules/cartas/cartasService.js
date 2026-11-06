@@ -255,3 +255,16 @@ export async function eliminarContenidoRetiro(retiroId) {
   ok(await supabase.from('cca_cartas').delete().eq('retiro_id', retiroId))
   return ok(await supabase.from('cca_retiros').update({ estado: 'archivado' }).eq('id', retiroId).select().single())
 }
+
+// ── Enlace privado de cada matrimonio del equipo (sin cuenta) ──
+export const equipoBandeja = async (token) => ok(await supabase.rpc('cca_equipo_bandeja', { p_token: token }))
+export const equipoRegistrar = async ({ token, pareja, lineas, coordinador, entrego }) =>
+  ok(await supabase.rpc('cca_equipo_registrar', { p_token: token, p_pareja: pareja, p_lineas: lineas, p_coordinador: coordinador || null, p_entrego: entrego || null }))
+export const equipoRecordatorio = async ({ token, remitente, canal, mensaje }) =>
+  ok(await supabase.rpc('cca_equipo_recordatorio', { p_token: token, p_remitente: remitente, p_canal: canal, p_mensaje: mensaje }))
+// Nuevo enlace: el anterior deja de funcionar
+export async function cambiarEnlaceEquipo(id) {
+  const token = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('')
+  return ok(await supabase.from('cca_equipo').update({ token }).eq('id', id).select().single())
+}
+export const enlaceEquipo = (token) => `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}/cartas/equipo?t=${token}`

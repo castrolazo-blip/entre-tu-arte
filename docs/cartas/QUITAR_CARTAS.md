@@ -12,7 +12,7 @@ El módulo es temporal y vive aislado. Al terminar el retiro y vencido el plazo 
 Borrar:
 - `src/modules/cartas/` (carpeta completa)
 - `scripts/paginas-cartas.mjs`
-- `supabase/migrations/20261106000000_cartas_con_amor.sql` y `20261107000000_cartas_equipo.sql`
+- `supabase/migrations/20261106000000_cartas_con_amor.sql` `20261107000000_cartas_equipo.sql` y `20261108000000_cartas_enlace_equipo.sql`
 - `docs/cartas/`
 
 Deshacer estas líneas (todas tienen el comentario "Cartas con Amor"):
