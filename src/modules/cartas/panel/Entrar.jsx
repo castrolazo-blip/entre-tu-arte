@@ -140,9 +140,9 @@ function EntradaEquipo({ token }) {
   async function entrar(quien) {
     setEntrando(quien); setError('')
     try {
-      const id = await entrarEquipo(token, quien)
+      await entrarEquipo(token, quien)
       // Recarga completa para que el panel tome la sesión y el perfil nuevos
-      window.location.replace(`${import.meta.env.BASE_URL}cartas/panel/mis-parejas?equipo=${id}`)
+      window.location.replace(`${import.meta.env.BASE_URL}cartas/panel`)
     } catch (e) { setError(mensajeError(e, 'No se pudo entrar. Revisa tu conexión e inténtalo de nuevo.')); setEntrando(null) }
   }
 

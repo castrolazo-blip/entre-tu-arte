@@ -8,6 +8,7 @@ import { CartasProvider } from './CartasContext.jsx'
 const EnviarCarta  = lazy(() => import('./publico/EnviarCarta.jsx'))
 const Entrar       = lazy(() => import('./panel/Entrar.jsx'))
 const LayoutCartas = lazy(() => import('./panel/LayoutCartas.jsx'))
+const Inicio       = lazy(() => import('./panel/Inicio.jsx'))
 const Tablero      = lazy(() => import('./panel/Tablero.jsx'))
 const Retiros      = lazy(() => import('./panel/Retiros.jsx'))
 const Parejas      = lazy(() => import('./panel/Parejas.jsx'))
@@ -26,7 +27,8 @@ export default function RutasCartas() {
         <Route path="equipo" element={<IrAEntrar />} />
         <Route path="entrar" element={<Entrar />} />
         <Route path="panel" element={<CartasProvider><LayoutCartas /></CartasProvider>}>
-          <Route index element={<Tablero />} />
+          <Route index element={<Inicio />} />
+          <Route path="tablero" element={<Tablero />} />
           <Route path="retiros" element={<Retiros />} />
           <Route path="parejas" element={<Parejas />} />
           <Route path="parejas/:id" element={<FichaPareja />} />
