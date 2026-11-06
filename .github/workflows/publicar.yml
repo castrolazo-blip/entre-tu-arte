@@ -34,6 +34,8 @@ jobs:
       # Para Google: sitemap.xml con obras, artistas y artículos, y una página por cada dirección
       # pública (responde 200 con su título y descripción). Si Supabase falla, sigue con las fijas.
       - run: node scripts/generar-seo.mjs
+      # Cartas con Amor (módulo temporal): páginas propias con vista previa para WhatsApp y noindex
+      - run: node scripts/paginas-cartas.mjs
       # Rutas que no tienen página propia: 404.html carga la misma app.
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3

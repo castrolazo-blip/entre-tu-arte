@@ -11,7 +11,8 @@ async function revisar() {
     if (!version || version === VERSION) return
     // En el panel no se recarga solo (se perdería una subida o un formulario a medias):
     // se avisa y la persona actualiza cuando termine.
-    if (window.location.pathname.includes('/admin')) {
+    // (Cartas con Amor: tampoco, para no borrar una carta a medio escribir.)
+    if (window.location.pathname.includes('/admin') || window.location.pathname.includes('/cartas')) {
       window.dispatchEvent(new CustomEvent('eta-version-nueva', { detail: version }))
       return
     }
