@@ -129,6 +129,6 @@ export async function enviarConsulta(consulta, { aviso = true } = {}) {
   avisar({
     tipo: consulta.tipo, nombre: consulta.nombre,
     detalle: consulta.tipo === 'compra' && d.total ? `${(d.items || []).length || 1} obra(s) · $${d.total}`
-      : consulta.ficha_titulo || d.espacio || '',
+      : d.otra_medida ? `${consulta.ficha_titulo || 'Obra'} · en otra medida` : consulta.ficha_titulo || d.espacio || '',
   })
 }

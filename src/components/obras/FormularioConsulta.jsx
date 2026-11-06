@@ -8,15 +8,18 @@ const TITULOS = {
   compra:   ['Quiero comprar esta obra', 'Te contactamos hoy para coordinar el pago y la entrega.'],
   reserva:  ['Reservar por 48 horas', 'Apartamos la obra mientras coordinamos contigo el pago.'],
   encargo:  ['Pedir una obra similar', 'El artista prepara una propuesta a tu medida.'],
+  medida:   ['La quiero en otra medida', 'Te preparamos una propuesta con la medida que necesitas.'],
   contacto: ['Pregunta sobre esta obra', 'Te respondemos por WhatsApp.'],
 }
 
 // Toda la conversación pasa por la galería: el cliente nunca recibe datos del artista.
-export default function FormularioConsulta({ tipo, obra, onCerrar }) {
+export default function FormularioConsulta({ tipo: tipoForm, obra, onCerrar }) {
+  // "Otra medida" se guarda como encargo (lleva anticipo y la obra de referencia)
+  const tipo = tipoForm === 'medida' ? 'encargo' : tipoForm
   const [form, setForm] = useState({ nombre: '', telefono: '', mensaje: '' })
   const [enviando, setEnviando] = useState(false)
   const [listo, setListo] = useState(false)
-  const [titulo, subtitulo] = TITULOS[tipo] || TITULOS.contacto
+  const [titulo, subtitulo] = TITULOS[tipoForm] || TITULOS.contacto
 
   useEffect(() => {
     const esc = e => e.key === 'Escape' && onCerrar()
@@ -37,7 +40,7 @@ export default function FormularioConsulta({ tipo, obra, onCerrar }) {
         nombre: form.nombre.trim(), email: null, telefono: form.telefono.trim() || null,
         mensaje: form.mensaje.trim() || null,
         // Obra de referencia: foto, medidas y precio para verla en el panel sin abrirla
-        datos: obra ? { obra_foto: obra.fotoMini || obra.foto || null, obra_medidas: obra.medidasTexto || null, obra_precio: obra.precio ?? null } : {},
+        datos: obra ? { ...(tipoForm === 'medida' ? { otra_medida: true } : {}), obra_foto: obra.fotoMini || obra.foto || null, obra_medidas: obra.medidasTexto || null, obra_precio: obra.precio ?? null } : {},
       })
       registrarEvento('consulta_' + tipo, '/obra', obra?.id, obra?.titulo)
       setListo(true)
@@ -73,9 +76,9 @@ export default function FormularioConsulta({ tipo, obra, onCerrar }) {
             <p className="text-[15px] text-gris">{subtitulo}</p>
             <label className="etiqueta">Tu nombre<input required value={form.nombre} onChange={cambiar('nombre')} autoComplete="name" className="campo mt-1.5" /></label>
             <label className="etiqueta">WhatsApp o teléfono<input type="tel" required value={form.telefono} onChange={cambiar('telefono')} autoComplete="tel" placeholder="7777-7777" className="campo mt-1.5" /></label>
-            <label className="etiqueta">{tipo === 'encargo' ? '¿Cómo la quieres?' : 'Mensaje (opcional)'}
+            <label className="etiqueta">{tipoForm === 'medida' ? '¿Qué medida necesitas?' : tipo === 'encargo' ? '¿Cómo la quieres?' : 'Mensaje (opcional)'}
               <textarea rows={tipo === 'encargo' ? 4 : 3} required={tipo === 'encargo'} value={form.mensaje} onChange={cambiar('mensaje')} className="campo mt-1.5 placeholder:text-[#a8a29a]"
-                placeholder={tipo === 'encargo' ? 'Ej.: La quiero igual pero más grande, de unos 150 × 100 cm, para la sala, y con un poco más de dorado.' : '¿Algo que debamos saber?'} />
+                placeholder={tipoForm === 'medida' ? `Ej.: La quiero igual pero de 120 × 80 cm${obra?.medidasTexto ? ` (ahora mide ${obra.medidasTexto})` : ''}, para la pared del comedor.` : tipo === 'encargo' ? 'Ej.: La quiero igual pero más grande, de unos 150 × 100 cm, para la sala, y con un poco más de dorado.' : '¿Algo que debamos saber?'} />
             </label>
             <p className="flex gap-2.5 text-[13px] leading-relaxed text-gris"><Lock size={16} className="mt-0.5 shrink-0" />La compra, el pago y la entrega se gestionan con Entre tu Arte. Tus datos solo se usan para responderte.</p>
             <button disabled={enviando} className="btn-primario w-full">{enviando ? 'Enviando…' : 'Enviar solicitud'}</button>

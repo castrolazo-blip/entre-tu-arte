@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check, MessageCircle, Paintbrush } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check, MessageCircle, Paintbrush, Ruler } from 'lucide-react'
 import { obtenerObra, listarObras, etiquetaExistencias, textoTipo } from './obrasService.js'
 import { precio } from '../../lib/formato.js'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
@@ -155,6 +155,7 @@ export default function ObraDetalle() {
                   <button onClick={() => setConsulta('reserva')} disabled={reservada} className="btn-contorno px-3 text-[15px]">Reservar 48 h</button>
                   <Link to={`/asesoria?obra=${obra.id}`} className="btn-contorno px-3 text-[15px]"><Frame size={18} />En mi pared</Link>
                 </div>
+                {!marketplace && <button onClick={() => setConsulta('medida')} className="btn-contorno px-3 text-[15px]"><Ruler size={18} />La quiero en otra medida</button>}
               </>
             )}
             <button onClick={() => setConsulta('contacto')} className="mt-1 text-[15px] font-semibold underline decoration-mostaza decoration-[3px] underline-offset-[6px]">Tengo una pregunta sobre esta obra</button>
