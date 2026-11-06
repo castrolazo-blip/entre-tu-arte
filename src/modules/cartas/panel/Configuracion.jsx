@@ -74,7 +74,7 @@ function Usuarios() {
     <section className="rounded-[24px] bg-white p-5">
       <h2 className="text-lg font-semibold">Usuarios y permisos</h2>
       <p className="mt-1 text-sm text-gris">
-        1) Crea la cuenta en Supabase › Authentication › Users › <b>Add user</b> (correo y contraseña, «Auto confirm»). 2) Agrégala aquí con su rol.
+        Los organizadores solo entran a los retiros con <b>✓</b> en su fila. 1) Crea la cuenta en Supabase › Authentication › Users › <b>Add user</b> (correo y contraseña, «Auto confirm»). 2) Agrégala aquí con su rol.
         Los organizadores solo ven los retiros asignados. Como se promete a las familias que nadie leerá las cartas, «Puede leer» viene apagado: actívalo solo para quien imprime las cartas digitales y por correo (abrir una carta queda registrado).
       </p>
       <form onSubmit={agregar} className="mt-4 grid gap-2 sm:grid-cols-[1.3fr_1fr_150px_auto_auto]">
@@ -88,13 +88,13 @@ function Usuarios() {
       <div className="mt-5 overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead><tr className="text-left text-xs text-gris">
-            <th className="py-2 font-semibold">Usuario</th><th className="font-semibold">Rol</th><th className="font-semibold">Lee cartas</th><th className="font-semibold">Activo</th>
+            <th className="sticky left-0 z-[1] bg-white py-2 font-semibold">Usuario</th><th className="font-semibold">Rol</th><th className="font-semibold">Lee cartas</th><th className="font-semibold">Activo</th>
             <th className="font-semibold">Retiros asignados</th>
           </tr></thead>
           <tbody className="divide-y divide-crema-borde">
             {usuarios.map(u => (
               <tr key={u.user_id} className={!u.activo ? 'opacity-50' : ''}>
-                <td className="py-2.5 pr-2"><b>{u.nombre}</b><span className="block text-xs text-gris">{u.correo}</span></td>
+                <td className="sticky left-0 z-[1] bg-white py-2.5 pr-2"><b>{u.nombre}</b><span className="block text-xs text-gris">{u.correo || 'Entró con enlace del equipo'}</span></td>
                 <td><select value={u.rol} onChange={e => cambiar(u, { rol: e.target.value })} className="h-9 rounded-full border border-crema-borde bg-white px-3 text-[13px]"><option value="organizador">Organizador</option><option value="administrador">Administrador</option></select></td>
                 <td><input type="checkbox" checked={u.rol === 'administrador' || u.puede_leer} disabled={u.rol === 'administrador'} onChange={e => cambiar(u, { puede_leer: e.target.checked })} className="h-4 w-4 accent-[#7a2621]" aria-label="Puede leer" /></td>
                 <td><input type="checkbox" checked={u.activo} onChange={e => cambiar(u, { activo: e.target.checked })} className="h-4 w-4 accent-[#7a2621]" aria-label="Activo" /></td>
@@ -102,8 +102,10 @@ function Usuarios() {
                   {u.rol === 'administrador' ? <span className="text-xs text-gris">Todos</span> : (
                     <div className="flex flex-wrap gap-1.5">
                       {retiros.map(r => (
-                        <button key={r.id} onClick={() => asignar(r.id, u.user_id, !tiene(r.id, u.user_id))}
-                          className={`h-8 rounded-full border px-3 text-xs font-semibold ${tiene(r.id, u.user_id) ? 'border-vino bg-vino text-white' : 'border-crema-borde'}`}>{r.nombre}</button>
+                        <button key={r.id} onClick={() => asignar(r.id, u.user_id, !tiene(r.id, u.user_id))} aria-pressed={tiene(r.id, u.user_id)}
+                          title={tiene(r.id, u.user_id) ? 'Asignado: toca para quitar' : 'Toca para asignar'}
+                          className={`h-9 whitespace-nowrap rounded-full border px-3 text-xs font-semibold ${tiene(r.id, u.user_id) ? 'border-vino bg-vino text-white' : 'border-dashed border-amber-400 bg-amber-50 text-amber-800'}`}>
+                          {tiene(r.id, u.user_id) ? `✓ ${r.nombre}` : `+ Asignar ${r.nombre}`}</button>
                       ))}
                     </div>
                   )}
