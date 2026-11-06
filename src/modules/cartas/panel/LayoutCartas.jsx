@@ -25,6 +25,13 @@ export default function LayoutCartas() {
   const [abierto, setAbierto] = useState(false)
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  // Versión nueva publicada: el panel no se recarga solo (se perdería un registro a medias), avisa
+  const [versionNueva, setVersionNueva] = useState(false)
+  useEffect(() => {
+    const f = () => setVersionNueva(true)
+    window.addEventListener('eta-version-nueva', f)
+    return () => window.removeEventListener('eta-version-nueva', f)
+  }, [])
   const enInicio = pathname.replace(/\/$/, '') === '/cartas/panel'
   // Atrás: vuelve a la pantalla anterior; si se entró directo (sin historial), sube un nivel
   function regresar() {
@@ -110,6 +117,12 @@ export default function LayoutCartas() {
 
       {/* overflow-x-clip: nada puede correr la pantalla hacia los lados en el celular */}
       <main className="min-w-0 flex-1 overflow-x-clip px-4 py-5 lg:px-2 lg:py-3">
+        {versionNueva && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[20px] bg-oro-claro p-3 text-sm">
+            <span><b>Hay una versión nueva del panel.</b> Actualiza para usarla.</span>
+            <button onClick={() => window.location.reload()} className="h-10 rounded-full bg-vino px-5 font-semibold text-white">Actualizar ahora</button>
+          </div>
+        )}
         {retiro && (
           <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
             {!enInicio && (

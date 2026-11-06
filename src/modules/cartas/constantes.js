@@ -127,7 +127,7 @@ export const RELACIONES = ['Papá', 'Mamá', 'Hijo', 'Hija', 'Hermano', 'Hermana
   'Padrino', 'Madrina', 'Ahijado', 'Ahijada', 'Amigo', 'Amiga', 'Compañero de trabajo', 'Sacerdote / religioso']
 // Relaciones en grupo (p. ej. «Papás», «Hijos») cuando la carta la firman varios
 export const RELACIONES_GRUPO = ['Papás', 'Hijos', 'Hermanos', 'Abuelos', 'Tíos', 'Suegros', 'Amigos', 'Familia']
-export const ORIGENES = { digital: 'Digital (formulario)', fisica: 'En papel', correo: 'Por correo' }
+export const ORIGENES = { digital: 'Por enlace', fisica: 'En papel', correo: 'Por correo' }
 
 // ── Enlaces del portal ──
 const raiz = () => window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '')
