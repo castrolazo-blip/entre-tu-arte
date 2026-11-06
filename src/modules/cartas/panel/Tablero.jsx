@@ -8,11 +8,11 @@ import { responsableDe, enlacePortal, fecha, folioTexto, nombrePareja, nombreDes
 import { Kpi, Semaforo, Titulo, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 import { Avance } from './Parejas.jsx'
+import { describirActividad, quien } from '../actividad.js'
 
-const ENTIDAD = { cartas: 'Carta', parejas: 'Pareja', remitentes: 'Contacto', retiros: 'Retiro', impresion: 'Impresión' }
 
 export default function Tablero() {
-  const { retiro, parejas, cartas, remitentes, indicadores, equipo, miEquipo } = useCartas()
+  const { retiro, parejas, cartas, remitentes, indicadores, equipo, miEquipo, usuarios, esAdmin } = useCartas()
   const [actividad, setActividad] = useState([])
   const t = indicadores.totales
 
@@ -129,10 +129,10 @@ export default function Tablero() {
             </div>
           </section>
           <section className="rounded-[24px] bg-white p-5">
-            <h2 className="text-lg font-semibold">Actividad reciente</h2>
+            <h2 className="flex items-center justify-between text-lg font-semibold">Actividad reciente{esAdmin && <Link to="/cartas/panel/configuracion?p=actividad" className="text-sm font-semibold text-vino">Ver todo</Link>}</h2>
             <ul className="mt-3 space-y-2 text-[13px]">
               {actividad.map(a => (
-                <li key={a.id} className="text-gris"><b className="text-tinta">{ENTIDAD[a.entidad] || a.entidad}</b> · {descripcion(a)} <span className="block text-[11.5px]">{fecha(a.created_at, true)}</span></li>
+                <li key={a.id} className="text-gris"><b className="text-tinta">{quien(a, usuarios)}</b> {describirActividad(a)} <span className="block text-[11.5px]">{fecha(a.created_at, true)}</span></li>
               ))}
               {!actividad.length && <li className="text-gris">Sin actividad todavía.</li>}
             </ul>
@@ -141,12 +141,4 @@ export default function Tablero() {
       </div>
     </div>
   )
-}
-
-function descripcion(a) {
-  if (a.entidad === 'cartas' && a.accion === 'insert') return `nueva de ${a.datos?.remitente_nombre || '—'} (${folioTexto(a.datos?.folio)})`
-  if (a.entidad === 'cartas' && a.datos?.estado) return `${ESTADOS_CARTA[a.datos.estado.antes]?.etiqueta} → ${ESTADOS_CARTA[a.datos.estado.despues]?.etiqueta}`
-  if (a.entidad === 'remitentes' && a.datos?.estado) return a.datos.estado.despues === 'recibido' ? 'entregó cartas' : `${a.datos.estado.antes} → ${a.datos.estado.despues}`
-  if (a.entidad === 'impresion') return a.accion === 'pdf' ? 'PDF generado' : a.accion === 'zip' ? 'ZIP de originales' : a.accion
-  return { insert: 'creado', update: 'actualizado', delete: 'eliminado' }[a.accion] || a.accion
 }

@@ -123,6 +123,8 @@ export async function textosCartas(ids) {
 
 export const historial = async (entidadId) =>
   ok(await supabase.from('cca_auditoria').select('*').eq('entidad_id', entidadId).order('created_at', { ascending: false }).limit(50))
+export const actividad = async (retiroId, limite = 300) =>
+  ok(await supabase.from('cca_auditoria').select('*').eq('retiro_id', retiroId).order('created_at', { ascending: false }).limit(limite))
 export const actividadReciente = async (retiroId, limite = 12) =>
   ok(await supabase.from('cca_auditoria').select('*').eq('retiro_id', retiroId).order('created_at', { ascending: false }).limit(limite))
 export const registrarAccion = async ({ retiro_id, usuario_id, entidad, entidad_id = null, accion, datos = null }) =>

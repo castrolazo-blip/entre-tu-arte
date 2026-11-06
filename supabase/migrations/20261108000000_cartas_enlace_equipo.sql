@@ -56,6 +56,9 @@ begin
     activo = true, puede_leer = false
   where cca_usuarios.rol = 'organizador';
   insert into cca_retiro_organizadores (retiro_id, user_id) values (e.retiro_id, auth.uid()) on conflict do nothing;
+  -- Queda registrada cada entrada con el enlace
+  insert into cca_auditoria (retiro_id, usuario_id, entidad, entidad_id, accion, datos)
+  values (e.retiro_id, auth.uid(), 'equipo', e.id, 'entrada', jsonb_build_object('nombre', v_nombre, 'matrimonio', e.apellidos));
   return e.id;
 end $$;
 
