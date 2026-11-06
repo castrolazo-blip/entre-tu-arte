@@ -1,3 +1,4 @@
+import { avisar } from '../../lib/avisos.js'
 import { supabase } from '../../lib/supabase.js'
 import { medidasTexto } from '../../lib/formato.js'
 import { numeroPiezas } from '../../lib/piezas.js'
@@ -123,4 +124,10 @@ export async function listarCategorias() {
 export async function enviarConsulta(consulta) {
   const { error } = await supabase.from('consultas').insert({ ...consulta, estado: 'nueva' })
   if (error) throw error
+  const d = consulta.datos || {}
+  avisar({
+    tipo: consulta.tipo, nombre: consulta.nombre,
+    detalle: consulta.tipo === 'compra' && d.total ? `${(d.items || []).length || 1} obra(s) · $${d.total}`
+      : consulta.ficha_titulo || d.espacio || '',
+  })
 }

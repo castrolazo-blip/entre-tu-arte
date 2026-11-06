@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase.js'
 import { subirArchivo, reducirImagen } from '../admin/adminService.js'
 import { CONDICIONES_VERSION } from './condiciones.js'
+import { avisar } from '../../lib/avisos.js'
 
 // Envía uno o varios cuadros de un vendedor. Las fotos van a la carpeta marketplace/ (la única
 // donde un visitante puede subir) y cada cuadro queda como solicitud pendiente de revisión.
@@ -33,4 +34,5 @@ export async function enviarSolicitudes(vendedor, cuadros, alAvanzar) {
     }
     alAvanzar?.(++hechos)
   }
+  avisar({ tipo: 'marketplace', nombre: vendedor.nombre, detalle: `${hechos} ${hechos === 1 ? 'cuadro' : 'cuadros'} · ${vendedor.tipo === 'artista' ? 'artista' : 'particular'}` })
 }

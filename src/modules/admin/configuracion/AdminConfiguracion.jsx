@@ -5,6 +5,7 @@ import { supabase, BUCKET } from '../../../lib/supabase.js'
 import { useConfig } from '../../../context/ConfigContext.jsx'
 import { leerClaveIA, guardarClaveIA } from '../publicar/iaService.js'
 import EncabezadoAdmin from '../EncabezadoAdmin.jsx'
+import { probarAviso } from '../../../lib/avisos.js'
 
 const GRUPOS = [
   ['Contacto de la galería', [
@@ -126,6 +127,8 @@ export default function AdminConfiguracion() {
         <button disabled={guardando} className="btn-primario">{guardando ? 'Guardando…' : 'Guardar configuración'}</button>
       </form>
 
+      <AvisosTelegram />
+
       <section className="mt-5 max-w-3xl rounded-[28px] bg-white p-5 md:p-6">
         <h2 className="text-lg font-bold">Velocidad de la tienda</h2>
         <p className="mt-1 text-sm text-gris">Crea una versión liviana de cada foto para las tarjetas y galerías. Las fotos nuevas ya se suben así; esto es para las que ya estaban. Se puede repetir sin problema.</p>
@@ -160,5 +163,33 @@ export default function AdminConfiguracion() {
         </div>
       </section>
     </>
+  )
+}
+
+// Avisos al celular por Telegram cuando entra una consulta o una solicitud del Marketplace
+function AvisosTelegram() {
+  const [estado, setEstado] = useState(null)
+  const [probando, setProbando] = useState(false)
+  async function probar() {
+    setProbando(true)
+    try { setEstado(await probarAviso()) } catch (e) { setEstado({ ok: false, error: e.message || 'Sin conexión' }) }
+    finally { setProbando(false) }
+  }
+  return (
+    <section className="mt-5 max-w-3xl rounded-[28px] bg-white p-5 md:p-6">
+      <h2 className="text-lg font-bold">Avisos en Telegram</h2>
+      <p className="mt-1 text-sm text-gris">Te llega un mensaje al celular cada vez que alguien envía una consulta, un encargo, un pedido o una solicitud del Marketplace.</p>
+      <button type="button" onClick={probar} disabled={probando} className="btn-primario mt-3 h-12">{probando ? 'Enviando…' : 'Enviar aviso de prueba'}</button>
+      {estado && (
+        <p className={`mt-3 rounded-2xl p-3 text-sm ${estado.ok ? 'bg-green-50 text-green-800' : 'bg-mostaza-fondo'}`}>
+          {estado.ok ? '¡Listo! Revisa Telegram: te debió llegar el mensaje de prueba.'
+            : estado.falta === 'token' ? 'Falta el token del bot (secreto ETA_TELEGRAM_TOKEN en Supabase).'
+            : estado.falta === 'chat' ? (estado.chat
+                ? <>Tu número de chat es <b className="select-all">{estado.chat}</b>. Guárdalo en Supabase como secreto ETA_TELEGRAM_CHAT y vuelve a probar.</>
+                : 'Abre tu bot en Telegram, toca «Iniciar» (o escríbele «hola») y vuelve a probar.')
+            : 'No se pudo enviar: ' + (estado.error || 'error desconocido')}
+        </p>
+      )}
+    </section>
   )
 }
