@@ -77,7 +77,7 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
   const borrador = useMemo(() => leerBorrador(codigo), [codigo])
   const unica = info.parejas.length === 1 ? info.parejas[0] : null
   const [parejaId, setParejaId] = useState(rem?.pareja_id || unica?.id || borrador?.parejaId || '')
-  const [destinatario, setDestinatario] = useState((!esContacto && rem?.destinatario) || borrador?.destinatario || '')
+  const [destinatario, setDestinatario] = useState([(!esContacto && rem?.destinatario), borrador?.destinatario].find(d => d === 'A' || d === 'B') || '')
   const [nombre, setNombre] = useState((!esContacto && rem?.nombre) || borrador?.nombre || '')
   const [relacion, setRelacion] = useState((!esContacto && rem?.relacion) || borrador?.relacion || '')
   const [contacto, setContacto] = useState(borrador?.contacto || '')
@@ -186,9 +186,9 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
         {pareja && (
           <div className={!rem && !unica ? 'mt-4' : ''}>
             {(rem || unica) && <p className="mb-3 text-[15px]">Para el encuentro de <b>{pareja.a} y {pareja.b} {pareja.apellidos}</b></p>}
-            <p className="etiqueta mb-2">La carta es para</p>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {[['A', pareja.a, pareja.na], ['B', pareja.b, pareja.nb], ['ambos', 'Ambos', 'Para los dos']].map(([v, t, sub]) => (
+            <p className="etiqueta mb-2">La carta es para <span className="font-normal text-gris">(cada carta es para una sola persona)</span></p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {[['A', pareja.a, pareja.na], ['B', pareja.b, pareja.nb]].map(([v, t, sub]) => (
                 <button type="button" key={v} onClick={() => setDestinatario(v)} aria-pressed={destinatario === v}
                   className={`min-h-[52px] rounded-[20px] border px-4 py-1.5 text-[15px] font-semibold leading-tight transition ${destinatario === v ? 'border-vino bg-vino text-white' : 'border-crema-borde bg-white hover:border-vino/60'}`}>
                   {t}<span className={`block truncate text-[11px] font-normal ${destinatario === v ? 'text-white/80' : 'text-gris'}`}>{sub}</span></button>

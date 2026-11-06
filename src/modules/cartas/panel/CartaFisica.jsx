@@ -9,7 +9,7 @@ import { InvitacionPareja } from './Retiros.jsx'
 import { Modal, SelectRelacion, btn } from '../ui.jsx'
 
 // Una línea = una o varias cartas del mismo tipo (p. ej. «Primo · para ambos · 3»: tres cartas, cada una de un primo)
-const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [], cantidad: 1 })
+const linea = () => ({ relacion: '', de: '', para: '', archivos: [], cantidad: 1 })
 
 // Registro de cartas que llegan en papel (paquete de la familia) o por correo (cartasrenova@gmail.com).
 // En papel no hace falta foto: la carta ya viene impresa y va directo al sobre. Por correo se adjunta el archivo para imprimirlo.
@@ -20,7 +20,7 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
   // (los archivos adjuntos no se pueden guardar: hay que volver a elegirlos)
   const [b, setB, limpiar] = useBorrador(`registrar-${clave || parejaInicial || 'general'}`,
     { origen: 'fisica', parejaId: parejaInicial || '', coordinadorId: '', entrego: '', lineas: [linea()], texto: '' },
-    v => ({ ...v, lineas: (v.lineas?.length ? v.lineas : [linea()]).map(l => ({ ...linea(), ...l, archivos: [] })) }))
+    v => ({ ...v, lineas: (v.lineas?.length ? v.lineas : [linea()]).map(l => ({ ...linea(), ...l, para: l.para === 'ambos' ? '' : l.para, archivos: [] })) }))
   const { origen, parejaId, coordinadorId, entrego, lineas, texto } = b
   const campo = k => v => setB(x => ({ ...x, [k]: typeof v === 'function' ? v(x[k]) : v }))
   const setOrigen = campo('origen'), setParejaId = campo('parejaId'), setCoordinadorId = campo('coordinadorId')
@@ -47,6 +47,7 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
   async function guardar(e) {
     e.preventDefault()
     if (!pareja) return toast.error('Elige la pareja')
+    if (lineas.some(l => l.para !== 'A' && l.para !== 'B')) return toast.error(`En cada carta elige si es para ${nombreA} o para ${nombreB}`)
     // Cada línea es una carta; se clasifica por quién la envía (papá, hermana…). Sin dato: «Sin identificar»
     // La cantidad solo aplica en papel (por correo cada carta trae su archivo)
     const finales = lineas.flatMap(l => Array.from({ length: origen === 'fisica' ? (l.cantidad || 1) : 1 },
@@ -123,7 +124,7 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
               <button type="button" onClick={() => setLineas(ls => [...ls, linea()])} className={btn.contorno}><Plus size={16} />Agregar otra carta</button>
             </div>
             <p className="mt-2 text-xs text-gris">{origen === 'fisica'
-              ? 'Ejemplo: «Primo · Ambos · 3» si llegaron tres cartas, cada una de un primo distinto, para los dos. Las cartas en papel no se abren: se clasifican con lo que dice el sobre y van a su sobre.'
+              ? `Ejemplo: «Primo · ${nombreA} · 3» si llegaron tres cartas para ${nombreA}, cada una de un primo distinto.`+' Las cartas en papel no se abren: se clasifican con lo que dice el sobre y van a su sobre.'
               : 'Adjunta el archivo del correo (PDF, Word o foto del escaneo) para poder imprimirlo. Toma quién la envía del asunto.'}</p>
           </div>
         )}
@@ -147,7 +148,7 @@ function LineaCarta({ l, i, nombreA, nombreB, conArchivo, conCantidad, onCambio,
         <input value={l.de} onChange={e => onCambio('de', e.target.value)} placeholder="Nombre (opcional)" aria-label={`Nombre, carta ${i + 1}`}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onEnter() } }} className="campo h-10 min-w-[120px] flex-1 bg-white" />
         <span className="flex overflow-hidden rounded-full border border-crema-borde bg-white text-[13px] font-semibold">
-          {[['A', nombreA], ['B', nombreB], ['ambos', 'Ambos']].map(([v, t]) => (
+          {[['A', nombreA], ['B', nombreB]].map(([v, t]) => (
             <button type="button" key={v} onClick={() => onCambio('para', v)} aria-pressed={l.para === v}
               className={`h-10 max-w-[110px] truncate px-3 ${l.para === v ? 'bg-vino text-white' : ''}`}>{t}</button>
           ))}

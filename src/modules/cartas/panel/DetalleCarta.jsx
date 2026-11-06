@@ -145,7 +145,7 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
           </label>
           <label className="etiqueta block">Destinatario
             <select disabled={guardando} value={carta.destinatario} onChange={e => cambiar({ destinatario: e.target.value }, 'Destinatario corregido')} className="campo mt-1.5 h-11 text-sm">
-              <option value="A">{nombreCompleto(pareja, 'A')}</option><option value="B">{nombreCompleto(pareja, 'B')}</option><option value="ambos">Ambos</option>
+              {carta.destinatario === 'ambos' && <option value="ambos" disabled>Ambos (elige uno)</option>}<option value="A">{nombreCompleto(pareja, 'A')}</option><option value="B">{nombreCompleto(pareja, 'B')}</option>
             </select>
           </label>
 

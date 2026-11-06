@@ -40,7 +40,7 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
         <label className="etiqueta">Relación / vínculo<input value={f.relacion || ''} onChange={e => set('relacion', e.target.value)} placeholder="Hija, mamá de…, amigo" className="campo mt-1.5" /></label>
         {!f.coordinador && <label className="etiqueta">Carta prevista para
           <select value={f.destinatario} onChange={e => set('destinatario', e.target.value)} className="campo mt-1.5">
-            <option value="A">{pareja.apodo_a || pareja.nombre_a}</option><option value="B">{pareja.apodo_b || pareja.nombre_b}</option><option value="ambos">Ambos</option>
+            <option value="A">{pareja.apodo_a || pareja.nombre_a}</option><option value="B">{pareja.apodo_b || pareja.nombre_b}</option>
           </select>
         </label>}
         {f.id && (
