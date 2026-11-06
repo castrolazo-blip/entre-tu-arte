@@ -70,7 +70,7 @@ export default function Bandeja() {
               <option value="">Todos los orígenes</option><option value="digital">Por enlace</option><option value="fisica">En papel</option><option value="correo">Por correo</option>
             </select>
             <select value={f.destinatario} onChange={e => set('destinatario', e.target.value)} className="campo" aria-label="Destinatario">
-              <option value="">Cualquier destinatario</option><option value="A">Para el esposo</option><option value="B">Para la esposa</option><option value="ambos">Ambos</option>
+              <option value="">Cualquier destinatario</option><option value="A">Para el esposo</option><option value="B">Para la esposa</option>
             </select>
             <select value={f.vinculo} onChange={e => set('vinculo', e.target.value)} className="campo" aria-label="Quién la envía">
               <option value="">Cualquier remitente</option>
