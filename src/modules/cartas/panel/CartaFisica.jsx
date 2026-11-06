@@ -7,7 +7,8 @@ import { ACEPTA, mensajeError, nombrePareja, apodo, enlacePortal, nombreDestinat
 import { copiar } from './Retiros.jsx'
 import { Modal, SelectRelacion, btn } from '../ui.jsx'
 
-const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [] })
+// Una línea = una o varias cartas iguales (p. ej. «Hermanos · para ambos · 3»)
+const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [], cantidad: 1 })
 
 // Registro de cartas que llegan en papel (paquete de la familia) o por correo (cartasrenova@gmail.com).
 // En papel no hace falta foto: la carta ya viene impresa y va directo al sobre. Por correo se adjunta el archivo para imprimirlo.
@@ -35,19 +36,14 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
     setLineas(ls => ls.map((l, j) => (j === i ? { ...l, archivos: [...l.archivos, ...buenos] } : l)))
   }
 
-  // Varias cartas iguales sin detalle (p. ej. «5 para Carlos»)
-  function agregarVarias(para) {
-    const n = Number(window.prompt(`¿Cuántas cartas para ${para === 'ambos' ? 'ambos' : apodo(pareja, para)}?`, '1'))
-    if (!(n > 0 && n <= 50)) return
-    setLineas(ls => [...ls.filter(l => l.de.trim() || l.archivos.length), ...Array.from({ length: n }, () => ({ ...linea(), para }))])
-  }
-
   async function guardar(e) {
     e.preventDefault()
     if (!pareja) return toast.error('Elige la pareja')
     // Cada línea es una carta; se clasifica por quién la envía (papá, hermana…). Sin dato: «Sin identificar»
-    const finales = lineas.map(l => ({ ...l, de: l.de.trim() || l.relacion.trim() || 'Sin identificar' }))
-    const sinClasificar = lineas.filter(l => !l.relacion.trim()).length
+    // La cantidad solo aplica en papel (por correo cada carta trae su archivo)
+    const finales = lineas.flatMap(l => Array.from({ length: origen === 'fisica' ? (l.cantidad || 1) : 1 },
+      () => ({ ...l, cantidad: 1, de: l.de.trim() || l.relacion.trim() || 'Sin identificar' })))
+    const sinClasificar = finales.filter(l => !l.relacion.trim()).length
     if (sinClasificar && !window.confirm(`${sinClasificar} ${sinClasificar === 1 ? 'carta no tiene' : 'cartas no tienen'} indicado quién la envía. ¿Registrar de todos modos?`)) return
     if (origen === 'correo' && finales.some(l => !l.archivos.length) && !window.confirm('Hay cartas por correo sin archivo adjunto. Sin el archivo no se podrán imprimir. ¿Registrar de todos modos?')) return
     const coord = contactos.find(c => c.id === coordinadorId)
@@ -71,12 +67,13 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
     } finally { setGuardando(null) }
   }
 
+  const total = lineas.reduce((n, l) => n + (origen === 'fisica' ? (l.cantidad || 1) : 1), 0)
   const nombreA = pareja ? apodo(pareja, 'A') : 'A', nombreB = pareja ? apodo(pareja, 'B') : 'B'
   return (
     <Modal titulo="Registrar cartas recibidas" onCerrar={onCerrar} ancho="max-w-2xl"
       pie={origen === 'enlace' ? <div className="flex justify-end"><button onClick={onCerrar} className={btn.contorno}>Cerrar</button></div> : <div className="flex items-center justify-between gap-2">
-        <span className="text-sm text-gris">{lineas.length} {lineas.length === 1 ? 'carta' : 'cartas'}</span>
-        <div className="flex gap-2"><button onClick={onCerrar} className={btn.contorno}>Cerrar</button><button form="form-fisica" disabled={!!guardando} className={btn.vino}>{guardando ? `Guardando ${guardando}…` : `Registrar ${lineas.length}`}</button></div>
+        <span className="text-sm text-gris">{total} {total === 1 ? 'carta' : 'cartas'}</span>
+        <div className="flex gap-2"><button onClick={onCerrar} className={btn.contorno}>Cerrar</button><button form="form-fisica" disabled={!!guardando} className={btn.vino}>{guardando ? `Guardando ${guardando}…` : `Registrar ${total}`}</button></div>
       </div>}>
       <form id="form-fisica" onSubmit={guardar} className="grid gap-4">
         <div className="flex flex-wrap gap-2">
@@ -105,23 +102,20 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
 
         {pareja && origen !== 'enlace' && (
           <div>
-            <p className="etiqueta mb-2">Cartas: una línea por carta, con quién la envía y para quién</p>
+            <p className="etiqueta mb-2">Cartas: quién la envía, para quién{origen === 'fisica' ? ' y cuántas' : ''}</p>
             <ul className="space-y-2">
               {lineas.map((l, i) => (
-                <LineaCarta key={i} l={l} i={i} nombreA={nombreA} nombreB={nombreB} conArchivo={origen === 'correo'}
+                <LineaCarta key={i} l={l} i={i} nombreA={nombreA} nombreB={nombreB} conArchivo={origen === 'correo'} conCantidad={origen === 'fisica'}
                   onCambio={(k, v) => set(i, k, v)} onAdjuntar={files => adjuntar(i, files)}
                   onQuitar={lineas.length > 1 ? () => setLineas(ls => ls.filter((_, j) => j !== i)) : null}
                   onEnter={() => setLineas(ls => [...ls, { ...linea(), para: l.para }])} />
               ))}
             </ul>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" onClick={() => setLineas(ls => [...ls, linea()])} className={btn.mini}><Plus size={14} />Otra carta</button>
-              <button type="button" onClick={() => agregarVarias('A')} className={btn.mini}>Varias para {nombreA}</button>
-              <button type="button" onClick={() => agregarVarias('B')} className={btn.mini}>Varias para {nombreB}</button>
-              <button type="button" onClick={() => agregarVarias('ambos')} className={btn.mini}>Varias para ambos</button>
+              <button type="button" onClick={() => setLineas(ls => [...ls, linea()])} className={btn.contorno}><Plus size={16} />Agregar otra carta</button>
             </div>
             <p className="mt-2 text-xs text-gris">{origen === 'fisica'
-              ? 'Las cartas en papel no se abren ni se fotografían: se clasifican con lo que dice el sobre («De: hermano») y van a su sobre.'
+              ? 'Ejemplo: «Hermanos · Ambos · 3» si llegaron tres cartas de los hermanos para los dos. Las cartas en papel no se abren: se clasifican con lo que dice el sobre y van a su sobre.'
               : 'Adjunta el archivo del correo (PDF, Word o foto del escaneo) para poder imprimirlo. Toma quién la envía del asunto.'}</p>
           </div>
         )}
@@ -135,7 +129,7 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
   )
 }
 
-function LineaCarta({ l, i, nombreA, nombreB, conArchivo, onCambio, onAdjuntar, onQuitar, onEnter }) {
+function LineaCarta({ l, i, nombreA, nombreB, conArchivo, conCantidad, onCambio, onAdjuntar, onQuitar, onEnter }) {
   const camara = useRef(null), selector = useRef(null)
   return (
     <li className="rounded-2xl bg-crema-clara p-2.5">
@@ -150,6 +144,13 @@ function LineaCarta({ l, i, nombreA, nombreB, conArchivo, onCambio, onAdjuntar, 
               className={`h-10 max-w-[110px] truncate px-3 ${l.para === v ? 'bg-vino text-white' : ''}`}>{t}</button>
           ))}
         </span>
+        {conCantidad && (
+          <span className="flex items-center rounded-full border border-crema-borde bg-white" aria-label={`Cantidad, carta ${i + 1}`}>
+            <button type="button" onClick={() => onCambio('cantidad', Math.max(1, (l.cantidad || 1) - 1))} aria-label="Una menos" className="flex h-10 w-9 items-center justify-center text-lg font-semibold">−</button>
+            <span className="w-7 text-center text-sm font-bold tabular-nums">{l.cantidad || 1}</span>
+            <button type="button" onClick={() => onCambio('cantidad', Math.min(50, (l.cantidad || 1) + 1))} aria-label="Una más" className="flex h-10 w-9 items-center justify-center text-lg font-semibold">+</button>
+          </span>
+        )}
         {conArchivo && (
           <>
             <input ref={camara} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { onAdjuntar([...e.target.files]); e.target.value = '' }} />
