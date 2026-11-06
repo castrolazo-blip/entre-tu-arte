@@ -65,7 +65,9 @@ export function mensajeError(error, porDefecto = 'No se pudo completar. Revisa t
   const m = /cca:([a-z_]+)/.exec(texto)
   if (m && ERRORES[m[1]]) return ERRORES[m[1]]
   if (/timeout|Failed to fetch|NetworkError|network/i.test(texto)) return 'La conexión está lenta o se cortó. Inténtalo de nuevo.'
-  if (texto && !/^(JWT|PGRST|new row violates)/.test(texto) && texto.length < 200 && !/cca:/.test(texto)) return texto
+  // Los errores técnicos (en inglés, de la base o del servidor) nunca se muestran tal cual
+  const tecnico = /^(JWT|PGRST)|schema cache|Could not find|function|relation|permission denied|violates|duplicate key|column|syntax|null value|invalid input|cca:/i
+  if (texto && !tecnico.test(texto) && texto.length < 200) return texto
   return porDefecto
 }
 
