@@ -29,7 +29,7 @@ export function Modal({ titulo, onCerrar, children, ancho = 'max-w-xl', pie }) {
   }, [onCerrar])
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={titulo}
-      onMouseDown={e => { if (e.target === e.currentTarget) onCerrar() }}>
+>
       <div className={`flex max-h-[94vh] w-full min-w-0 ${ancho} flex-col rounded-t-[28px] bg-white sm:rounded-[28px]`}>
         <div className="flex items-center justify-between gap-3 border-b border-crema-borde px-5 py-4">
           <h2 className="text-lg font-semibold">{titulo}</h2>

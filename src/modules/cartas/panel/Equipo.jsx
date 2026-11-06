@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, Pencil, Trash2, Phone, Mail, Copy, ArrowRight, Search, MessageCircle, RefreshCw, Link2 } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
+import { useBorrador, useVentana } from '../borrador.js'
 import { guardarEquipo, borrarEquipo, asignarParejas, cambiarEnlaceEquipo, enlaceEquipo } from '../cartasService.js'
 import { mensajeError, nombrePareja, nombreEquipo, telefonoWhatsApp } from '../constantes.js'
 import { Modal, Vacio, btn } from '../ui.jsx'
@@ -12,7 +13,8 @@ const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ
 // ── Equipo: matrimonios servidores que recolectan las cartas ──
 export function EquipoAdmin() {
   const { retiro, equipo, parejas, recargar } = useCartas()
-  const [editando, setEditando] = useState(null)
+  const [editandoId, abrirMatrimonio, cerrarMatrimonio] = useVentana('matrimonio')
+  const editando = editandoId ? (equipo.find(e => e.id === editandoId) || {}) : null
   const asignadas = id => parejas.filter(p => p.equipo_id === id && p.estado === 'activa').length
 
   async function quitar(e) {
@@ -29,7 +31,7 @@ export function EquipoAdmin() {
           <h2 className="text-lg font-semibold">Equipo de cartas</h2>
           <p className="mt-1 text-sm text-gris">Matrimonios servidores que recolectan las cartas. Cada uno recibe un <b>enlace privado</b> para entrar a la aplicación <b>sin contraseña</b>: eligen quién es cada uno y llegan a «Mis parejas». Nunca pueden leer cartas. «Cambiar» anula el enlace y las sesiones que entraron con él.</p>
         </div>
-        <button onClick={() => setEditando({})} className={btn.vino}><Plus size={16} />Nuevo matrimonio</button>
+        <button onClick={() => abrirMatrimonio('nuevo')} className={btn.vino}><Plus size={16} />Nuevo matrimonio</button>
       </div>
       {!equipo.length ? <div className="mt-4"><Vacio titulo="Aún no hay matrimonios en el equipo" /></div> : (
         <ul className="mt-4 grid gap-3 md:grid-cols-2">
@@ -40,7 +42,7 @@ export function EquipoAdmin() {
                   <p className="font-semibold">{nombreEquipo(e)}</p>
                   <p className="text-xs text-gris">{asignadas(e.id)} parejas asignadas</p>
                 </div>
-                <button onClick={() => setEditando(e)} aria-label={`Editar ${nombreEquipo(e)}`} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-crema"><Pencil size={15} /></button>
+                <button onClick={() => abrirMatrimonio(e.id)} aria-label={`Editar ${nombreEquipo(e)}`} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-crema"><Pencil size={15} /></button>
                 <button onClick={() => quitar(e)} aria-label={`Quitar ${nombreEquipo(e)}`} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-crema"><Trash2 size={15} /></button>
               </div>
               {[['Él', e.esposo_nombre, e.esposo_telefono, e.esposo_correo], ['Ella', e.esposa_nombre, e.esposa_telefono, e.esposa_correo]].map(([rol, n, t, c]) => n && (
@@ -57,7 +59,7 @@ export function EquipoAdmin() {
           ))}
         </ul>
       )}
-      {editando && <FormEquipo inicial={editando} retiroId={retiro.id} equipo={equipo} onCerrar={() => setEditando(null)} onGuardado={async () => { setEditando(null); await recargar() }} />}
+      {editando && <FormEquipo inicial={editando} retiroId={retiro.id} equipo={equipo} onCerrar={cerrarMatrimonio} onGuardado={async () => { cerrarMatrimonio(); await recargar() }} />}
     </section>
   )
 }
@@ -89,10 +91,13 @@ function EnlaceMatrimonio({ e, onCambio }) {
 // Paso 1: apellidos del matrimonio (dos). Paso 2: datos de cada cónyuge.
 function FormEquipo({ inicial, retiroId, equipo, onCerrar, onGuardado }) {
   const partes = (inicial.apellidos || '').split(' ')
-  const [paso, setPaso] = useState(inicial.id ? 2 : 1)
-  const [ap1, setAp1] = useState(partes[0] || '')
-  const [ap2, setAp2] = useState(partes.slice(1).join(' '))
-  const [f, setF] = useState(inicial)
+  const clave = `matrimonio-${inicial.id || 'nuevo'}`
+  const [pasos, setPasos, limpiarPasos] = useBorrador(clave + '-pasos', { paso: inicial.id ? 2 : 1, ap1: partes[0] || '', ap2: partes.slice(1).join(' ') })
+  const { paso, ap1, ap2 } = pasos
+  const setPaso = v => setPasos(x => ({ ...x, paso: v })), setAp1 = v => setPasos(x => ({ ...x, ap1: v })), setAp2 = v => setPasos(x => ({ ...x, ap2: v }))
+  const [f, setF, limpiarDatos] = useBorrador(clave, inicial)
+  const limpiar = () => { limpiarPasos(); limpiarDatos() }
+  const cancelar = () => { limpiar(); onCerrar() }
   const [guardando, setGuardando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const apellidos = `${ap1.trim()} ${ap2.trim()}`.replace(/\s+/g, ' ').trim()
@@ -110,7 +115,7 @@ function FormEquipo({ inicial, retiroId, equipo, onCerrar, onGuardado }) {
     if (!f.esposo_nombre?.trim() && !f.esposa_nombre?.trim()) return toast.error('Escribe al menos el nombre de uno de los cónyuges')
     for (const c of [f.esposo_correo, f.esposa_correo]) if (c && !/^\S+@\S+\.\S+$/.test(c.trim())) return toast.error(`Revisa el correo: ${c}`)
     setGuardando(true)
-    try { await guardarEquipo({ ...f, apellidos, retiro_id: retiroId }); toast.success('Matrimonio guardado'); await onGuardado() }
+    try { await guardarEquipo({ ...f, apellidos, retiro_id: retiroId }); limpiar(); toast.success('Matrimonio guardado'); await onGuardado() }
     catch (err) { toast.error(mensajeError(err, 'No se pudo guardar')) }
     finally { setGuardando(false) }
   }
@@ -125,9 +130,9 @@ function FormEquipo({ inicial, retiroId, equipo, onCerrar, onGuardado }) {
   )
 
   return (
-    <Modal titulo={paso === 1 ? 'Nuevo matrimonio del equipo' : `Matrimonio ${apellidos}`} onCerrar={onCerrar}
+    <Modal titulo={paso === 1 ? 'Nuevo matrimonio del equipo' : `Matrimonio ${apellidos}`} onCerrar={cancelar}
       pie={paso === 1
-        ? <div className="flex justify-end gap-2"><button onClick={onCerrar} className={btn.contorno}>Cancelar</button><button form="form-equipo" className={btn.vino}>Siguiente<ArrowRight size={16} /></button></div>
+        ? <div className="flex justify-end gap-2"><button onClick={cancelar} className={btn.contorno}>Cancelar</button><button form="form-equipo" className={btn.vino}>Siguiente<ArrowRight size={16} /></button></div>
         : <div className="flex justify-between gap-2"><button onClick={() => setPaso(1)} className={btn.contorno}>Cambiar apellidos</button><button form="form-equipo" disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button></div>}>
       {paso === 1 ? (
         <form id="form-equipo" onSubmit={seguir} className="grid gap-4 sm:grid-cols-2">

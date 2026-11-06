@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Camera, Trash2, Paperclip, Plus, Mail, Package, Link2, Copy } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
+import { useBorrador, useVentana } from '../borrador.js'
 import { registrarCartaFisica, tipoDeArchivo, firmaValida } from '../cartasService.js'
 import { ACEPTA, mensajeError, nombrePareja, apodo, enlacePortal, nombreDestinatario, fecha, folioTexto, esValida } from '../constantes.js'
 import { copiar } from './Retiros.jsx'
@@ -12,15 +13,21 @@ const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [], cantid
 
 // Registro de cartas que llegan en papel (paquete de la familia) o por correo (cartasrenova@gmail.com).
 // En papel no hace falta foto: la carta ya viene impresa y va directo al sobre. Por correo se adjunta el archivo para imprimirlo.
-export default function CartaFisica({ parejaInicial, onCerrar }) {
+export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
   const { retiro, parejas: todas, remitentes, cartas, puedeLeer, recargar, miEquipo, esAdmin } = useCartas()
   const parejas = miEquipo && !esAdmin ? todas.filter(p => p.equipo_id === miEquipo.id) : todas
-  const [origen, setOrigen] = useState('fisica')
-  const [parejaId, setParejaId] = useState(parejaInicial || '')
-  const [coordinadorId, setCoordinadorId] = useState('')
-  const [entrego, setEntrego] = useState('')
-  const [lineas, setLineas] = useState([linea()])
-  const [texto, setTexto] = useState('')
+  // Todo lo escrito se guarda en el teléfono: si la página se recarga, sigue donde iba
+  // (los archivos adjuntos no se pueden guardar: hay que volver a elegirlos)
+  const [b, setB, limpiar] = useBorrador(`registrar-${clave || parejaInicial || 'general'}`,
+    { origen: 'fisica', parejaId: parejaInicial || '', coordinadorId: '', entrego: '', lineas: [linea()], texto: '' },
+    v => ({ ...v, lineas: (v.lineas?.length ? v.lineas : [linea()]).map(l => ({ ...linea(), ...l, archivos: [] })) }))
+  const { origen, parejaId, coordinadorId, entrego, lineas, texto } = b
+  const campo = k => v => setB(x => ({ ...x, [k]: typeof v === 'function' ? v(x[k]) : v }))
+  const setOrigen = campo('origen'), setParejaId = campo('parejaId'), setCoordinadorId = campo('coordinadorId')
+  const setEntrego = campo('entrego'), setLineas = campo('lineas'), setTexto = campo('texto')
+  const cerrar = () => { limpiar(); onCerrar() }
+  // La pareja sugerida puede llegar después (cuando cargan los datos)
+  useEffect(() => { if (!parejaId && parejaInicial) setB(x => (x.parejaId ? x : { ...x, parejaId: parejaInicial })) }, [parejaInicial]) // eslint-disable-line react-hooks/exhaustive-deps
   const [guardando, setGuardando] = useState(null)
   const pareja = parejas.find(p => p.id === parejaId)
   const contactos = remitentes.filter(r => r.pareja_id === parejaId && r.coordinador)
@@ -71,10 +78,10 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
   const total = lineas.reduce((n, l) => n + (origen === 'fisica' ? (l.cantidad || 1) : 1), 0)
   const nombreA = pareja ? apodo(pareja, 'A') : 'A', nombreB = pareja ? apodo(pareja, 'B') : 'B'
   return (
-    <Modal titulo="Registrar cartas recibidas" onCerrar={onCerrar} ancho="max-w-2xl"
-      pie={origen === 'enlace' ? <div className="flex justify-end"><button onClick={onCerrar} className={btn.contorno}>Cerrar</button></div> : <div className="flex items-center justify-between gap-2">
+    <Modal titulo="Registrar cartas recibidas" onCerrar={cerrar} ancho="max-w-2xl"
+      pie={origen === 'enlace' ? <div className="flex justify-end"><button onClick={cerrar} className={btn.contorno}>Cerrar</button></div> : <div className="flex items-center justify-between gap-2">
         <span className="text-sm text-gris">{total} {total === 1 ? 'carta' : 'cartas'}</span>
-        <div className="flex gap-2"><button onClick={onCerrar} className={btn.contorno}>Cerrar</button><button form="form-fisica" disabled={!!guardando} className={btn.vino}>{guardando ? `Guardando ${guardando}…` : `Registrar ${total}`}</button></div>
+        <div className="flex gap-2"><button onClick={cerrar} className={btn.contorno}>Cerrar</button><button form="form-fisica" disabled={!!guardando} className={btn.vino}>{guardando ? `Guardando ${guardando}…` : `Registrar ${total}`}</button></div>
       </div>}>
       <form id="form-fisica" onSubmit={guardar} className="grid gap-4">
         <div className="flex flex-wrap gap-2">
@@ -83,7 +90,7 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
           <button type="button" onClick={() => setOrigen('enlace')} className={`chip ${origen === 'enlace' ? 'chip-on' : 'chip-off'}`}><Link2 size={15} className="mr-1.5" />Por enlace</button>
         </div>
         <label className="etiqueta">Pareja *
-          <select required value={parejaId} onChange={e => { setParejaId(e.target.value); setCoordinadorId('') }} className="campo mt-1.5">
+          <select required value={parejaId} onChange={e => setB(x => ({ ...x, parejaId: e.target.value, coordinadorId: '' }))} className="campo mt-1.5">
             <option value="">Elegir…</option>
             {parejas.filter(p => p.estado === 'activa').map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
           </select>

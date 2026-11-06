@@ -29,14 +29,17 @@ export function CartasProvider({ children }) {
     return lista
   }, [])
 
+  // Solo se vuelve a cargar el perfil si cambia la PERSONA (no cada vez que la sesión se renueva sola:
+  // eso recargaba el panel entero y borraba lo que se estaba escribiendo)
+  const usuarioId = usuario?.id
   useEffect(() => {
     if (cargandoSesion) return
-    if (!usuario) { setPerfil(null); return }
+    if (!usuarioId) { setPerfil(null); return }
     let vivo = true
-    setPerfil(undefined)
-    miPerfil(usuario.id).then(async p => {
+    setPerfil(p => (p?.user_id === usuarioId ? p : undefined))
+    miPerfil(usuarioId).then(async p => {
       // Miembro del equipo que entra por primera vez con su correo registrado
-      if (!p && await reclamarAcceso()) p = await miPerfil(usuario.id)
+      if (!p && await reclamarAcceso()) p = await miPerfil(usuarioId)
       if (!vivo) return
       if (!p?.activo) { setPerfil(null); return }
       const lista = await listarRetiros()
@@ -45,7 +48,7 @@ export function CartasProvider({ children }) {
       setPerfil(p)
     }).catch(e => { if (vivo) { setError(e); setPerfil(null) } })
     return () => { vivo = false }
-  }, [usuario, cargandoSesion])
+  }, [usuarioId, cargandoSesion])
 
   // Si el retiro guardado ya no está disponible, se elige el primero activo
   useEffect(() => {

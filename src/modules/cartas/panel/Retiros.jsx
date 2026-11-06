@@ -2,6 +2,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, Pencil, Copy, ExternalLink, CalendarHeart } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
+import { useBorrador, useVentana } from '../borrador.js'
 import { guardarRetiro } from '../cartasService.js'
 import { ESTADOS_RETIRO, PLANTILLA_FAMILIAS, enlacePortal, fecha, rangoFechas, mensajeError } from '../constantes.js'
 import { Etiqueta, Modal, Titulo, Vacio, btn } from '../ui.jsx'
@@ -20,12 +21,14 @@ export async function copiar(texto, aviso = 'Copiado') {
 
 export default function Retiros() {
   const { retiros, esAdmin, retiroId, setRetiroId, recargarRetiros } = useCartas()
-  const [editando, setEditando] = useState(null)
+  const [editandoId, abrirRetiro, cerrarRetiro] = useVentana('retiro')
+  const r0 = editandoId && editandoId !== 'nuevo' && retiros.find(r => r.id === editandoId)
+  const editando = editandoId ? (r0 ? { ...VACIO, ...r0, fecha_limite: aLocal(r0.fecha_limite) } : { ...VACIO }) : null
 
   return (
     <div>
       <Titulo titulo="Retiros" subtitulo="Cada retiro tiene sus propias parejas, cartas, enlaces y reportes.">
-        {esAdmin && <button onClick={() => setEditando({ ...VACIO })} className={btn.vino}><Plus size={17} />Nuevo retiro</button>}
+        {esAdmin && <button onClick={() => abrirRetiro('nuevo')} className={btn.vino}><Plus size={17} />Nuevo retiro</button>}
       </Titulo>
       {!retiros.length && <Vacio titulo="Todavía no hay retiros">{esAdmin ? 'Crea el primero con «Nuevo retiro».' : 'Un administrador debe asignarte a un retiro.'}</Vacio>}
       <div className="grid gap-4 md:grid-cols-2">
@@ -44,18 +47,19 @@ export default function Retiros() {
               {r.id !== retiroId && <button onClick={() => setRetiroId(r.id)} className={btn.mini}><CalendarHeart size={14} />Trabajar en este</button>}
               <button onClick={() => copiar(enlacePortal(r), 'Enlace general copiado')} className={btn.mini}><Copy size={14} />Copiar enlace general</button>
               <a href={enlacePortal(r)} target="_blank" rel="noreferrer" className={btn.mini}><ExternalLink size={14} />Ver formulario</a>
-              {esAdmin && <button onClick={() => setEditando({ ...VACIO, ...r, fecha_limite: aLocal(r.fecha_limite) })} className={btn.mini}><Pencil size={14} />Editar</button>}
+              {esAdmin && <button onClick={() => abrirRetiro(r.id)} className={btn.mini}><Pencil size={14} />Editar</button>}
             </div>
           </article>
         ))}
       </div>
-      {editando && <FormRetiro inicial={editando} onCerrar={() => setEditando(null)} onGuardado={async r => { await recargarRetiros(); setRetiroId(r.id); setEditando(null) }} />}
+      {editando && <FormRetiro inicial={editando} onCerrar={cerrarRetiro} onGuardado={async r => { await recargarRetiros(); setRetiroId(r.id); cerrarRetiro() }} />}
     </div>
   )
 }
 
 function FormRetiro({ inicial, onCerrar, onGuardado }) {
-  const [f, setF] = useState(inicial)
+  const [f, setF, limpiar] = useBorrador(`retiro-${inicial.id || 'nuevo'}`, inicial)
+  const cancelar = () => { limpiar(); onCerrar() }
   const [guardando, setGuardando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
 
@@ -67,6 +71,7 @@ function FormRetiro({ inicial, onCerrar, onGuardado }) {
       const r = await guardarRetiro({ ...f, fecha_limite: aIso(f.fecha_limite), max_mb: Number(f.max_mb), max_archivos: Number(f.max_archivos),
         retencion_dias: Number(f.retencion_dias), semaforo_dias: Number(f.semaforo_dias), meta_por_persona: Number(f.meta_por_persona) || 0,
         plantilla_mensaje: !f.plantilla_mensaje?.trim() || f.plantilla_mensaje.trim() === PLANTILLA_FAMILIAS.trim() ? null : f.plantilla_mensaje })
+      limpiar()
       toast.success('Retiro guardado')
       await onGuardado(r)
     } catch (err) { toast.error(mensajeError(err, 'No se pudo guardar el retiro')) }
@@ -74,8 +79,8 @@ function FormRetiro({ inicial, onCerrar, onGuardado }) {
   }
 
   return (
-    <Modal titulo={f.id ? 'Editar retiro' : 'Nuevo retiro'} onCerrar={onCerrar} ancho="max-w-2xl"
-      pie={<div className="flex justify-end gap-2"><button onClick={onCerrar} className={btn.contorno}>Cancelar</button><button form="form-retiro" disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button></div>}>
+    <Modal titulo={f.id ? 'Editar retiro' : 'Nuevo retiro'} onCerrar={cancelar} ancho="max-w-2xl"
+      pie={<div className="flex justify-end gap-2"><button onClick={cancelar} className={btn.contorno}>Cancelar</button><button form="form-retiro" disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button></div>}>
       <form id="form-retiro" onSubmit={guardar} className="grid gap-4 sm:grid-cols-2">
         <label className="etiqueta sm:col-span-2">Nombre *
           <input required value={f.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Renova R02 · El Salvador" className="campo mt-1.5" />

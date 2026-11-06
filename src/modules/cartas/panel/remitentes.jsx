@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { MessageCircle, Mail, Copy, Link2 } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
+import { useBorrador, useVentana } from '../borrador.js'
 import { guardarRemitente, registrarRecordatorio } from '../cartasService.js'
 import { enlacePortal, mensajeRecordatorio, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE } from '../constantes.js'
 import { Modal, btn } from '../ui.jsx'
@@ -11,7 +12,8 @@ import { copiar } from './Retiros.jsx'
 // Formulario de remitente esperado (familiar o amigo)
 export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }) {
   const { retiro, actualizarLocal } = useCartas()
-  const [f, setF] = useState(inicial || { nombre: '', telefono: '', correo: '', relacion: '', destinatario: 'ambos', estado: 'pendiente', motivo: '', notas: '', coordinador: true })
+  const [f, setF, limpiar] = useBorrador(`contacto-${pareja.id}-${inicial?.id || 'nuevo'}`, inicial || { nombre: '', telefono: '', correo: '', relacion: '', destinatario: 'ambos', estado: 'pendiente', motivo: '', notas: '', coordinador: true })
+  const cancelar = () => { limpiar(); onCerrar() }
   const [guardando, setGuardando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
 
@@ -21,6 +23,7 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
     try {
       const fila = await guardarRemitente({ ...f, retiro_id: retiro.id, pareja_id: pareja.id })
       actualizarLocal('remitentes', fila)
+      limpiar()
       toast.success('Guardado')
       onCerrar()
     } catch (err) { toast.error(mensajeError(err, 'No se pudo guardar')) }
@@ -28,8 +31,8 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
   }
 
   return (
-    <Modal titulo={f.coordinador ? (f.id ? 'Editar contacto de la familia' : 'Agregar contacto de la familia') : (f.id ? 'Editar remitente' : 'Agregar remitente esperado')} onCerrar={onCerrar}
-      pie={<div className="flex justify-end gap-2"><button onClick={onCerrar} className={btn.contorno}>Cancelar</button><button form="form-rem" disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button></div>}>
+    <Modal titulo={f.coordinador ? (f.id ? 'Editar contacto de la familia' : 'Agregar contacto de la familia') : (f.id ? 'Editar remitente' : 'Agregar remitente esperado')} onCerrar={cancelar}
+      pie={<div className="flex justify-end gap-2"><button onClick={cancelar} className={btn.contorno}>Cancelar</button><button form="form-rem" disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button></div>}>
       <form id="form-rem" onSubmit={guardar} className="grid gap-4 sm:grid-cols-2">
         <label className="etiqueta sm:col-span-2">Nombre *<input required value={f.nombre} onChange={e => set('nombre', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta">Teléfono (WhatsApp)<input value={f.telefono || ''} onChange={e => set('telefono', e.target.value)} inputMode="tel" className="campo mt-1.5" /></label>
