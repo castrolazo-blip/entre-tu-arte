@@ -10,8 +10,9 @@ import { crearZip, descargar, nombreArchivo } from '../archivos.js'
 import { fecha, mensajeError, folioTexto } from '../constantes.js'
 import { Titulo, btn } from '../ui.jsx'
 import { EquipoAdmin, Reparticion } from './Equipo.jsx'
+import Actividad from './Actividad.jsx'
 
-const PESTANAS = [['equipo', 'Equipo'], ['reparticion', 'Repartición'], ['usuarios', 'Usuarios'], ['datos', 'Respaldo y datos']]
+const PESTANAS = [['equipo', 'Equipo'], ['reparticion', 'Repartición'], ['usuarios', 'Usuarios'], ['actividad', 'Actividad'], ['datos', 'Respaldo y datos']]
 
 export default function Configuracion() {
   const { esAdmin, retiro } = useCartas()
@@ -31,6 +32,7 @@ export default function Configuracion() {
         {pestana === 'equipo' && (retiro ? <EquipoAdmin /> : <p className="text-gris">Crea primero un retiro.</p>)}
         {pestana === 'reparticion' && (retiro ? <Reparticion /> : <p className="text-gris">Crea primero un retiro.</p>)}
         {pestana === 'usuarios' && <Usuarios />}
+        {pestana === 'actividad' && retiro && <Actividad />}
         {pestana === 'datos' && retiro && <><Respaldo /><Retencion /></>}
       </div>
     </div>

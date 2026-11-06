@@ -22,6 +22,7 @@ drop function if exists public.cca_enviar_carta(text, uuid, text, text, text, te
 drop function if exists public.cca_portal(text, text, text);
 drop function if exists public.cca_agregar_usuario(text, text, text, boolean);
 drop function if exists public.cca_reclamar_acceso(), public.cca_validar_equipo_pareja();
+drop function if exists public.cca_equipo_info(text), public.cca_entrar_equipo(text, text), public.cca_revocar_enlace_equipo();
 drop function if exists public.cca_auditar(), public.cca_tras_carta(), public.cca_recalcular_remitente(uuid),
   public.cca_validar_remitente(), public.cca_validar_carta();
 drop function if exists public.cca_puede_leer(uuid), public.cca_acceso(uuid), public.cca_es_usuario(), public.cca_es_admin();

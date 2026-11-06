@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import CargandoModulo from '../../components/CargandoModulo.jsx'
 import { CartasProvider } from './CartasContext.jsx'
 
@@ -23,6 +23,7 @@ export default function RutasCartas() {
     <Suspense fallback={<CargandoModulo />}>
       <Routes>
         <Route path="enviar" element={<EnviarCarta />} />
+        <Route path="equipo" element={<IrAEntrar />} />
         <Route path="entrar" element={<Entrar />} />
         <Route path="panel" element={<CartasProvider><LayoutCartas /></CartasProvider>}>
           <Route index element={<Tablero />} />
@@ -39,4 +40,10 @@ export default function RutasCartas() {
       </Routes>
     </Suspense>
   )
+}
+
+// Enlaces antiguos /cartas/equipo?t=… → entrada del equipo
+function IrAEntrar() {
+  const [params] = useSearchParams()
+  return <Navigate to={`/cartas/entrar?equipo=${encodeURIComponent(params.get('t') || '')}`} replace />
 }

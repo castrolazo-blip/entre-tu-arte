@@ -123,6 +123,8 @@ export async function textosCartas(ids) {
 
 export const historial = async (entidadId) =>
   ok(await supabase.from('cca_auditoria').select('*').eq('entidad_id', entidadId).order('created_at', { ascending: false }).limit(50))
+export const actividad = async (retiroId, limite = 300) =>
+  ok(await supabase.from('cca_auditoria').select('*').eq('retiro_id', retiroId).order('created_at', { ascending: false }).limit(limite))
 export const actividadReciente = async (retiroId, limite = 12) =>
   ok(await supabase.from('cca_auditoria').select('*').eq('retiro_id', retiroId).order('created_at', { ascending: false }).limit(limite))
 export const registrarAccion = async ({ retiro_id, usuario_id, entidad, entidad_id = null, accion, datos = null }) =>
@@ -255,3 +257,20 @@ export async function eliminarContenidoRetiro(retiroId) {
   ok(await supabase.from('cca_cartas').delete().eq('retiro_id', retiroId))
   return ok(await supabase.from('cca_retiros').update({ estado: 'archivado' }).eq('id', retiroId).select().single())
 }
+
+// ── Entrada del equipo sin contraseña (sesión anónima vinculada a su matrimonio) ──
+export const equipoInfo = async (token) => ok(await supabase.rpc('cca_equipo_info', { p_token: token }))
+export async function entrarEquipo(token, quien) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    const { error } = await supabase.auth.signInAnonymously()
+    if (error) throw new Error(/anonymous/i.test(error.message) ? 'cca:anonimo_apagado' : error.message)
+  }
+  return ok(await supabase.rpc('cca_entrar_equipo', { p_token: token, p_quien: quien }))
+}
+// Nuevo enlace: el anterior deja de funcionar y quienes entraron con él deben usar el nuevo
+export async function cambiarEnlaceEquipo(id) {
+  const token = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('')
+  return ok(await supabase.from('cca_equipo').update({ token }).eq('id', id).select().single())
+}
+export const enlaceEquipo = (token) => `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}/cartas/entrar?equipo=${token}`

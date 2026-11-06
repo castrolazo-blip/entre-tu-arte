@@ -6,13 +6,14 @@ import { useCartas } from '../CartasContext.jsx'
 import { actualizarCarta, textoCarta, historial, enlaceArchivo, marcarArchivo, registrarAccion } from '../cartasService.js'
 import { ESTADOS_CARTA, ORIGENES, esValida, folioTexto, fecha, nombreDestinatario, nombreCompleto, nombrePareja, tamanoTexto, mensajeError } from '../constantes.js'
 import { Etiqueta, Modal, SelectRelacion, btn } from '../ui.jsx'
+import { describirActividad, quien } from '../actividad.js'
 import { serif } from '../publico/marca.jsx'
 
 const NOMBRES_CAMPO = { estado: 'Estado', relacion: 'Quién la envía', pareja_id: 'Pareja', destinatario: 'Destinatario',
   motivo: 'Motivo', incidencia: 'Incidencia', posible_duplicado: 'Posible duplicado', orden: 'Orden' }
 
 export default function DetalleCarta({ cartaId, onCerrar }) {
-  const { cartas, parejas, remitentes, puedeLeer, actualizarLocal, recargar } = useCartas()
+  const { cartas, parejas, puedeLeer, actualizarLocal, recargar, usuarios } = useCartas()
   const carta = cartas.find(c => c.id === cartaId)
   const [texto, setTexto] = useState(undefined)
   const [eventos, setEventos] = useState([])
@@ -103,9 +104,7 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
             <ul className="space-y-1.5 text-[13px]">
               {eventos.map(ev => (
                 <li key={ev.id} className="text-gris">
-                  <span className="font-semibold text-tinta">{fecha(ev.created_at, true)}</span> · {ev.usuario_id ? 'organizador' : 'formulario público'} · {ev.accion === 'lectura' ? 'abrió el contenido' : ev.accion === 'insert' ? 'recibida' : ev.accion === 'update'
-                    ? Object.entries(ev.datos || {}).map(([k, v]) => `${NOMBRES_CAMPO[k] || k}: ${k === 'estado' ? `${ESTADOS_CARTA[v.antes]?.etiqueta} → ${ESTADOS_CARTA[v.despues]?.etiqueta}` : k.endsWith('_id') ? 'cambiado' : String(v.despues ?? '—')}`).join(', ')
-                    : ev.accion}
+                  <span className="font-semibold text-tinta">{fecha(ev.created_at, true)}</span> · <b className="text-tinta">{quien(ev, usuarios)}</b> {describirActividad(ev)}
                 </li>
               ))}
               {!eventos.length && <li className="text-gris">Sin movimientos</li>}

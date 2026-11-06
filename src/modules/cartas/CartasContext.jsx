@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../auth/AuthContext.jsx'
-import { miPerfil, listarRetiros, cargarRetiro, reclamarAcceso } from './cartasService.js'
+import { miPerfil, listarRetiros, cargarRetiro, reclamarAcceso, listarUsuarios } from './cartasService.js'
 import { NO_VALIDAS, nombrePareja } from './constantes.js'
 
 // Estado del panel: perfil del usuario, retiros a los que tiene acceso, retiro elegido y sus datos.
@@ -16,6 +16,7 @@ export function CartasProvider({ children }) {
   const [datos, setDatos] = useState({ parejas: [], remitentes: [], cartas: [], equipo: [] })
   const [cargandoDatos, setCargandoDatos] = useState(false)
   const [error, setError] = useState(null)
+  const [usuarios, setUsuarios] = useState({})
 
   const setRetiroId = useCallback((id) => {
     setRetiroIdState(id)
@@ -63,6 +64,8 @@ export function CartasProvider({ children }) {
   }, [retiroId])
 
   useEffect(() => { if (perfil && retiroId) recargar() }, [perfil, retiroId, recargar])
+  // Nombres para la bitácora («quién hizo qué»)
+  useEffect(() => { if (perfil) listarUsuarios().then(l => setUsuarios(Object.fromEntries(l.map(u => [u.user_id, u])))).catch(() => {}) }, [perfil, datos.equipo.length])
 
   // En vivo: las cartas que llegan por el enlace aparecen solas (revisión cada 20 s y al volver a la pantalla)
   const vistas = useRef(null)
@@ -108,10 +111,11 @@ export function CartasProvider({ children }) {
 
   // Matrimonio del equipo al que pertenece quien entró (por su correo)
   const correo = (usuario?.email || '').toLowerCase()
-  const miEquipo = datos.equipo.find(e => correo && (e.esposo_correo === correo || e.esposa_correo === correo)) || null
+  const miEquipo = datos.equipo.find(e => e.id === perfil?.equipo_id)
+    || datos.equipo.find(e => correo && (e.esposo_correo === correo || e.esposa_correo === correo)) || null
 
   const valor = {
-    miEquipo,
+    miEquipo, usuarios,
     perfil, esAdmin: perfil?.rol === 'administrador', puedeLeer: perfil?.rol === 'administrador' || !!perfil?.puede_leer,
     retiros, retiro, retiroId, setRetiroId, recargarRetiros,
     ...datos, indicadores, cargandoDatos, error, recargar, actualizarLocal,
