@@ -30,12 +30,12 @@ export function Modal({ titulo, onCerrar, children, ancho = 'max-w-xl', pie }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={titulo}
       onMouseDown={e => { if (e.target === e.currentTarget) onCerrar() }}>
-      <div className={`flex max-h-[94vh] w-full ${ancho} flex-col rounded-t-[28px] bg-white sm:rounded-[28px]`}>
+      <div className={`flex max-h-[94vh] w-full min-w-0 ${ancho} flex-col rounded-t-[28px] bg-white sm:rounded-[28px]`}>
         <div className="flex items-center justify-between gap-3 border-b border-crema-borde px-5 py-4">
           <h2 className="text-lg font-semibold">{titulo}</h2>
           <button onClick={onCerrar} aria-label="Cerrar" className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-crema"><X size={20} /></button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-5">{children}</div>
         {pie && <div className="border-t border-crema-borde px-5 py-4">{pie}</div>}
       </div>
     </div>

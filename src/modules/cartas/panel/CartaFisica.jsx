@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Camera, Trash2, Paperclip, Plus, Mail, Package } from 'lucide-react'
+import { Camera, Trash2, Paperclip, Plus, Mail, Package, Link2, Copy } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { registrarCartaFisica, tipoDeArchivo, firmaValida } from '../cartasService.js'
-import { ACEPTA, mensajeError, nombrePareja, apodo } from '../constantes.js'
+import { ACEPTA, mensajeError, nombrePareja, apodo, enlacePortal, nombreDestinatario, fecha, folioTexto, esValida } from '../constantes.js'
+import { copiar } from './Retiros.jsx'
 import { Modal, SelectRelacion, btn } from '../ui.jsx'
 
 const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [] })
@@ -11,7 +12,7 @@ const linea = () => ({ relacion: '', de: '', para: 'ambos', archivos: [] })
 // Registro de cartas que llegan en papel (paquete de la familia) o por correo (cartasrenova@gmail.com).
 // En papel no hace falta foto: la carta ya viene impresa y va directo al sobre. Por correo se adjunta el archivo para imprimirlo.
 export default function CartaFisica({ parejaInicial, onCerrar }) {
-  const { retiro, parejas, remitentes, puedeLeer, recargar } = useCartas()
+  const { retiro, parejas, remitentes, cartas, puedeLeer, recargar } = useCartas()
   const [origen, setOrigen] = useState('fisica')
   const [parejaId, setParejaId] = useState(parejaInicial || '')
   const [coordinadorId, setCoordinadorId] = useState('')
@@ -73,14 +74,15 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
   const nombreA = pareja ? apodo(pareja, 'A') : 'A', nombreB = pareja ? apodo(pareja, 'B') : 'B'
   return (
     <Modal titulo="Registrar cartas recibidas" onCerrar={onCerrar} ancho="max-w-2xl"
-      pie={<div className="flex items-center justify-between gap-2">
+      pie={origen === 'enlace' ? <div className="flex justify-end"><button onClick={onCerrar} className={btn.contorno}>Cerrar</button></div> : <div className="flex items-center justify-between gap-2">
         <span className="text-sm text-gris">{lineas.length} {lineas.length === 1 ? 'carta' : 'cartas'}</span>
         <div className="flex gap-2"><button onClick={onCerrar} className={btn.contorno}>Cerrar</button><button form="form-fisica" disabled={!!guardando} className={btn.vino}>{guardando ? `Guardando ${guardando}…` : `Registrar ${lineas.length}`}</button></div>
       </div>}>
       <form id="form-fisica" onSubmit={guardar} className="grid gap-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setOrigen('fisica')} className={`chip ${origen === 'fisica' ? 'chip-on' : 'chip-off'}`}><Package size={15} className="mr-1.5" />En papel (paquete)</button>
           <button type="button" onClick={() => setOrigen('correo')} className={`chip ${origen === 'correo' ? 'chip-on' : 'chip-off'}`}><Mail size={15} className="mr-1.5" />Por correo</button>
+          <button type="button" onClick={() => setOrigen('enlace')} className={`chip ${origen === 'enlace' ? 'chip-on' : 'chip-off'}`}><Link2 size={15} className="mr-1.5" />Por enlace</button>
         </div>
         <label className="etiqueta">Pareja *
           <select required value={parejaId} onChange={e => { setParejaId(e.target.value); setCoordinadorId('') }} className="campo mt-1.5">
@@ -88,6 +90,7 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
             {parejas.filter(p => p.estado === 'activa').map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
           </select>
         </label>
+        {pareja && origen === 'enlace' && <PorEnlace pareja={pareja} cartas={cartas.filter(c => c.pareja_id === pareja.id && c.origen === 'digital' && esValida(c))} retiro={retiro} />}
         {pareja && origen === 'fisica' && (
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="etiqueta">Entregó el paquete
@@ -100,7 +103,7 @@ export default function CartaFisica({ parejaInicial, onCerrar }) {
           </div>
         )}
 
-        {pareja && (
+        {pareja && origen !== 'enlace' && (
           <div>
             <p className="etiqueta mb-2">Cartas: una línea por carta, con quién la envía y para quién</p>
             <ul className="space-y-2">
@@ -159,5 +162,28 @@ function LineaCarta({ l, i, nombreA, nombreB, conArchivo, onCambio, onAdjuntar, 
       </div>
       {l.archivos.length > 0 && <p className="ml-8 mt-1.5 truncate text-xs text-gris"><Paperclip size={11} className="mr-1 inline" />{l.archivos.map(a => a.name).join(', ')}</p>}
     </li>
+  )
+}
+
+// Las cartas por enlace no se registran a mano: llegan solas y aparecen aquí en vivo (se revisa cada 20 s)
+function PorEnlace({ pareja, cartas, retiro }) {
+  return (
+    <div className="rounded-2xl bg-crema-clara p-4">
+      <p className="text-sm">Las cartas que familiares y amigos envían por el enlace <b>llegan solas</b>: no hay que registrarlas. Esta lista se actualiza sola.</p>
+      <button type="button" onClick={() => copiar(enlacePortal(retiro, { pareja }), 'Enlace de la pareja copiado')} className={`${btn.mini} mt-3`}><Copy size={14} />Copiar enlace de esta pareja</button>
+      <p className="etiqueta mb-2 mt-4">Recibidas por enlace ({cartas.length})</p>
+      {!cartas.length ? <p className="text-sm text-gris">Todavía no ha llegado ninguna.</p> : (
+        <ul className="divide-y divide-crema-borde rounded-xl bg-white text-sm">
+          {cartas.map(c => (
+            <li key={c.id} className="flex flex-wrap items-center gap-x-2 px-3 py-2">
+              <span className="text-xs font-bold text-gris">{folioTexto(c.folio)}</span>
+              <span className="font-semibold">{c.relacion || c.remitente_nombre}</span>
+              <span className="text-gris">→ {nombreDestinatario(pareja, c.destinatario)}</span>
+              <span className="ml-auto text-xs text-gris">{fecha(c.created_at, true)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }

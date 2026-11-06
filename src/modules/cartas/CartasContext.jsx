@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import toast from 'react-hot-toast'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { miPerfil, listarRetiros, cargarRetiro, reclamarAcceso } from './cartasService.js'
-import { NO_VALIDAS } from './constantes.js'
+import { NO_VALIDAS, nombrePareja } from './constantes.js'
 
 // Estado del panel: perfil del usuario, retiros a los que tiene acceso, retiro elegido y sus datos.
 const Ctx = createContext(null)
@@ -62,6 +63,36 @@ export function CartasProvider({ children }) {
   }, [retiroId])
 
   useEffect(() => { if (perfil && retiroId) recargar() }, [perfil, retiroId, recargar])
+
+  // En vivo: las cartas que llegan por el enlace aparecen solas (revisión cada 20 s y al volver a la pantalla)
+  const vistas = useRef(null)
+  useEffect(() => {
+    vistas.current = null
+    if (!perfil || !retiroId) return
+    let ocupado = false
+    async function revisar() {
+      if (ocupado || document.visibilityState !== 'visible') return
+      ocupado = true
+      try { setDatos(await cargarRetiro(retiroId)) } catch { /* sin conexión: se intenta en la próxima vuelta */ }
+      finally { ocupado = false }
+    }
+    const reloj = setInterval(revisar, 20000)
+    const alVolver = () => { if (document.visibilityState === 'visible') revisar() }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => { clearInterval(reloj); document.removeEventListener('visibilitychange', alVolver) }
+  }, [perfil, retiroId])
+
+  // Aviso de cartas nuevas por enlace (no en la primera carga)
+  useEffect(() => {
+    const ids = new Set(datos.cartas.map(c => c.id))
+    if (vistas.current) {
+      const nuevas = datos.cartas.filter(c => !vistas.current.has(c.id) && c.origen === 'digital')
+      const porPareja = Object.fromEntries(datos.parejas.map(p => [p.id, p]))
+      if (nuevas.length === 1) toast.success(`Nueva carta por enlace para ${nombrePareja(porPareja[nuevas[0].pareja_id])}`, { duration: 6000 })
+      else if (nuevas.length > 1) toast.success(`${nuevas.length} cartas nuevas por enlace`, { duration: 6000 })
+    }
+    if (datos.cartas.length || datos.parejas.length) vistas.current = ids
+  }, [datos])
 
   // Reemplaza una fila sin recargar todo
   const actualizarLocal = useCallback((tabla, fila) => {
