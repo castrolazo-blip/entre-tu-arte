@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, CalendarHeart, Users, Inbox, BellRing, Printer, Settings, LogOut, Menu, X, RefreshCw, ArrowLeft } from 'lucide-react'
+import { LayoutDashboard, CalendarHeart, Users, Inbox, BellRing, Printer, Settings, LogOut, Menu, X, RefreshCw, ArrowLeft, HeartHandshake } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useNoIndexar } from '../../auth/RutaAdmin.jsx'
 import CargandoModulo from '../../../components/CargandoModulo.jsx'
@@ -10,6 +10,7 @@ import { Etiqueta } from '../ui.jsx'
 
 const MENU = [
   { to: '/cartas/panel', etiqueta: 'Tablero', Icono: LayoutDashboard, fin: true },
+  { to: '/cartas/panel/mis-parejas', etiqueta: 'Mis parejas', Icono: HeartHandshake, equipo: true },
   { to: '/cartas/panel/cartas', etiqueta: 'Cartas', Icono: Inbox, contador: 'posiblesDuplicados' },
   { to: '/cartas/panel/parejas', etiqueta: 'Parejas', Icono: Users },
   { to: '/cartas/panel/pendientes', etiqueta: 'Seguimiento', Icono: BellRing, contador: 'contactosPendientes' },
@@ -20,7 +21,7 @@ const MENU = [
 
 export default function LayoutCartas() {
   const { usuario, cargando, salir } = useAuth()
-  const { perfil, esAdmin, retiros, retiro, setRetiroId, indicadores, recargar, cargandoDatos } = useCartas()
+  const { perfil, esAdmin, retiros, retiro, setRetiroId, indicadores, recargar, cargandoDatos, miEquipo, equipo } = useCartas()
   const [abierto, setAbierto] = useState(false)
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -56,13 +57,16 @@ export default function LayoutCartas() {
   const t = indicadores.totales
   const menu = (
     <nav aria-label="Cartas con Amor" className="flex flex-col gap-1">
-      {MENU.filter(m => !m.soloAdmin || esAdmin).map(({ to, etiqueta, Icono, fin, contador }) => (
+      {MENU.filter(m => (!m.soloAdmin || esAdmin) && (!m.equipo || miEquipo || (esAdmin && equipo.length)))
+        // Para un miembro del equipo, «Mis parejas» va primero
+        .sort((a, b) => (miEquipo && !esAdmin ? (b.equipo ? 1 : 0) - (a.equipo ? 1 : 0) : 0))
+        .map(({ to, etiqueta: et, Icono, fin, contador, equipo: deEquipo }) => { const etiqueta = deEquipo && !miEquipo ? 'Bandejas del equipo' : et; return (
         <NavLink key={to} to={to} end={fin}
           className={({ isActive }) => `flex h-11 items-center gap-3 rounded-full px-4 text-sm font-semibold transition ${isActive ? 'bg-white text-vino' : 'text-white hover:bg-white/10'}`}>
           <Icono size={18} /><span className="flex-1">{etiqueta}</span>
           {contador && t[contador] > 0 && <span className="rounded-full bg-oro px-2 py-0.5 text-xs text-white">{t[contador]}</span>}
         </NavLink>
-      ))}
+      )})}
     </nav>
   )
 

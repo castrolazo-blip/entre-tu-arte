@@ -16,6 +16,7 @@ export default function Entrar() {
   const [nueva, setNueva] = useState('')
   const [recuperando, setRecuperando] = useState(() => /type=recovery/.test(window.location.hash))
   const [enviando, setEnviando] = useState(false)
+  const [registro, setRegistro] = useState(false)
   const navigate = useNavigate()
   useNoIndexar()
   useTituloCartas('Acceso de organizadores')
@@ -45,6 +46,20 @@ export default function Entrar() {
     else toast.success('Te enviamos un enlace para cambiar la contraseña')
   }
 
+  // Cuenta propia para miembros del equipo: al entrar, su correo registrado les da acceso a sus parejas
+  async function onRegistro(e) {
+    e.preventDefault()
+    if (password.length < 8) { toast.error('Usa al menos 8 caracteres'); return }
+    setEnviando(true)
+    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password,
+      options: { emailRedirectTo: window.location.origin + import.meta.env.BASE_URL + 'cartas/entrar' } })
+    setEnviando(false)
+    if (error) { toast.error(/registered|already/i.test(error.message) ? 'Ese correo ya tiene cuenta: entra con tu contraseña' : 'No se pudo crear la cuenta'); return }
+    if (data.session) { navigate('/cartas/panel', { replace: true }); return }
+    toast.success('Te enviamos un correo para confirmar tu cuenta. Ábrelo y luego entra aquí.', { duration: 8000 })
+    setRegistro(false)
+  }
+
   async function onNueva(e) {
     e.preventDefault()
     if (nueva.length < 8) { toast.error('Usa al menos 8 caracteres'); return }
@@ -69,6 +84,19 @@ export default function Entrar() {
             </label>
             <button disabled={enviando} className="mt-6 h-12 w-full rounded-full bg-vino font-semibold text-white disabled:opacity-60">{enviando ? 'Guardando…' : 'Guardar'}</button>
           </form>
+        ) : registro ? (
+          <form onSubmit={onRegistro}>
+            <h1 className="mt-7 text-2xl font-semibold">Crear mi cuenta</h1>
+            <p className="mt-1.5 text-sm text-gris">Para el equipo de cartas: usa el <b>mismo correo</b> que registraron para ti en el equipo. Así verás tus parejas asignadas.</p>
+            <label className="etiqueta mt-5">Correo
+              <input type="email" required autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="campo mt-1.5" />
+            </label>
+            <label className="etiqueta mt-4">Contraseña nueva
+              <input type="password" required minLength={8} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} className="campo mt-1.5" />
+            </label>
+            <button disabled={enviando} className="mt-6 h-12 w-full rounded-full bg-vino font-semibold text-white disabled:opacity-60">{enviando ? 'Creando…' : 'Crear cuenta'}</button>
+            <button type="button" onClick={() => setRegistro(false)} className="mt-4 w-full text-sm font-semibold text-gris underline">Ya tengo cuenta</button>
+          </form>
         ) : (
           <form onSubmit={onSubmit}>
             <h1 className="mt-7 text-2xl font-semibold">Acceso de organizadores</h1>
@@ -81,6 +109,7 @@ export default function Entrar() {
             </label>
             <button disabled={enviando} className="mt-6 h-12 w-full rounded-full bg-vino font-semibold text-white disabled:opacity-60">{enviando ? 'Entrando…' : 'Entrar'}</button>
             <button type="button" onClick={onRecuperar} className="mt-4 flex w-full items-center justify-center gap-2 text-sm font-semibold text-gris underline"><Mail size={15} />Olvidé mi contraseña</button>
+            <p className="mt-5 border-t border-crema-borde pt-4 text-center text-sm text-gris">¿Eres del equipo de cartas y es tu primera vez? <button type="button" onClick={() => setRegistro(true)} className="font-semibold text-vino underline">Crear mi cuenta</button></p>
           </form>
         )}
       </div>

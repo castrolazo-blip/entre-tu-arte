@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { Pencil, Plus, Copy, Trash2, Inbox, PackagePlus, Users } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { borrarRemitente } from '../cartasService.js'
-import { enlacePortal, nombreDestinatario, nombrePareja, nombreCompleto, fecha, folioTexto, mensajeError, semaforo, ORIGENES } from '../constantes.js'
+import { responsableDe, enlacePortal, nombreDestinatario, nombrePareja, nombreCompleto, fecha, folioTexto, mensajeError, semaforo, ORIGENES } from '../constantes.js'
 import { Etiqueta, Kpi, Semaforo, Vacio, btn } from '../ui.jsx'
 import { FormPareja, Avance } from './Parejas.jsx'
 import { FormRemitente, AccionesRecordatorio } from './remitentes.jsx'
@@ -13,7 +13,7 @@ import CartaFisica from './CartaFisica.jsx'
 
 export default function FichaPareja() {
   const { id } = useParams()
-  const { parejas, remitentes, cartas, indicadores, retiro, recargar } = useCartas()
+  const { parejas, remitentes, cartas, indicadores, retiro, recargar, equipo } = useCartas()
   const [editar, setEditar] = useState(false)
   const [remitente, setRemitente] = useState(null)
   const [paquete, setPaquete] = useState(false)
@@ -57,7 +57,7 @@ export default function FichaPareja() {
     <div>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-gris">{pareja.codigo}{pareja.responsable && ` · responsable: ${pareja.responsable}`}{pareja.estado === 'retirada' && ' · se retiró del evento'}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-gris">{pareja.codigo}{responsableDe(pareja, equipo) && ` · responsable: ${responsableDe(pareja, equipo)}`}{pareja.estado === 'retirada' && ' · se retiró del evento'}</p>
           <h1 className="mt-1 text-2xl font-semibold md:text-3xl">{nombrePareja(pareja)}</h1>
           <p className="mt-1 text-sm text-gris">{nombreCompleto(pareja, 'A')} · {nombreCompleto(pareja, 'B')}</p>
           <div className="mt-2">{pareja.estado === 'activa' && <Semaforo color={color} conTexto />}</div>

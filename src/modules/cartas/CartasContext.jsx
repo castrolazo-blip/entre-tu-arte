@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthContext.jsx'
-import { miPerfil, listarRetiros, cargarRetiro } from './cartasService.js'
+import { miPerfil, listarRetiros, cargarRetiro, reclamarAcceso } from './cartasService.js'
 import { NO_VALIDAS } from './constantes.js'
 
 // Estado del panel: perfil del usuario, retiros a los que tiene acceso, retiro elegido y sus datos.
@@ -12,7 +12,7 @@ export function CartasProvider({ children }) {
   const [perfil, setPerfil] = useState(undefined)       // undefined = cargando · null = sin acceso
   const [retiros, setRetiros] = useState([])
   const [retiroId, setRetiroIdState] = useState(() => { try { return localStorage.getItem(CLAVE) } catch { return null } })
-  const [datos, setDatos] = useState({ parejas: [], remitentes: [], cartas: [] })
+  const [datos, setDatos] = useState({ parejas: [], remitentes: [], cartas: [], equipo: [] })
   const [cargandoDatos, setCargandoDatos] = useState(false)
   const [error, setError] = useState(null)
 
@@ -33,6 +33,8 @@ export function CartasProvider({ children }) {
     let vivo = true
     setPerfil(undefined)
     miPerfil(usuario.id).then(async p => {
+      // Miembro del equipo que entra por primera vez con su correo registrado
+      if (!p && await reclamarAcceso()) p = await miPerfil(usuario.id)
       if (!vivo) return
       if (!p?.activo) { setPerfil(null); return }
       const lista = await listarRetiros()
@@ -73,7 +75,12 @@ export function CartasProvider({ children }) {
   const retiro = retiros.find(r => r.id === retiroId) || null
   const indicadores = useMemo(() => calcularIndicadores(datos, retiro?.meta_por_persona || 0), [datos, retiro?.meta_por_persona])
 
+  // Matrimonio del equipo al que pertenece quien entró (por su correo)
+  const correo = (usuario?.email || '').toLowerCase()
+  const miEquipo = datos.equipo.find(e => correo && (e.esposo_correo === correo || e.esposa_correo === correo)) || null
+
   const valor = {
+    miEquipo,
     perfil, esAdmin: perfil?.rol === 'administrador', puedeLeer: perfil?.rol === 'administrador' || !!perfil?.puede_leer,
     retiros, retiro, retiroId, setRetiroId, recargarRetiros,
     ...datos, indicadores, cargandoDatos, error, recargar, actualizarLocal,

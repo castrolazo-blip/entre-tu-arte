@@ -4,7 +4,7 @@ import { Copy, Download, FileText, Clock, ExternalLink } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { actividadReciente } from '../cartasService.js'
 import { aCSV, descargar, nombreArchivo } from '../archivos.js'
-import { enlacePortal, fecha, folioTexto, nombrePareja, nombreDestinatario, semaforo, ESTADOS_CARTA, TEXTO_SEMAFORO } from '../constantes.js'
+import { responsableDe, enlacePortal, fecha, folioTexto, nombrePareja, nombreDestinatario, semaforo, ESTADOS_CARTA, TEXTO_SEMAFORO } from '../constantes.js'
 import { Kpi, Semaforo, Titulo, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 import { Avance } from './Parejas.jsx'
@@ -12,7 +12,7 @@ import { Avance } from './Parejas.jsx'
 const ENTIDAD = { cartas: 'Carta', parejas: 'Pareja', remitentes: 'Remitente', retiros: 'Retiro', impresion: 'Impresión' }
 
 export default function Tablero() {
-  const { retiro, parejas, cartas, remitentes, indicadores } = useCartas()
+  const { retiro, parejas, cartas, remitentes, indicadores, equipo, miEquipo } = useCartas()
   const [actividad, setActividad] = useState([])
   const t = indicadores.totales
 
@@ -26,7 +26,7 @@ export default function Tablero() {
   const conteo = filas.reduce((c, f) => ({ ...c, [f.color]: (c[f.color] || 0) + 1 }), {})
   const dias = retiro.fecha_limite ? Math.ceil((new Date(retiro.fecha_limite) - Date.now()) / 86400000) : null
 
-  const filasReporte = filas.map(({ p, x, color }) => ({ codigo: p.codigo, pareja: nombrePareja(p), responsable: p.responsable, paraA: x.paraA, paraB: x.paraB, faltan: x.faltan, recibidas: x.recibidas, enPapel: x.enPapel, aImprimir: x.aImprimir, esperados: x.esperados, pendientes: x.pendientes, adicionales: x.adicionales, estado: TEXTO_SEMAFORO[color] }))
+  const filasReporte = filas.map(({ p, x, color }) => ({ codigo: p.codigo, pareja: nombrePareja(p), responsable: responsableDe(p, equipo), paraA: x.paraA, paraB: x.paraB, faltan: x.faltan, recibidas: x.recibidas, enPapel: x.enPapel, aImprimir: x.aImprimir, esperados: x.esperados, pendientes: x.pendientes, adicionales: x.adicionales, estado: TEXTO_SEMAFORO[color] }))
 
   function csvAvance() {
     descargar(aCSV(filasReporte, [
@@ -66,6 +66,7 @@ export default function Tablero() {
         <a href={enlacePortal(retiro)} target="_blank" rel="noreferrer" className={btn.contorno}><ExternalLink size={16} />Ver formulario</a>
       </Titulo>
 
+      {miEquipo && <Link to="/cartas/panel/mis-parejas" className="mb-4 flex items-center justify-between gap-3 rounded-[22px] bg-vino p-4 text-white"><span><b>Matrimonio {miEquipo.apellidos}</b><span className="block text-sm text-white/80">Ver tus parejas asignadas y su avance</span></span><span className="font-semibold">Mis parejas →</span></Link>}
       {retiro.estado !== 'activo' && <p className="mb-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">Este retiro está «{retiro.estado}»: el formulario público no recibe cartas. Cámbialo a «Activo» en Retiros cuando quieras abrir la recepción.</p>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">

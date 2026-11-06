@@ -52,6 +52,20 @@ Nada de esto aparece en Google (`noindex` y `robots.txt`) ni en el menú de la t
   Aun con permiso, el contenido se abre con un botón y queda registrado quién lo abrió.
 - Fecha límite sugerida: **lunes 23 de noviembre 2026, 11:59 p. m.** (la entrega en papel es hasta las 2:30 p. m.).
 
+## 1c. Equipo de cartas y repartición
+
+1. **Supabase › SQL Editor:** ejecuta también `supabase/migrations/20261107000000_cartas_equipo.sql`, una sola vez. Se puede repetir.
+2. **Configuración › Equipo › Nuevo matrimonio:**
+   - Primero los **dos apellidos** («Castro Lazo»); avisa si ya existe uno igual.
+   - Después, de cada cónyuge: nombre, teléfono y correo.
+3. **Configuración › Repartición:** a cada pareja participante se le elige el matrimonio responsable. Se puede asignar una por una o «las N de la lista» de una vez.
+4. **Bandeja de cada matrimonio («Mis parejas»):** muestra solo sus parejas asignadas, con el avance por persona, los contactos de la familia, WhatsApp y «Registrar cartas recibidas».
+   - Para entrar, cada cónyuge va a `/cartas/entrar` › **Crear mi cuenta** con el **mismo correo** registrado en el equipo, y confirma el correo que le llega.
+   - Entra como organizador **sin lectura de cartas**.
+   - El administrador ve la bandeja de cualquier matrimonio en «Bandejas del equipo».
+   - Si el correo de confirmación no llega: Supabase › Authentication › Users › el usuario › *Confirm email*. El correo gratuito de Supabase envía pocos mensajes por hora.
+5. El mensaje a las familias dice «Pueden hacer la entrega de cartas con **el matrimonio Castro Lazo (Ronald 7000-0000 · Ana 7111-1111)**».
+
 ## 2. Roles
 
 | Rol | Puede |

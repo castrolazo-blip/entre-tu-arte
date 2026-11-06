@@ -110,6 +110,17 @@ export function nombreDestinatario(pareja, destinatario) {
   return `${apodo(pareja, 'A')} y ${apodo(pareja, 'B')}`
 }
 export const nombrePareja = p => (p ? `${apodo(p, 'A')} y ${apodo(p, 'B')}${p.apellidos ? ' ' + p.apellidos : ''}` : '')
+// Equipo de servidores
+export const nombreEquipo = e => (e ? `Matrimonio ${e.apellidos}` : '')
+// Para el mensaje a las familias: "el matrimonio Castro Lazo (Ronald 7000-0000 · Ana 7000-0001)"
+export function contactoEquipo(e) {
+  if (!e) return ''
+  const personas = [[e.esposo_nombre, e.esposo_telefono], [e.esposa_nombre, e.esposa_telefono]]
+    .filter(([n]) => n).map(([n, t]) => `${n.split(' ')[0]}${t ? ' ' + t : ''}`)
+  return `el matrimonio ${e.apellidos}${personas.length ? ` (${personas.join(' · ')})` : ''}`
+}
+// Responsable de una pareja: el matrimonio del equipo asignado o el texto del Excel
+export const responsableDe = (p, equipo = []) => nombreEquipo(equipo.find(e => e.id === p?.equipo_id)) || p?.responsable || ''
 export const ORIGENES = { digital: 'Digital (formulario)', fisica: 'En papel', correo: 'Por correo' }
 
 // ── Enlaces del portal ──
@@ -170,19 +181,19 @@ export function fechaLarga(iso) {
   return new Date(iso).toLocaleDateString('es-SV', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '')
 }
 
-export function mensajeFamilias({ retiro, pareja, remitente, enlace }) {
+export function mensajeFamilias({ retiro, pareja, remitente, enlace, responsable }) {
   const plantilla = retiro.plantilla_mensaje?.trim() || PLANTILLA_FAMILIAS
   const valores = {
     nombre: (remitente?.nombre || '').split(' ')[0], pareja: nombrePareja(pareja),
-    responsable: pareja.responsable || 'el equipo de cartas', meta: retiro.meta_por_persona || 10,
+    responsable: responsable || pareja.responsable || 'el equipo de cartas', meta: retiro.meta_por_persona || 10,
     fecha_limite: fechaLarga(retiro.fecha_limite), enlace,
   }
   return plantilla.replace(/\{(nombre|pareja|responsable|meta|fecha_limite|enlace)\}/g, (_, k) => valores[k])
 }
 
 // Ojo: el mensaje es para familiares y amigos; las parejas no deben enterarse (es sorpresa).
-export function mensajeRecordatorio({ retiro, pareja, remitente, enlace }) {
-  if (remitente.coordinador) return mensajeFamilias({ retiro, pareja, remitente, enlace })
+export function mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable }) {
+  if (remitente.coordinador) return mensajeFamilias({ retiro, pareja, remitente, enlace, responsable })
   const para = nombreDestinatario(pareja, remitente.destinatario)
   const plazo = retiro.fecha_limite ? ` Te pedimos enviarla a más tardar el ${fecha(retiro.fecha_limite)}.` : ''
   const nombre = (remitente.nombre || '').split(' ')[0]

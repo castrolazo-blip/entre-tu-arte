@@ -4,7 +4,7 @@ import { MessageCircle, Mail, Copy, Link2 } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { guardarRemitente, registrarRecordatorio } from '../cartasService.js'
-import { enlacePortal, mensajeRecordatorio, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE } from '../constantes.js'
+import { enlacePortal, mensajeRecordatorio, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE } from '../constantes.js'
 import { Modal, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 
@@ -63,10 +63,11 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
 
 // Botones para enviar el recordatorio por WhatsApp o correo (se abre la app; nada se envía solo)
 export function AccionesRecordatorio({ remitente, pareja, compacto = false }) {
-  const { retiro, actualizarLocal } = useCartas()
+  const { retiro, actualizarLocal, equipo } = useCartas()
   const { usuario } = useAuth()
   const enlace = enlacePortal(retiro, { remitente })
-  const mensaje = mensajeRecordatorio({ retiro, pareja, remitente, enlace })
+  const responsable = contactoEquipo(equipo.find(e => e.id === pareja.equipo_id))
+  const mensaje = mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable })
   const tel = telefonoWhatsApp(remitente.telefono)
 
   async function registrar(canal) {
