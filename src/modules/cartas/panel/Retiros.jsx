@@ -3,11 +3,11 @@ import toast from 'react-hot-toast'
 import { Plus, Pencil, Copy, ExternalLink, CalendarHeart } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { guardarRetiro } from '../cartasService.js'
-import { ESTADOS_RETIRO, enlacePortal, fecha, rangoFechas, mensajeError } from '../constantes.js'
+import { ESTADOS_RETIRO, PLANTILLA_FAMILIAS, enlacePortal, fecha, rangoFechas, mensajeError } from '../constantes.js'
 import { Etiqueta, Modal, Titulo, Vacio, btn } from '../ui.jsx'
 
 const VACIO = { nombre: '', inicio: '', fin: '', lugar: '', fecha_limite: '', estado: 'preparacion', aceptar_tardias: false,
-  max_mb: 10, max_archivos: 5, retencion_dias: 90, semaforo_dias: 5, mensaje_portal: '', responsable_datos: '', contacto_privacidad: '' }
+  max_mb: 10, max_archivos: 5, retencion_dias: 90, semaforo_dias: 5, meta_por_persona: 10, plantilla_mensaje: '', mensaje_portal: '', responsable_datos: '', contacto_privacidad: '' }
 
 // datetime-local ↔ ISO en hora local
 const aLocal = iso => { if (!iso) return ''; const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16) }
@@ -65,7 +65,8 @@ function FormRetiro({ inicial, onCerrar, onGuardado }) {
     setGuardando(true)
     try {
       const r = await guardarRetiro({ ...f, fecha_limite: aIso(f.fecha_limite), max_mb: Number(f.max_mb), max_archivos: Number(f.max_archivos),
-        retencion_dias: Number(f.retencion_dias), semaforo_dias: Number(f.semaforo_dias) })
+        retencion_dias: Number(f.retencion_dias), semaforo_dias: Number(f.semaforo_dias), meta_por_persona: Number(f.meta_por_persona) || 0,
+        plantilla_mensaje: !f.plantilla_mensaje?.trim() || f.plantilla_mensaje.trim() === PLANTILLA_FAMILIAS.trim() ? null : f.plantilla_mensaje })
       toast.success('Retiro guardado')
       await onGuardado(r)
     } catch (err) { toast.error(mensajeError(err, 'No se pudo guardar el retiro')) }
@@ -92,12 +93,19 @@ function FormRetiro({ inicial, onCerrar, onGuardado }) {
           <input type="checkbox" checked={!!f.aceptar_tardias} onChange={e => set('aceptar_tardias', e.target.checked)} className="mt-0.5 h-5 w-5 accent-[#7a2621]" />
           <span><b>Aceptar cartas después de la fecha límite</b> (llegan marcadas como tardías y el formulario muestra un aviso). Si no, el formulario se bloquea.</span>
         </label>
+        <label className="etiqueta">Meta de cartas por persona<input type="number" min="0" max="100" value={f.meta_por_persona} onChange={e => set('meta_por_persona', e.target.value)} className="campo mt-1.5" />
+          <span className="mt-1 block text-xs font-normal text-gris">{Number(f.meta_por_persona) ? `${Number(f.meta_por_persona) * 2} por pareja. 0 = sin meta.` : 'Sin meta'}</span></label>
+        <div className="hidden sm:block" />
         <label className="etiqueta">Tamaño máximo por archivo (MB)<input type="number" min="1" max="25" value={f.max_mb} onChange={e => set('max_mb', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta">Archivos por carta<input type="number" min="1" max="10" value={f.max_archivos} onChange={e => set('max_archivos', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta">Semáforo: días de alerta antes del plazo<input type="number" min="0" max="60" value={f.semaforo_dias} onChange={e => set('semaforo_dias', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta">Conservación tras el retiro (días)<input type="number" min="1" max="3650" value={f.retencion_dias} onChange={e => set('retencion_dias', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta sm:col-span-2">Mensaje de bienvenida en el formulario (opcional)
           <textarea rows={3} value={f.mensaje_portal || ''} onChange={e => set('mensaje_portal', e.target.value)} placeholder="Ej.: Tu carta será un regalo para su matrimonio. Escribe desde el corazón…" className="campo mt-1.5" />
+        </label>
+        <label className="etiqueta sm:col-span-2">Mensaje para las familias (WhatsApp / correo a los contactos)
+          <textarea rows={10} value={f.plantilla_mensaje || PLANTILLA_FAMILIAS} onChange={e => set('plantilla_mensaje', e.target.value)} className="campo mt-1.5 font-mono text-[12.5px]" />
+          <span className="mt-1 block text-xs font-normal text-gris">Se completan solos: {'{pareja}'} {'{responsable}'} {'{meta}'} {'{fecha_limite}'} {'{enlace}'} {'{nombre}'}. *negrita* y _cursiva_ funcionan en WhatsApp. <button type="button" onClick={() => set('plantilla_mensaje', '')} className="font-semibold text-vino underline">Restaurar texto original</button></span>
         </label>
         <label className="etiqueta">Responsable de los datos<input value={f.responsable_datos || ''} onChange={e => set('responsable_datos', e.target.value)} placeholder="Equipo Renova · Regnum Christi" className="campo mt-1.5" /></label>
         <label className="etiqueta">Contacto para pedir eliminación<input value={f.contacto_privacidad || ''} onChange={e => set('contacto_privacidad', e.target.value)} placeholder="WhatsApp 7729-0194" className="campo mt-1.5" /></label>

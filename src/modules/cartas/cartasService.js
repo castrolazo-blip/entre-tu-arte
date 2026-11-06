@@ -19,7 +19,7 @@ export const guardarRetiro = async (r) => r.id
   : ok(await supabase.from('cca_retiros').insert(limpiarRetiro(r)).select().single())
 function limpiarRetiro(r) {
   const campos = ['nombre', 'inicio', 'fin', 'lugar', 'fecha_limite', 'estado', 'aceptar_tardias', 'max_mb', 'max_archivos',
-    'retencion_dias', 'semaforo_dias', 'mensaje_portal', 'responsable_datos', 'contacto_privacidad']
+    'retencion_dias', 'semaforo_dias', 'mensaje_portal', 'responsable_datos', 'contacto_privacidad', 'meta_por_persona', 'plantilla_mensaje']
   const o = {}
   for (const c of campos) if (c in r) o[c] = r[c] === '' ? null : r[c]
   return o
@@ -38,19 +38,35 @@ export async function cargarRetiro(retiroId) {
 
 // ── Parejas ──
 export const guardarPareja = async (p) => {
+  const t = v => (typeof v === 'string' ? v.trim() || null : v ?? null)
   const fila = { retiro_id: p.retiro_id, codigo: p.codigo?.trim(), nombre_a: p.nombre_a?.trim(), nombre_b: p.nombre_b?.trim(),
-    contacto_a: p.contacto_a || null, contacto_b: p.contacto_b || null, notas: p.notas || null, estado: p.estado || 'activa' }
+    apellidos: t(p.apellidos), apellidos_a: t(p.apellidos_a), apellidos_b: t(p.apellidos_b), apodo_a: t(p.apodo_a), apodo_b: t(p.apodo_b),
+    responsable: t(p.responsable), invitados_por: t(p.invitados_por),
+    contacto_a: t(p.contacto_a), contacto_b: t(p.contacto_b), notas: t(p.notas), estado: p.estado || 'activa' }
   return p.id
     ? ok(await supabase.from('cca_parejas').update(fila).eq('id', p.id).select().single())
     : ok(await supabase.from('cca_parejas').insert(fila).select().single())
 }
 export const insertarParejas = async (filas) => ok(await supabase.from('cca_parejas').insert(filas).select())
 
+// Excel de inscripción: crea las parejas y sus contactos de familia (coordinadores)
+export async function insertarInscripcion(retiroId, items) {
+  const creadas = await insertarParejas(items.map(x => ({ ...x.pareja, retiro_id: retiroId })))
+  const porCodigo = Object.fromEntries(creadas.map(p => [p.codigo, p]))
+  const contactos = items.flatMap(x => x.contactos.map(c => ({
+    retiro_id: retiroId, pareja_id: porCodigo[x.pareja.codigo].id, nombre: c.nombre, relacion: c.relacion || null,
+    telefono: c.telefono || null, notas: c.telefono || !c.original ? null : `Dato original: ${c.original}`,
+    destinatario: 'ambos', coordinador: true,
+  })))
+  if (contactos.length) await insertarRemitentes(contactos)
+  return { parejas: creadas.length, contactos: contactos.length }
+}
+
 // ── Remitentes esperados ──
 export const guardarRemitente = async (r) => {
   const fila = { retiro_id: r.retiro_id, pareja_id: r.pareja_id, nombre: r.nombre?.trim(), telefono: r.telefono || null,
     correo: r.correo || null, relacion: r.relacion || null, destinatario: r.destinatario || 'ambos',
-    estado: r.estado || 'pendiente', motivo: r.motivo || null, notas: r.notas || null }
+    estado: r.estado || 'pendiente', motivo: r.motivo || null, notas: r.notas || null, coordinador: !!r.coordinador }
   return r.id
     ? ok(await supabase.from('cca_remitentes').update(fila).eq('id', r.id).select().single())
     : ok(await supabase.from('cca_remitentes').insert(fila).select().single())
@@ -112,7 +128,8 @@ export async function registrarCartaFisica({ carta, texto, archivos, puedeLeer }
     retiro_id: carta.retiro_id, pareja_id: carta.pareja_id, destinatario: carta.destinatario,
     remitente_nombre: carta.remitente_nombre.trim(), relacion: carta.relacion || null,
     remitente_contacto: carta.remitente_contacto || null, remitente_id: carta.remitente_id || null,
-    origen: 'fisica', estado: 'recibida',
+    coordinador_id: carta.coordinador_id || null, recibida_de: carta.recibida_de || null,
+    origen: carta.origen === 'correo' ? 'correo' : 'fisica', estado: carta.estado || 'recibida',
   }).select().single())
   if (puedeLeer && texto?.trim()) ok(await supabase.from('cca_contenidos').insert({ carta_id: nueva.id, texto: texto.trim() }))
   for (const archivo of archivos) {

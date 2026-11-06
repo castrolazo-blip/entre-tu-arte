@@ -9,9 +9,9 @@ import { Modal, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 
 // Formulario de remitente esperado (familiar o amigo)
-export function FormRemitente({ pareja, inicial, onCerrar }) {
+export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }) {
   const { retiro, actualizarLocal } = useCartas()
-  const [f, setF] = useState(inicial || { nombre: '', telefono: '', correo: '', relacion: '', destinatario: 'ambos', estado: 'pendiente', motivo: '', notas: '' })
+  const [f, setF] = useState(inicial || { nombre: '', telefono: '', correo: '', relacion: '', destinatario: 'ambos', estado: 'pendiente', motivo: '', notas: '', coordinador })
   const [guardando, setGuardando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
 
@@ -28,18 +28,22 @@ export function FormRemitente({ pareja, inicial, onCerrar }) {
   }
 
   return (
-    <Modal titulo={f.id ? 'Editar remitente' : 'Agregar remitente esperado'} onCerrar={onCerrar}
+    <Modal titulo={f.coordinador ? (f.id ? 'Editar contacto de la familia' : 'Agregar contacto de la familia') : (f.id ? 'Editar remitente' : 'Agregar remitente esperado')} onCerrar={onCerrar}
       pie={<div className="flex justify-end gap-2"><button onClick={onCerrar} className={btn.contorno}>Cancelar</button><button form="form-rem" disabled={guardando} className={btn.vino}>{guardando ? 'Guardando…' : 'Guardar'}</button></div>}>
       <form id="form-rem" onSubmit={guardar} className="grid gap-4 sm:grid-cols-2">
         <label className="etiqueta sm:col-span-2">Nombre *<input required value={f.nombre} onChange={e => set('nombre', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta">Teléfono (WhatsApp)<input value={f.telefono || ''} onChange={e => set('telefono', e.target.value)} inputMode="tel" className="campo mt-1.5" /></label>
         <label className="etiqueta">Correo<input type="email" value={f.correo || ''} onChange={e => set('correo', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta">Relación / vínculo<input value={f.relacion || ''} onChange={e => set('relacion', e.target.value)} placeholder="Hija, mamá de…, amigo" className="campo mt-1.5" /></label>
-        <label className="etiqueta">Carta prevista para
-          <select value={f.destinatario} onChange={e => set('destinatario', e.target.value)} className="campo mt-1.5">
-            <option value="A">{pareja.nombre_a}</option><option value="B">{pareja.nombre_b}</option><option value="ambos">Ambos</option>
-          </select>
+        <label className="flex items-start gap-3 text-sm sm:col-span-2">
+          <input type="checkbox" checked={!!f.coordinador} onChange={e => set('coordinador', e.target.checked)} className="mt-0.5 h-5 w-5 accent-[#7a2621]" />
+          <span><b>Contacto de la familia (coordinador):</b> recibe el mensaje para las familias, reúne las cartas de otros y entrega el paquete.</span>
         </label>
+        {!f.coordinador && <label className="etiqueta">Carta prevista para
+          <select value={f.destinatario} onChange={e => set('destinatario', e.target.value)} className="campo mt-1.5">
+            <option value="A">{pareja.apodo_a || pareja.nombre_a}</option><option value="B">{pareja.apodo_b || pareja.nombre_b}</option><option value="ambos">Ambos</option>
+          </select>
+        </label>}
         {f.id && (
           <label className="etiqueta">Estado
             <select value={f.estado} onChange={e => set('estado', e.target.value)} className="campo mt-1.5">
@@ -51,7 +55,7 @@ export function FormRemitente({ pareja, inicial, onCerrar }) {
           <label className="etiqueta">Motivo {f.estado === 'exento' && '*'}<input required={f.estado === 'exento'} value={f.motivo || ''} onChange={e => set('motivo', e.target.value)} className="campo mt-1.5" /></label>
         )}
         <label className="etiqueta sm:col-span-2">Notas<input value={f.notas || ''} onChange={e => set('notas', e.target.value)} className="campo mt-1.5" /></label>
-        {f.id && f.estado === 'recibido' && <p className="text-xs text-gris sm:col-span-2">«Recibido» se calcula solo cuando una carta válida queda vinculada a esta persona.</p>}
+        {f.id && f.estado === 'recibido' && <p className="text-xs text-gris sm:col-span-2">«Recibido» se marca solo cuando llega una carta válida de esta persona (o, si es contacto, de su paquete).</p>}
       </form>
     </Modal>
   )

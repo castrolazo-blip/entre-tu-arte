@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowUp, ArrowDown, FileDown, Archive, ListChecks, Printer, PackageCheck, Lock, Loader2, Save } from 'lucide-react'
+import { ArrowUp, ArrowDown, FileDown, Archive, ListChecks, Printer, PackageCheck, Lock, Loader2, Save, Tags } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarCartas, textosCartas, bytesArchivo, registrarAccion } from '../cartasService.js'
 import { crearZip, descargar, nombreArchivo, aCSV } from '../archivos.js'
-import { ESTADOS_CARTA, NO_VALIDAS, APROBADAS, folioTexto, nombreDestinatario, nombrePareja, mensajeError, fecha } from '../constantes.js'
+import { ESTADOS_CARTA, NO_VALIDAS, APROBADAS, ORIGENES, folioTexto, nombreDestinatario, nombrePareja, nombreCompleto, mensajeError, fecha } from '../constantes.js'
+
+// Las cartas en papel sin archivo ya están impresas: van directo al sobre, no al PDF
+const sinImprimir = c => c.origen === 'fisica' && !c.cca_archivos.length
 import { Etiqueta, Titulo, Vacio, btn } from '../ui.jsx'
 
 const PESO = { A: 0, B: 1, ambos: 2 }
@@ -31,7 +34,7 @@ export default function Impresion() {
     const ordenadas = [...suyas].sort((a, b) =>
       (a.orden ?? 1e9) - (b.orden ?? 1e9) || PESO[a.destinatario] - PESO[b.destinatario] || a.created_at.localeCompare(b.created_at))
     setOrden(ordenadas.map(c => c.id))
-    setSeleccion(new Set(ordenadas.filter(c => APROBADAS.includes(c.estado) && c.estado !== 'entregada').map(c => c.id)))
+    setSeleccion(new Set(ordenadas.filter(c => c.estado !== 'entregada' && (sinImprimir(c) || APROBADAS.includes(c.estado))).map(c => c.id)))
   }, [parejaId, suyas.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const porId = Object.fromEntries(suyas.map(c => [c.id, c]))
@@ -50,20 +53,21 @@ export default function Impresion() {
   }
 
   async function generarPdf() {
-    if (!elegidas.length) return toast.error('Selecciona al menos una carta')
-    const sinAprobar = elegidas.filter(c => !APROBADAS.includes(c.estado))
+    const aImprimir = elegidas.filter(c => !sinImprimir(c))
+    if (!aImprimir.length) return toast.error('No hay cartas para imprimir: las seleccionadas están en papel y van directo al sobre')
+    const sinAprobar = aImprimir.filter(c => !APROBADAS.includes(c.estado))
     if (sinAprobar.length && !window.confirm(`${sinAprobar.length} carta(s) aún no están aprobadas. ¿Incluirlas de todos modos?`)) return
     setProgreso('Preparando…')
     try {
-      const textos = await textosCartas(elegidas.map(c => c.id))
+      const textos = await textosCartas(aImprimir.map(c => c.id))
       const { pdfDePareja } = await import('../pdfCartas.js')
       const { blob, problemas } = await pdfDePareja({
         retiro, pareja, conPortada, conSeparadores, leerArchivo: bytesArchivo,
-        cartas: elegidas.map(c => ({ carta: c, texto: textos[c.id], archivos: c.cca_archivos.filter(a => !a.ilegible) })),
+        cartas: aImprimir.map(c => ({ carta: c, texto: textos[c.id], archivos: c.cca_archivos.filter(a => !a.ilegible) })),
         alAvanzar: (i, n) => setProgreso(`Armando carta ${i} de ${n}…`),
       })
       descargar(blob, `cartas-${nombreArchivo(pareja.codigo + '-' + nombrePareja(pareja))}.pdf`)
-      await auditar('pdf', { cartas: elegidas.map(c => c.folio), problemas })
+      await auditar('pdf', { cartas: aImprimir.map(c => c.folio), problemas })
       if (problemas.length) toast.error(`${problemas.length} archivo(s) no se pudieron incluir: el PDF trae un aviso en su lugar`, { duration: 7000 })
       else toast.success('PDF listo')
     } catch (err) { toast.error(mensajeError(err, 'No se pudo generar el PDF')) }
@@ -90,7 +94,7 @@ export default function Impresion() {
   }
 
   async function listaControl(todoElRetiro) {
-    const base = todoElRetiro ? cartas.filter(c => APROBADAS.includes(c.estado)) : elegidas
+    const base = todoElRetiro ? cartas.filter(c => !NO_VALIDAS.includes(c.estado)) : elegidas
     if (!base.length) return toast.error('No hay cartas para la lista')
     const pp = Object.fromEntries(parejas.map(p => [p.id, p]))
     const filas = [...base].sort((a, b) => pp[a.pareja_id].codigo.localeCompare(pp[b.pareja_id].codigo) || (a.orden ?? 1e9) - (b.orden ?? 1e9))
@@ -99,6 +103,13 @@ export default function Impresion() {
     descargar(await pdfControl({ retiro, filas }), `control-entrega-${nombreArchivo(todoElRetiro ? retiro.nombre : pareja.codigo)}.pdf`)
     descargar(aCSV(filas, [{ titulo: 'Folio', valor: 'folio' }, { titulo: 'Pareja', valor: 'pareja' }, { titulo: 'Para', valor: 'para' }, { titulo: 'De', valor: 'de' }, { titulo: 'Estado', valor: 'estado' }, { titulo: 'Entregada (firma)', valor: () => '' }]),
       `control-entrega-${nombreArchivo(todoElRetiro ? retiro.nombre : pareja.codigo)}.csv`)
+  }
+
+  async function etiquetas() {
+    const { pdfEtiquetas } = await import('../pdfCartas.js')
+    const cuenta = (p, d) => cartas.filter(c => c.pareja_id === p.id && !NO_VALIDAS.includes(c.estado) && (c.destinatario === d || c.destinatario === 'ambos')).length
+    const personas = activas.flatMap(p => ['A', 'B'].map(d => ({ nombre: nombreCompleto(p, d), matrimonio: `Matrimonio ${p.apellidos || nombrePareja(p)}`, codigo: p.codigo, cartas: cuenta(p, d) })))
+    descargar(await pdfEtiquetas({ retiro, personas }), `etiquetas-sobres-${nombreArchivo(retiro.nombre)}.pdf`)
   }
 
   async function marcar(estado) {
@@ -119,7 +130,7 @@ export default function Impresion() {
 
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[22px] bg-white p-3">
         <select value={parejaId} onChange={e => setParejaId(e.target.value)} className="campo min-w-[240px] flex-1" aria-label="Pareja">
-          {activas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {p.nombre_a} y {p.nombre_b}</option>)}
+          {activas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
         </select>
         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={conPortada} onChange={e => setConPortada(e.target.checked)} className="h-4 w-4 accent-[#7a2621]" />Portada</label>
         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={conSeparadores} onChange={e => setConSeparadores(e.target.checked)} className="h-4 w-4 accent-[#7a2621]" />Separador por carta</label>
@@ -136,7 +147,7 @@ export default function Impresion() {
                 <span className="w-6 text-center text-xs font-bold text-gris">{i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">{c.remitente_nombre} <span className="font-normal text-gris">→ {nombreDestinatario(pareja, c.destinatario)}</span></span>
-                  <span className="text-xs text-gris">{folioTexto(c.folio)} · {c.origen === 'fisica' ? 'física' : 'digital'}{c.cca_archivos.length ? ` · ${c.cca_archivos.length} archivo(s)` : ''}{c.cca_archivos.some(a => a.ilegible) && ' · tiene archivo ilegible (se omite)'}</span>
+                  <span className="text-xs text-gris">{folioTexto(c.folio)} · {ORIGENES[c.origen]}{sinImprimir(c) ? ' · va directo al sobre' : ''}{c.cca_archivos.length ? ` · ${c.cca_archivos.length} archivo(s)` : ''}{c.cca_archivos.some(a => a.ilegible) && ' · tiene archivo ilegible (se omite)'}</span>
                 </span>
                 <Etiqueta estado={c.estado} />
                 <span className="flex">
@@ -146,7 +157,7 @@ export default function Impresion() {
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-gris">{elegidas.length} de {enOrden.length} seleccionadas. Por defecto se eligen las aprobadas que aún no se entregan.</p>
+          <p className="mt-2 text-xs text-gris">{elegidas.length} de {enOrden.length} seleccionadas. Por defecto: las aprobadas (digitales y por correo) y las de papel, que aún no se entregan. El PDF solo incluye las que hay que imprimir.</p>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <div className="rounded-[22px] bg-white p-4">
@@ -171,7 +182,10 @@ export default function Impresion() {
           </div>
         </>
       )}
-      <button onClick={() => listaControl(true)} className={`${btn.texto} mt-6`}><ListChecks size={15} />Lista de control de todo el retiro (cartas aprobadas)</button>
+      <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+        <button onClick={etiquetas} className={btn.texto}><Tags size={15} />Etiquetas para los sobres (una por persona, todas las parejas)</button>
+        <button onClick={() => listaControl(true)} className={btn.texto}><ListChecks size={15} />Lista de control de todo el retiro</button>
+      </div>
     </div>
   )
 }

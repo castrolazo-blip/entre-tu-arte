@@ -26,7 +26,7 @@ function Usuarios() {
   const { retiros, perfil } = useCartas()
   const [usuarios, setUsuarios] = useState([])
   const [asignados, setAsignados] = useState([])
-  const [f, setF] = useState({ correo: '', nombre: '', rol: 'organizador', puede_leer: true })
+  const [f, setF] = useState({ correo: '', nombre: '', rol: 'organizador', puede_leer: false })
   const [guardando, setGuardando] = useState(false)
 
   const cargar = () => Promise.all([listarUsuarios(), listarOrganizadores()]).then(([u, o]) => { setUsuarios(u); setAsignados(o) })
@@ -35,7 +35,7 @@ function Usuarios() {
   async function agregar(e) {
     e.preventDefault()
     setGuardando(true)
-    try { await agregarUsuario(f); toast.success('Usuario agregado'); setF({ correo: '', nombre: '', rol: 'organizador', puede_leer: true }); await cargar() }
+    try { await agregarUsuario(f); toast.success('Usuario agregado'); setF({ correo: '', nombre: '', rol: 'organizador', puede_leer: false }); await cargar() }
     catch (err) { toast.error(mensajeError(err, 'No se pudo agregar')) }
     finally { setGuardando(false) }
   }
@@ -55,7 +55,7 @@ function Usuarios() {
       <h2 className="text-lg font-semibold">Usuarios y permisos</h2>
       <p className="mt-1 text-sm text-gris">
         1) Crea la cuenta en Supabase › Authentication › Users › <b>Add user</b> (correo y contraseña, «Auto confirm»). 2) Agrégala aquí con su rol.
-        Los organizadores solo ven los retiros asignados. «Puede leer» permite ver el texto y archivos; sin él, solo controla estados.
+        Los organizadores solo ven los retiros asignados. Como se promete a las familias que nadie leerá las cartas, «Puede leer» viene apagado: actívalo solo para quien imprime las cartas digitales y por correo (abrir una carta queda registrado).
       </p>
       <form onSubmit={agregar} className="mt-4 grid gap-2 sm:grid-cols-[1.3fr_1fr_150px_auto_auto]">
         <input required type="email" placeholder="correo@ejemplo.com" value={f.correo} onChange={e => setF({ ...f, correo: e.target.value })} className="campo h-11" aria-label="Correo" />

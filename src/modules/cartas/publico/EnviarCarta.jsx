@@ -50,7 +50,7 @@ export default function EnviarCarta() {
         {info?.estado === 'no_disponible' && <Aviso icono={AlertTriangle} titulo="Este enlace no está disponible">Puede que el retiro aún no abra la recepción de cartas o que el enlace esté incompleto. Consulta con la persona que te lo compartió.</Aviso>}
         {info?.estado === 'cerrado' && <Aviso icono={Clock} titulo="La recepción de cartas ya cerró">La fecha límite era el {fecha(info.fecha_limite, true)}. Si aún deseas enviar tu carta, comunícate con el equipo organizador.</Aviso>}
         {info?.estado === 'abierto' && !enviado && <Formulario info={info} codigo={codigo} tokenRemitente={tokenRemitente} onEnviado={setEnviado} />}
-        {enviado && <Confirmacion resultado={enviado} info={info} onOtra={() => { setEnviado(null); window.scrollTo(0, 0) }} />}
+        {enviado && <Confirmacion resultado={enviado} info={info} contacto={!!info.remitente?.coordinador} onOtra={() => { setEnviado(null); window.scrollTo(0, 0) }} />}
 
         <p className="mt-8 text-center text-xs text-gris">Tu carta es privada: solo el equipo organizador la resguarda hasta entregarla durante el retiro.</p>
       </main>
@@ -70,12 +70,14 @@ function Aviso({ icono: Icono, titulo, children }) {
 
 function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
   const rem = info.remitente
+  // Un contacto de la familia sube cartas escritas por otras personas: no se prellena su nombre
+  const esContacto = !!rem?.coordinador
   const borrador = useMemo(() => leerBorrador(codigo), [codigo])
   const unica = info.parejas.length === 1 ? info.parejas[0] : null
   const [parejaId, setParejaId] = useState(rem?.pareja_id || unica?.id || borrador?.parejaId || '')
-  const [destinatario, setDestinatario] = useState(rem?.destinatario || borrador?.destinatario || '')
-  const [nombre, setNombre] = useState(rem?.nombre || borrador?.nombre || '')
-  const [relacion, setRelacion] = useState(rem?.relacion || borrador?.relacion || '')
+  const [destinatario, setDestinatario] = useState((!esContacto && rem?.destinatario) || borrador?.destinatario || '')
+  const [nombre, setNombre] = useState((!esContacto && rem?.nombre) || borrador?.nombre || '')
+  const [relacion, setRelacion] = useState((!esContacto && rem?.relacion) || borrador?.relacion || '')
   const [contacto, setContacto] = useState(borrador?.contacto || '')
   const [texto, setTexto] = useState(borrador?.texto || '')
   const [archivos, setArchivos] = useState([])
@@ -90,7 +92,7 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
   const filtradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     if (!q) return info.parejas
-    return info.parejas.filter(p => `${p.a} ${p.b}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q))
+    return info.parejas.filter(p => `${p.a} ${p.b} ${p.na} ${p.nb} ${p.apellidos || ''}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q))
   }, [busqueda, info.parejas])
 
   // Borrador local: si se cae la conexión o se cierra la pestaña, no se pierde lo escrito
@@ -142,7 +144,7 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
         p_archivos: subidos, p_remitente_token: tokenRemitente || null, p_consentimiento: acepto, p_trampa: trampa || null,
       })
       guardarBorrador(codigo, null)
-      onEnviado({ ...r, para: destinatario === 'ambos' ? `${pareja.a} y ${pareja.b}` : destinatario === 'A' ? pareja.a : pareja.b })
+      onEnviado({ ...r, para: destinatario === 'ambos' ? `${pareja.a} y ${pareja.b} ${pareja.apellidos || ''}`.trim() : destinatario === 'A' ? pareja.na : pareja.nb })
       window.scrollTo(0, 0)
     } catch (err) {
       setError(mensajeError(err))
@@ -170,7 +172,8 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
               {filtradas.map(p => (
                 <button type="button" key={p.id} role="radio" aria-checked={parejaId === p.id} onClick={() => { setParejaId(p.id); setDestinatario('') }}
                   className={`flex min-h-[52px] w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left text-[15px] transition ${parejaId === p.id ? 'border-vino bg-vino-claro font-semibold text-vino' : 'border-crema-borde bg-white hover:border-vino/50'}`}>
-                  <Heart size={16} className={parejaId === p.id ? 'fill-vino' : 'text-gris'} />{p.a} y {p.b}
+                  <Heart size={16} className={`shrink-0 ${parejaId === p.id ? 'fill-vino' : 'text-gris'}`} />
+                  <span>{p.a} y {p.b} {p.apellidos}<span className="block text-xs font-normal text-gris">{p.na} · {p.nb}</span></span>
                 </button>
               ))}
               {!filtradas.length && <p className="px-1 py-3 text-sm text-gris">No encontramos ese nombre. Revisa cómo lo escribiste o pide a quien te compartió el enlace el enlace directo.</p>}
@@ -179,28 +182,30 @@ function Formulario({ info, codigo, tokenRemitente, onEnviado }) {
         )}
         {pareja && (
           <div className={!rem && !unica ? 'mt-4' : ''}>
-            {(rem || unica) && <p className="mb-3 text-[15px]">Para el encuentro de <b>{pareja.a} y {pareja.b}</b></p>}
+            {(rem || unica) && <p className="mb-3 text-[15px]">Para el encuentro de <b>{pareja.a} y {pareja.b} {pareja.apellidos}</b></p>}
             <p className="etiqueta mb-2">La carta es para</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {[['A', pareja.a], ['B', pareja.b], ['ambos', 'Ambos']].map(([v, t]) => (
+              {[['A', pareja.a, pareja.na], ['B', pareja.b, pareja.nb], ['ambos', 'Ambos', 'Para los dos']].map(([v, t, sub]) => (
                 <button type="button" key={v} onClick={() => setDestinatario(v)} aria-pressed={destinatario === v}
-                  className={`h-12 rounded-full border px-4 text-[15px] font-semibold transition ${destinatario === v ? 'border-vino bg-vino text-white' : 'border-crema-borde bg-white hover:border-vino/60'}`}>{t}</button>
+                  className={`min-h-[52px] rounded-[20px] border px-4 py-1.5 text-[15px] font-semibold leading-tight transition ${destinatario === v ? 'border-vino bg-vino text-white' : 'border-crema-borde bg-white hover:border-vino/60'}`}>
+                  {t}<span className={`block truncate text-[11px] font-normal ${destinatario === v ? 'text-white/80' : 'text-gris'}`}>{sub}</span></button>
               ))}
             </div>
           </div>
         )}
       </Paso>
 
-      <Paso n="2" titulo="Tus datos">
-        <label className="etiqueta">Tu nombre *
+      <Paso n="2" titulo={esContacto ? '¿Quién escribe esta carta?' : 'Tus datos'}>
+        {esContacto && <p className="mb-3 rounded-2xl bg-vino-claro p-3 text-sm text-vino">Hola {rem.nombre.split(' ')[0]}, gracias por reunir las cartas. Sube <b>una carta a la vez</b> y escribe quién la envía (ej.: hermano, padres, amigos).</p>}
+        <label className="etiqueta">{esContacto ? 'De (nombre o parentesco) *' : 'Tu nombre *'}
           <input value={nombre} onChange={e => setNombre(e.target.value)} maxLength={120} autoComplete="name" className="campo mt-1.5" required />
         </label>
-        <label className="etiqueta mt-3">Relación con ellos <span className="font-normal text-gris">(opcional)</span>
+        {!esContacto && <label className="etiqueta mt-3">Relación con ellos <span className="font-normal text-gris">(opcional)</span>
           <input value={relacion} onChange={e => setRelacion(e.target.value)} maxLength={80} placeholder="Ej.: hija, amigo, mamá de…" className="campo mt-1.5" />
-        </label>
-        <label className="etiqueta mt-3">Teléfono o correo <span className="font-normal text-gris">(opcional, por si necesitamos contactarte)</span>
+        </label>}
+        {!esContacto && <label className="etiqueta mt-3">Teléfono o correo <span className="font-normal text-gris">(opcional, por si necesitamos contactarte)</span>
           <input value={contacto} onChange={e => setContacto(e.target.value)} maxLength={120} autoComplete="tel" className="campo mt-1.5" />
-        </label>
+        </label>}
         {/* Campo trampa para robots: las personas no lo ven */}
         <input value={trampa} onChange={e => setTrampa(e.target.value)} name="sitio_web" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
       </Paso>
@@ -270,7 +275,7 @@ function Paso({ n, titulo, children }) {
   )
 }
 
-function Confirmacion({ resultado, info, onOtra }) {
+function Confirmacion({ resultado, info, contacto, onOtra }) {
   return (
     <div className="rounded-[28px] bg-white p-7 text-center shadow-sm">
       <CheckCircle2 className="mx-auto text-emerald-600" size={46} strokeWidth={1.6} />
@@ -284,7 +289,7 @@ function Confirmacion({ resultado, info, onOtra }) {
       )}
       {resultado.tardia && <p className="mt-4 text-sm text-amber-800">Llegó después de la fecha límite; el equipo la revisará.</p>}
       <p className="mt-5 text-sm text-gris">Guarda este número por si necesitas consultar algo. Y recuerda: es una sorpresa, no les comentes nada.</p>
-      <button onClick={onOtra} className="mt-6 h-12 rounded-full border border-crema-borde px-6 font-semibold hover:border-tinta">Escribir otra carta</button>
+      <button onClick={onOtra} className={`mt-6 h-12 rounded-full px-6 font-semibold ${contacto ? 'bg-vino text-white' : 'border border-crema-borde hover:border-tinta'}`}>{contacto ? 'Subir la siguiente carta' : 'Escribir otra carta'}</button>
     </div>
   )
 }

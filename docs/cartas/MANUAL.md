@@ -27,8 +27,30 @@ Nada de esto aparece en Google (`noindex` y `robots.txt`) ni en el menú de la t
    y asígnale el retiro.
 5. **Retiro.** Panel › Retiros › Nuevo retiro. Ejemplo:
    *Renova R02 · El Salvador*, 27–29 nov 2026, Casa de Retiro Encuentros Conyugales,
-   fecha límite p. ej. 24 nov 23:59, responsable "Equipo Renova · Regnum Christi",
+   fecha límite lunes 23 nov 23:59, meta 10 por persona, responsable "Equipo Renova · Regnum Christi",
    contacto "WhatsApp 7729-0194". Cambia el estado a **Activo** para abrir la recepción.
+
+## 1b. Flujo de Renova (cómo trabaja el equipo de cartas)
+
+- **Meta:** 10 cartas por persona = 20 por pareja (Retiros › Editar › *Meta de cartas por persona*).
+  Una carta «para ambos» cuenta para los dos. El semáforo y el tablero miden contra la meta.
+- **Importar el Excel de inscripción** (Parejas › Importar › *Excel de inscripción*): toma el archivo
+  `Cartas_Renova_02_SV.xlsx` tal cual. Crea las 25 parejas con nombres, apellidos, «le gusta que le digan»,
+  celulares, responsable e «invitados por», y los **dos contactos de la familia** de cada una como
+  *coordinadores*. Los celulares que no son teléfono (p. ej. un DUI) no se guardan.
+- **Mensaje a las familias:** Seguimiento › *Contactos sin entregar* › WhatsApp. Es el texto «¡Venga Tu Reino!…»
+  con la pareja, la responsable, la meta, la fecha límite y el enlace ya completados. Se edita en Retiros › Editar.
+- **Recepción:**
+  - *En papel* (Colegio Highlands): pareja › **Registrar cartas recibidas** › «En papel», elegir qué contacto
+    entregó el paquete y escribir una línea por carta («De: hermano», y para quién). No se abren ni se
+    fotografían; van directo al sobre. El contacto pasa a «entregó».
+  - *Por correo* (cartasrenova@gmail.com): igual, con «Por correo» y adjuntando el archivo para imprimirlo.
+  - *Por el enlace*: los familiares (o el contacto, una carta a la vez) la escriben o suben foto/escaneo.
+- **Sobres:** Impresión › *Etiquetas para los sobres* (una por persona, con nombre completo y número de cartas).
+  El PDF para imprimir solo incluye las cartas digitales y por correo.
+- **Confidencialidad:** los organizadores nuevos **no** pueden leer cartas. Actívalo solo para quien imprime.
+  Aun con permiso, el contenido se abre con un botón y queda registrado quién lo abrió.
+- Fecha límite sugerida: **lunes 23 de noviembre 2026, 11:59 p. m.** (la entrega en papel es hasta las 2:30 p. m.).
 
 ## 2. Roles
 

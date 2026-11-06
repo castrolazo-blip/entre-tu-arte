@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Search, Camera, Paperclip, Copy as CopyIcon, Clock, Filter, CheckSquare } from 'lucide-react'
+import { Search, Package, Mail, Paperclip, Copy as CopyIcon, Clock, Filter, CheckSquare } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarCartas } from '../cartasService.js'
-import { ESTADOS_CARTA, folioTexto, fecha, nombreDestinatario, mensajeError } from '../constantes.js'
+import { ESTADOS_CARTA, folioTexto, fecha, nombreDestinatario, nombrePareja, mensajeError } from '../constantes.js'
 import { Etiqueta, Titulo, Vacio, btn } from '../ui.jsx'
 import DetalleCarta from './DetalleCarta.jsx'
 import CartaFisica from './CartaFisica.jsx'
@@ -34,7 +34,7 @@ export default function Bandeja() {
     if (f.hasta && c.created_at.slice(0, 10) > f.hasta) return false
     if (f.q) {
       const p = porId[c.pareja_id]
-      if (!norm(`${folioTexto(c.folio)} ${c.remitente_nombre} ${c.relacion} ${p?.nombre_a} ${p?.nombre_b}`).includes(norm(f.q))) return false
+      if (!norm(`${folioTexto(c.folio)} ${c.remitente_nombre} ${c.relacion} ${c.recibida_de} ${p?.codigo} ${p?.nombre_a} ${p?.nombre_b} ${p && nombrePareja(p)} ${p?.apellidos_a} ${p?.apellidos_b}`).includes(norm(f.q))) return false
     }
     return true
   }), [cartas, f, porId])
@@ -58,7 +58,7 @@ export default function Bandeja() {
     <div>
       <Titulo titulo="Cartas" subtitulo={`${lista.length} de ${cartas.length} cartas`}>
         <button onClick={() => { setMasivo(!masivo); setSeleccion(new Set()) }} className={btn.contorno}><CheckSquare size={16} />{masivo ? 'Terminar selección' : 'Seleccionar'}</button>
-        <button onClick={() => setFisica(true)} className={btn.vino}><Camera size={16} />Registrar carta física</button>
+        <button onClick={() => setFisica(true)} className={btn.vino}><Package size={16} />Registrar cartas recibidas</button>
       </Titulo>
 
       <div className="mb-4 rounded-[22px] bg-white p-3">
@@ -69,7 +69,7 @@ export default function Bandeja() {
           </label>
           <select value={f.pareja} onChange={e => set('pareja', e.target.value)} className="campo min-w-[160px] flex-1" aria-label="Pareja">
             <option value="">Todas las parejas</option>
-            {parejas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {p.nombre_a} y {p.nombre_b}</option>)}
+            {parejas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
           </select>
           <select value={f.estado} onChange={e => set('estado', e.target.value)} className="campo min-w-[150px] flex-1" aria-label="Estado">
             <option value="">Todos los estados</option>
@@ -81,7 +81,7 @@ export default function Bandeja() {
           <summary className="flex cursor-pointer items-center gap-1.5 px-1 text-[13px] font-semibold text-gris"><Filter size={14} />Más filtros</summary>
           <div className="mt-2 grid gap-2 sm:grid-cols-5">
             <select value={f.origen} onChange={e => set('origen', e.target.value)} className="campo" aria-label="Origen">
-              <option value="">Digital y física</option><option value="digital">Digital</option><option value="fisica">Física</option>
+              <option value="">Todos los orígenes</option><option value="digital">Formulario</option><option value="fisica">En papel</option><option value="correo">Por correo</option>
             </select>
             <select value={f.destinatario} onChange={e => set('destinatario', e.target.value)} className="campo" aria-label="Destinatario">
               <option value="">Cualquier destinatario</option><option value="A">Integrante A</option><option value="B">Integrante B</option><option value="ambos">Ambos</option>
@@ -122,10 +122,11 @@ export default function Bandeja() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">{c.remitente_nombre}{c.relacion && <span className="font-normal text-gris"> · {c.relacion}</span>}</span>
-                    <span className="block truncate text-sm text-gris">Para {nombreDestinatario(p, c.destinatario)} <span className="text-xs">({p?.codigo})</span></span>
+                    <span className="block truncate text-sm text-gris">Para {nombreDestinatario(p, c.destinatario)} <span className="text-xs">({p?.codigo}{p?.apellidos ? ` · ${p.apellidos}` : ''})</span>{c.recibida_de && <span className="text-xs"> · entregó {c.recibida_de}</span>}</span>
                   </span>
                   <span className="flex flex-wrap items-center gap-1.5">
-                    {c.origen === 'fisica' && <Marca icono={Camera} t="Física" />}
+                    {c.origen === 'fisica' && <Marca icono={Package} t="Papel" />}
+                    {c.origen === 'correo' && <Marca icono={Mail} t="Correo" />}
                     {c.cca_archivos?.length > 0 && <Marca icono={Paperclip} t={c.cca_archivos.length} />}
                     {!c.remitente_id && <span className="rounded-full bg-oro-claro px-2 py-0.5 text-[11px] font-bold text-oro">Adicional</span>}
                     {c.posible_duplicado && <Marca icono={CopyIcon} t="¿Duplicada?" alerta />}

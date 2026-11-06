@@ -12,7 +12,7 @@ const MENU = [
   { to: '/cartas/panel', etiqueta: 'Tablero', Icono: LayoutDashboard, fin: true },
   { to: '/cartas/panel/cartas', etiqueta: 'Cartas', Icono: Inbox, contador: 'porRevisar' },
   { to: '/cartas/panel/parejas', etiqueta: 'Parejas', Icono: Users },
-  { to: '/cartas/panel/pendientes', etiqueta: 'Pendientes', Icono: BellRing, contador: 'pendientes' },
+  { to: '/cartas/panel/pendientes', etiqueta: 'Seguimiento', Icono: BellRing, contador: 'contactosPendientes' },
   { to: '/cartas/panel/impresion', etiqueta: 'Impresión y entrega', Icono: Printer },
   { to: '/cartas/panel/retiros', etiqueta: 'Retiros', Icono: CalendarHeart },
   { to: '/cartas/panel/configuracion', etiqueta: 'Configuración', Icono: Settings, soloAdmin: true },

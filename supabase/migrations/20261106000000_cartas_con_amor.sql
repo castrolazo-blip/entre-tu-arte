@@ -17,7 +17,7 @@ create table if not exists public.cca_usuarios (
   nombre     text not null,
   correo     text,
   rol        text not null default 'organizador' check (rol in ('administrador', 'organizador')),
-  puede_leer boolean not null default true,
+  puede_leer boolean not null default false,
   activo     boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -165,6 +165,27 @@ create table if not exists public.cca_auditoria (
 create index if not exists cca_auditoria_entidad_idx on public.cca_auditoria (entidad_id, created_at desc);
 create index if not exists cca_auditoria_retiro_idx on public.cca_auditoria (retiro_id, created_at desc);
 
+-- ── Ajustes Renova (formato del Excel de inscripción y operación real) ──────
+-- Meta de cartas por persona (10 → 20 por pareja) y mensaje para las familias
+alter table public.cca_retiros add column if not exists meta_por_persona int not null default 10;
+alter table public.cca_retiros add column if not exists plantilla_mensaje text;
+-- Nombres completos: hay participantes con el mismo nombre
+alter table public.cca_parejas add column if not exists apellidos   text;   -- apellidos del matrimonio
+alter table public.cca_parejas add column if not exists apellidos_a text;
+alter table public.cca_parejas add column if not exists apellidos_b text;
+alter table public.cca_parejas add column if not exists apodo_a     text;   -- "le gusta que le digan"
+alter table public.cca_parejas add column if not exists apodo_b     text;
+alter table public.cca_parejas add column if not exists responsable text;   -- organizador a cargo
+alter table public.cca_parejas add column if not exists invitados_por text;
+-- Contacto de la familia que recoge y entrega el paquete de cartas (no las escribe)
+alter table public.cca_remitentes add column if not exists coordinador boolean not null default false;
+-- Cartas recibidas en papel o por correo (cartasrenova@gmail.com), y quién entregó el paquete
+alter table public.cca_cartas add column if not exists coordinador_id uuid references public.cca_remitentes(id) on delete set null;
+alter table public.cca_cartas add column if not exists recibida_de text;
+alter table public.cca_cartas drop constraint if exists cca_cartas_origen_check;
+alter table public.cca_cartas add constraint cca_cartas_origen_check check (origen in ('digital', 'fisica', 'correo'));
+create index if not exists cca_cartas_coord_idx on public.cca_cartas (coordinador_id);
+
 -- ── Funciones de permiso ────────────────────────────────────────────────────
 create or replace function public.cca_es_admin() returns boolean
 language sql stable security definer set search_path = public as $$
@@ -199,6 +220,10 @@ begin
   if new.remitente_id is not null and not exists (
     select 1 from cca_remitentes where id = new.remitente_id and pareja_id = new.pareja_id) then
     raise exception 'El remitente esperado no pertenece a esta pareja';
+  end if;
+  if new.coordinador_id is not null and not exists (
+    select 1 from cca_remitentes where id = new.coordinador_id and pareja_id = new.pareja_id) then
+    raise exception 'El contacto que entrega no pertenece a esta pareja';
   end if;
   if tg_op = 'UPDATE' then
     new.updated_at := now();
@@ -242,7 +267,8 @@ language plpgsql security definer set search_path = public as $$
 declare v_tiene boolean;
 begin
   if p_remitente is null then return; end if;
-  select exists (select 1 from cca_cartas where remitente_id = p_remitente
+  -- Coordinador: "recibido" en cuanto entrega (o envía) al menos una carta válida
+  select exists (select 1 from cca_cartas where (remitente_id = p_remitente or coordinador_id = p_remitente)
                  and estado not in ('rechazada', 'duplicada')) into v_tiene;
   update cca_remitentes set estado = case when v_tiene then 'recibido' else 'pendiente' end
    where id = p_remitente and estado <> 'exento'
@@ -253,10 +279,15 @@ end $$;
 create or replace function public.cca_tras_carta() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if tg_op in ('INSERT', 'UPDATE') then perform cca_recalcular_remitente(new.remitente_id); end if;
-  if tg_op in ('UPDATE', 'DELETE') and old.remitente_id is distinct from
-     (case when tg_op = 'UPDATE' then new.remitente_id else null end) then
+  if tg_op in ('INSERT', 'UPDATE') then
+    perform cca_recalcular_remitente(new.remitente_id);
+    perform cca_recalcular_remitente(new.coordinador_id);
+  end if;
+  if tg_op = 'DELETE' or old.remitente_id is distinct from new.remitente_id then
     perform cca_recalcular_remitente(old.remitente_id);
+  end if;
+  if tg_op = 'DELETE' or old.coordinador_id is distinct from new.coordinador_id then
+    perform cca_recalcular_remitente(old.coordinador_id);
   end if;
   return null;
 end $$;
@@ -352,7 +383,7 @@ create policy cca_rem_borrar on public.cca_remitentes for delete using (public.c
 -- Cartas: el público NO tiene acceso directo; envía solo por la función cca_enviar_carta
 create policy cca_cartas_leer on public.cca_cartas for select using (public.cca_acceso(retiro_id));
 create policy cca_cartas_crear on public.cca_cartas for insert
-  with check (public.cca_acceso(retiro_id) and origen = 'fisica');
+  with check (public.cca_acceso(retiro_id) and origen in ('fisica', 'correo'));
 create policy cca_cartas_editar on public.cca_cartas for update
   using (public.cca_acceso(retiro_id)) with check (public.cca_acceso(retiro_id));
 create policy cca_cartas_borrar on public.cca_cartas for delete using (public.cca_es_admin());
@@ -398,7 +429,11 @@ begin
     select * into v_rem from cca_remitentes where token = p_remitente and retiro_id = r.id;
   end if;
 
-  select coalesce(jsonb_agg(jsonb_build_object('id', p.id, 'a', p.nombre_a, 'b', p.nombre_b) order by p.nombre_a), '[]')
+  select coalesce(jsonb_agg(jsonb_build_object('id', p.id, 'a', coalesce(nullif(p.apodo_a, ''), p.nombre_a),
+                   'b', coalesce(nullif(p.apodo_b, ''), p.nombre_b), 'apellidos', p.apellidos,
+                   'na', btrim(p.nombre_a || ' ' || coalesce(p.apellidos_a, '')),
+                   'nb', btrim(p.nombre_b || ' ' || coalesce(p.apellidos_b, '')))
+                   order by coalesce(p.apellidos, p.nombre_a)), '[]')
     into v_parejas
     from cca_parejas p
    where p.retiro_id = r.id and p.estado = 'activa'
@@ -413,9 +448,10 @@ begin
     'mensaje', r.mensaje_portal, 'responsable', r.responsable_datos,
     'contacto_privacidad', r.contacto_privacidad, 'retencion_dias', r.retencion_dias,
     'parejas', v_parejas,
+    'meta_por_persona', r.meta_por_persona,
     'remitente', case when v_rem.id is null then null else jsonb_build_object(
       'nombre', v_rem.nombre, 'relacion', v_rem.relacion, 'destinatario', v_rem.destinatario,
-      'pareja_id', v_rem.pareja_id) end);
+      'pareja_id', v_rem.pareja_id, 'coordinador', v_rem.coordinador) end);
 end $$;
 
 -- Recibe una carta. Valida todo del lado del servidor, limita envíos automáticos y
@@ -431,7 +467,7 @@ declare
   v_carta uuid; v_folio bigint; v_rem uuid; v_huella text; v_dup boolean := false;
   v_nombre text := btrim(regexp_replace(coalesce(p_nombre, ''), '\s+', ' ', 'g'));
   v_texto text := nullif(btrim(coalesce(p_texto, '')), '');
-  a jsonb; o record; v_n int;
+  a jsonb; o record; v_n int; v_coord uuid; v_coord_nombre text;
 begin
   -- Campo trampa para robots: se responde como si nada, sin guardar
   if nullif(p_trampa, '') is not null then
@@ -469,11 +505,15 @@ begin
 
   -- Remitente esperado: por su enlace personal o por nombre idéntico dentro de la pareja
   if nullif(p_remitente_token, '') is not null then
-    select id into v_rem from cca_remitentes where token = p_remitente_token and pareja_id = p_pareja;
+    select id into v_rem from cca_remitentes where token = p_remitente_token and pareja_id = p_pareja and not coordinador;
+    if v_rem is null then
+      select id, nombre into v_coord, v_coord_nombre from cca_remitentes
+       where token = p_remitente_token and pareja_id = p_pareja and coordinador;
+    end if;
   end if;
   if v_rem is null and (select count(*) from cca_remitentes
-                        where pareja_id = p_pareja and lower(btrim(nombre)) = lower(v_nombre)) = 1 then
-    select id into v_rem from cca_remitentes where pareja_id = p_pareja and lower(btrim(nombre)) = lower(v_nombre);
+                        where pareja_id = p_pareja and not coordinador and lower(btrim(nombre)) = lower(v_nombre)) = 1 then
+    select id into v_rem from cca_remitentes where pareja_id = p_pareja and not coordinador and lower(btrim(nombre)) = lower(v_nombre);
   end if;
 
   v_huella := md5(coalesce(v_texto, '') || '|' || coalesce((
@@ -483,9 +523,10 @@ begin
                  and (huella = v_huella or created_at > now() - interval '15 minutes')) into v_dup;
 
   insert into cca_cartas (retiro_id, pareja_id, destinatario, remitente_nombre, remitente_contacto, relacion,
-                          origen, estado, remitente_id, tardia, posible_duplicado, huella, ip_hash, created_by)
+                          origen, estado, remitente_id, coordinador_id, recibida_de, tardia, posible_duplicado, huella, ip_hash, created_by)
   values (r.id, p_pareja, p_destinatario, v_nombre, nullif(btrim(p_contacto), ''), nullif(btrim(p_relacion), ''),
-          'digital', case when v_dup then 'en_revision' else 'recibida' end, v_rem, v_tardio, v_dup, v_huella, v_ip_hash, null)
+          'digital', case when v_dup then 'en_revision' else 'recibida' end, v_rem, v_coord, v_coord_nombre,
+          v_tardio, v_dup, v_huella, v_ip_hash, null)
   returning id, folio into v_carta, v_folio;
 
   insert into cca_contenidos (carta_id, texto) values (v_carta, v_texto);
@@ -518,7 +559,7 @@ grant execute on function public.cca_portal(text, text, text) to anon, authentic
 
 -- ── Alta de usuarios (el administrador agrega por correo una cuenta ya creada) ──
 create or replace function public.cca_agregar_usuario(p_correo text, p_nombre text, p_rol text default 'organizador',
-                                                     p_puede_leer boolean default true)
+                                                     p_puede_leer boolean default false)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare v_id uuid;
 begin

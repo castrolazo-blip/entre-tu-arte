@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ExternalLink, Download, EyeOff, AlertTriangle, History, Lock, Loader2 } from 'lucide-react'
+import { ExternalLink, Download, EyeOff, Eye, AlertTriangle, History, Lock, Loader2 } from 'lucide-react'
+import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
-import { actualizarCarta, textoCarta, historial, enlaceArchivo, marcarArchivo } from '../cartasService.js'
-import { ESTADOS_CARTA, FLUJO, folioTexto, fecha, nombreDestinatario, tamanoTexto, mensajeError } from '../constantes.js'
+import { actualizarCarta, textoCarta, historial, enlaceArchivo, marcarArchivo, registrarAccion } from '../cartasService.js'
+import { ESTADOS_CARTA, FLUJO, ORIGENES, folioTexto, fecha, nombreDestinatario, nombreCompleto, nombrePareja, tamanoTexto, mensajeError } from '../constantes.js'
 import { Etiqueta, Modal, btn } from '../ui.jsx'
 import { serif } from '../publico/marca.jsx'
 
@@ -18,17 +19,26 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
   const [motivo, setMotivo] = useState('')
   const [incidencia, setIncidencia] = useState('')
   const [guardando, setGuardando] = useState(false)
+  // Las cartas son confidenciales: el contenido no se muestra hasta pedirlo, y queda registrado
+  const [abierta, setAbierta] = useState(false)
+  const { usuario } = useAuth()
 
   useEffect(() => {
     if (!carta) return
     setMotivo(carta.motivo || ''); setIncidencia(carta.incidencia || '')
-    if (puedeLeer) textoCarta(cartaId).then(setTexto).catch(() => setTexto(null))
+    setAbierta(false); setTexto(undefined)
     historial(cartaId).then(setEventos).catch(() => setEventos([]))
   }, [cartaId, carta?.updated_at]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function verContenido() {
+    setAbierta(true)
+    textoCarta(cartaId).then(setTexto).catch(() => setTexto(null))
+    registrarAccion({ retiro_id: carta.retiro_id, usuario_id: usuario.id, entidad: 'cartas', entidad_id: carta.id, accion: 'lectura' })
+  }
+
   if (!carta) return <Modal titulo="Carta" onCerrar={onCerrar}><p className="text-gris">No se encontró la carta (puede que no pertenezca a este retiro).</p></Modal>
   const pareja = parejas.find(p => p.id === carta.pareja_id)
-  const deLaPareja = remitentes.filter(r => r.pareja_id === carta.pareja_id)
+  const deLaPareja = remitentes.filter(r => r.pareja_id === carta.pareja_id && !r.coordinador)
 
   async function cambiar(cambios, aviso = 'Guardado') {
     setGuardando(true)
@@ -53,11 +63,12 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Etiqueta estado={carta.estado} />
-            <span className="text-sm text-gris">{carta.origen === 'fisica' ? 'Carta física' : 'Digital'} · {fecha(carta.created_at, true)}</span>
+            <span className="text-sm text-gris">{ORIGENES[carta.origen]} · {fecha(carta.created_at, true)}</span>
             {carta.tardia && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">Tardía</span>}
           </div>
           <dl className="mt-3 grid grid-cols-[110px_1fr] gap-y-1.5 text-sm">
-            <dt className="text-gris">Para</dt><dd className="font-semibold">{nombreDestinatario(pareja, carta.destinatario)} <span className="font-normal text-gris">({pareja?.codigo})</span></dd>
+            <dt className="text-gris">Para</dt><dd className="font-semibold">{carta.destinatario === 'ambos' ? nombrePareja(pareja) : nombreCompleto(pareja, carta.destinatario)} <span className="font-normal text-gris">({pareja?.codigo})</span></dd>
+            {carta.recibida_de && <><dt className="text-gris">Entregó</dt><dd>{carta.recibida_de}</dd></>}
             <dt className="text-gris">De</dt><dd>{carta.remitente_nombre}{carta.relacion && ` · ${carta.relacion}`}</dd>
             {carta.remitente_contacto && <><dt className="text-gris">Contacto</dt><dd>{carta.remitente_contacto}</dd></>}
             {carta.motivo && <><dt className="text-gris">Motivo</dt><dd>{carta.motivo}</dd></>}
@@ -73,14 +84,17 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
           <div className="mt-5">
             {!puedeLeer ? (
               <p className="flex items-center gap-2 rounded-2xl bg-crema p-4 text-sm text-gris"><Lock size={16} />Tu usuario controla estados, pero no puede leer el contenido de las cartas.</p>
+            ) : !abierta ? (
+              <button onClick={verContenido} className={btn.contorno}><Eye size={16} />Ver contenido{carta.cca_archivos?.length ? ' y archivos' : ''}</button>
             ) : texto === undefined ? <Loader2 className="animate-spin text-gris" /> : texto ? (
               <div style={serif} className="max-h-[50vh] overflow-y-auto whitespace-pre-wrap rounded-2xl bg-[#fbf8f4] p-5 text-[18px] leading-relaxed">{texto}</div>
             ) : <p className="text-sm text-gris">Sin texto escrito{carta.cca_archivos?.length ? ': ver archivos adjuntos.' : '.'}</p>}
           </div>
 
+          {!abierta && puedeLeer && <p className="mt-2 text-xs text-gris">Confidencial: abrirla queda registrado en el historial.</p>}
           {carta.cca_archivos?.length > 0 && (
             <ul className="mt-4 space-y-3">
-              {carta.cca_archivos.map(a => <Archivo key={a.id} archivo={a} puedeLeer={puedeLeer} onCambio={recargar} />)}
+              {carta.cca_archivos.map(a => <Archivo key={a.id} archivo={a} puedeLeer={puedeLeer && abierta} onCambio={recargar} />)}
             </ul>
           )}
 
@@ -89,7 +103,7 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
             <ul className="space-y-1.5 text-[13px]">
               {eventos.map(ev => (
                 <li key={ev.id} className="text-gris">
-                  <span className="font-semibold text-tinta">{fecha(ev.created_at, true)}</span> · {ev.usuario_id ? 'organizador' : 'formulario público'} · {ev.accion === 'insert' ? 'recibida' : ev.accion === 'update'
+                  <span className="font-semibold text-tinta">{fecha(ev.created_at, true)}</span> · {ev.usuario_id ? 'organizador' : 'formulario público'} · {ev.accion === 'lectura' ? 'abrió el contenido' : ev.accion === 'insert' ? 'recibida' : ev.accion === 'update'
                     ? Object.entries(ev.datos || {}).map(([k, v]) => `${NOMBRES_CAMPO[k] || k}: ${k === 'estado' ? `${ESTADOS_CARTA[v.antes]?.etiqueta} → ${ESTADOS_CARTA[v.despues]?.etiqueta}` : k.endsWith('_id') ? 'cambiado' : String(v.despues ?? '—')}`).join(', ')
                     : ev.accion}
                 </li>
@@ -126,12 +140,12 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
 
           <label className="etiqueta block">Pareja
             <select disabled={guardando} value={carta.pareja_id} onChange={e => cambiar({ pareja_id: e.target.value, remitente_id: null }, 'Pareja corregida')} className="campo mt-1.5 h-11 text-sm">
-              {parejas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {p.nombre_a} y {p.nombre_b}</option>)}
+              {parejas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
             </select>
           </label>
           <label className="etiqueta block">Destinatario
             <select disabled={guardando} value={carta.destinatario} onChange={e => cambiar({ destinatario: e.target.value }, 'Destinatario corregido')} className="campo mt-1.5 h-11 text-sm">
-              <option value="A">{pareja?.nombre_a}</option><option value="B">{pareja?.nombre_b}</option><option value="ambos">Ambos</option>
+              <option value="A">{nombreCompleto(pareja, 'A')}</option><option value="B">{nombreCompleto(pareja, 'B')}</option><option value="ambos">Ambos</option>
             </select>
           </label>
 

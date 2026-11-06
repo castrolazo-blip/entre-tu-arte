@@ -71,7 +71,7 @@ export function CartasProvider({ children }) {
   }, [])
 
   const retiro = retiros.find(r => r.id === retiroId) || null
-  const indicadores = useMemo(() => calcularIndicadores(datos), [datos])
+  const indicadores = useMemo(() => calcularIndicadores(datos, retiro?.meta_por_persona || 0), [datos, retiro?.meta_por_persona])
 
   const valor = {
     perfil, esAdmin: perfil?.rol === 'administrador', puedeLeer: perfil?.rol === 'administrador' || !!perfil?.puede_leer,
@@ -84,11 +84,12 @@ export function CartasProvider({ children }) {
 export const useCartas = () => useContext(Ctx)
 
 // Indicadores por pareja y totales del retiro (solo parejas activas)
-export function calcularIndicadores({ parejas, remitentes, cartas }) {
+// Meta por persona: una carta «para ambos» cuenta para los dos (cada uno la recibe).
+export function calcularIndicadores({ parejas, remitentes, cartas }, meta = 0) {
   const porPareja = {}
   for (const p of parejas) {
     porPareja[p.id] = { recibidas: 0, aprobadas: 0, listas: 0, entregadas: 0, revision: 0, adicionales: 0,
-      esperados: 0, pendientes: 0, recibidos: 0, exentos: 0 }
+      esperados: 0, pendientes: 0, recibidos: 0, exentos: 0, paraA: 0, paraB: 0, contactos: 0, contactosPendientes: 0 }
   }
   for (const c of cartas) {
     const x = porPareja[c.pareja_id]; if (!x || NO_VALIDAS.includes(c.estado)) continue
@@ -98,13 +99,21 @@ export function calcularIndicadores({ parejas, remitentes, cartas }) {
     if (c.estado === 'entregada') x.entregadas++
     if (['recibida', 'en_revision'].includes(c.estado)) x.revision++
     if (!c.remitente_id) x.adicionales++
+    if (c.destinatario !== 'B') x.paraA++
+    if (c.destinatario !== 'A') x.paraB++
   }
   for (const r of remitentes) {
     const x = porPareja[r.pareja_id]; if (!x) continue
+    if (r.coordinador) { x.contactos++; if (r.estado === 'pendiente' || r.estado === 'revision') x.contactosPendientes++; continue }
     x.esperados++
     if (r.estado === 'pendiente' || r.estado === 'revision') x.pendientes++
     if (r.estado === 'recibido') x.recibidos++
     if (r.estado === 'exento') x.exentos++
+  }
+  for (const x of Object.values(porPareja)) {
+    x.faltanA = Math.max(0, meta - x.paraA); x.faltanB = Math.max(0, meta - x.paraB)
+    x.faltan = x.faltanA + x.faltanB
+    x.metaCumplida = meta > 0 && x.faltan === 0
   }
   const activas = parejas.filter(p => p.estado === 'activa')
   const suma = k => activas.reduce((s, p) => s + porPareja[p.id][k], 0)
@@ -120,6 +129,8 @@ export function calcularIndicadores({ parejas, remitentes, cartas }) {
       adicionales: suma('adicionales'),
       sinCartas: activas.filter(p => porPareja[p.id].recibidas === 0).length,
       entregadas: suma('entregadas'),
+      meta, faltanMeta: suma('faltan'), metaCumplida: activas.filter(p => porPareja[p.id].metaCumplida).length,
+      contactosPendientes: suma('contactosPendientes'), contactos: suma('contactos'),
     },
   }
 }

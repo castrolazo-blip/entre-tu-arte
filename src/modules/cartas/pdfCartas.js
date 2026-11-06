@@ -1,7 +1,10 @@
 // Cartas con Amor · PDF de impresión por pareja y PDF de resumen.
 // Reúne en un solo archivo el texto de las cartas, las fotos, los PDF adjuntos y los Word (DOCX).
 // pdf-lib y mammoth se cargan solo al generar, para no hacer pesado el resto del sitio.
-import { folioTexto, fecha, rangoFechas, nombreDestinatario, nombrePareja } from './constantes.js'
+import { folioTexto, fecha, rangoFechas, nombreDestinatario, nombrePareja, nombreCompleto } from './constantes.js'
+
+// Nombre para imprimir: completo (hay participantes con el mismo nombre)
+const paraQuien = (p, d) => (d === 'ambos' ? nombrePareja(p) : nombreCompleto(p, d))
 
 const ANCHO = 612, ALTO = 792            // Carta (8.5 × 11 in)
 const MARGEN = 72
@@ -121,7 +124,8 @@ function portada(ctx, { retiro, pareja, total }) {
   centrado(p, 'Cartas con Amor', ALTO - 250, ctx.f.cursiva, 40, ctx.color(VINO))
   adorno(ctx, p, ALTO - 275)
   centrado(p, 'para', ALTO - 320, ctx.f.cursiva, 16, ctx.color(GRIS))
-  centrado(p, nombrePareja(pareja), ALTO - 356, ctx.f.texto, 26, ctx.color([0.12, 0.12, 0.12]))
+  const np = nombrePareja(pareja)
+  centrado(p, np, ALTO - 356, ctx.f.texto, np.length > 34 ? 20 : 26, ctx.color([0.12, 0.12, 0.12]))
   centrado(p, retiro.nombre, 150, ctx.f.texto, 13, ctx.color(GRIS))
   if (retiro.inicio) centrado(p, rangoFechas(retiro.inicio, retiro.fin), 130, ctx.f.cursiva, 11, ctx.color(GRIS))
   centrado(p, `${total} ${total === 1 ? 'carta' : 'cartas'}`, 100, ctx.f.texto, 10, ctx.color(ORO))
@@ -131,7 +135,8 @@ function separador(ctx, { carta, pareja }) {
   const p = ctx.doc.addPage([ANCHO, ALTO])
   p.drawRectangle({ x: 36, y: 36, width: ANCHO - 72, height: ALTO - 72, borderColor: ctx.color(ORO), borderWidth: 0.6 })
   centrado(p, 'Para', ALTO / 2 + 90, ctx.f.cursiva, 16, ctx.color(GRIS))
-  centrado(p, nombreDestinatario(pareja, carta.destinatario), ALTO / 2 + 50, ctx.f.cursiva, 30, ctx.color(VINO))
+  const nombre = paraQuien(pareja, carta.destinatario)
+  centrado(p, nombre, ALTO / 2 + 50, ctx.f.cursiva, nombre.length > 30 ? 22 : 30, ctx.color(VINO))
   adorno(ctx, p, ALTO / 2 + 25)
   centrado(p, 'con amor de', ALTO / 2 - 10, ctx.f.cursiva, 14, ctx.color(GRIS))
   centrado(p, carta.remitente_nombre, ALTO / 2 - 42, ctx.f.texto, 20, ctx.color([0.12, 0.12, 0.12]))
@@ -151,7 +156,7 @@ export async function pdfDePareja({ retiro, pareja, cartas, conPortada = true, c
   let i = 0
   for (const { carta, texto, archivos } of cartas) {
     alAvanzar?.(++i, cartas.length)
-    const linea = `Para ${nombreDestinatario(pareja, carta.destinatario)} · de ${carta.remitente_nombre}`
+    const linea = `Para ${paraQuien(pareja, carta.destinatario)} · de ${carta.remitente_nombre} · ${pareja.codigo}`
     if (conSeparadores) separador(ctx, { carta, pareja })
     if (texto?.trim()) escribirTexto(ctx, texto, linea)
     for (const a of archivos || []) {
@@ -218,16 +223,40 @@ export async function pdfResumen({ retiro, totales, filas }) {
   })
   y -= Math.ceil(kpis.length / 3) * 38 + 16
   const xs = [40, 90, 290, 350, 410, 470, 530]
-  const cab = ['Código', 'Pareja', 'Recibidas', 'Aprobadas', 'Pendientes', 'Adicionales', 'Estado']
+  const cab = ['Código', 'Pareja', 'Recibidas', 'Esposo', 'Esposa', 'Faltan', 'Estado']
   const cabecera = () => { cab.forEach((t, i) => p.drawText(t, { x: xs[i], y, size: 8, font: ctx.f.sansNegrita })); y -= 14 }
   cabecera()
   for (const f of filas) {
     if (y < 50) { p = ctx.doc.addPage([ANCHO, ALTO]); y = ALTO - 60; cabecera() }
     let nombre = limpiar(f.pareja, ctx.f.sans)
     while (ctx.f.sans.widthOfTextAtSize(nombre, 8) > 190) nombre = nombre.slice(0, -1)
-    ;[f.codigo, nombre, f.recibidas, f.aprobadas, f.pendientes, f.adicionales, f.estado]
+    ;[f.codigo, nombre, f.recibidas, f.paraA, f.paraB, f.faltan, f.estado]
       .forEach((t, i) => p.drawText(limpiar(String(t ?? ''), ctx.f.sans), { x: xs[i], y, size: 8, font: ctx.f.sans }))
     y -= 13
   }
+  return new Blob([await ctx.doc.save()], { type: 'application/pdf' })
+}
+
+// Etiquetas para los sobres: una por persona (10 por hoja carta), con nombre completo y número de cartas
+export async function pdfEtiquetas({ retiro, personas }) {
+  const ctx = await iniciar()
+  const W = 270, H = 136, X0 = 36, Y0 = ALTO - 50
+  personas.forEach((e, i) => {
+    if (i % 10 === 0) ctx.doc.addPage([ANCHO, ALTO])
+    const p = ctx.doc.getPages()[ctx.doc.getPageCount() - 1]
+    const col = i % 2, fila = Math.floor((i % 10) / 2)
+    const x = X0 + col * (W + 0), y = Y0 - (fila + 1) * H
+    p.drawRectangle({ x: x + 4, y: y + 4, width: W - 8, height: H - 8, borderColor: ctx.color(ORO), borderWidth: 0.6 })
+    const t = (texto, dy, fuente, tam, color = [0.12, 0.12, 0.12]) => {
+      let s = limpiar(texto, fuente), tm = tam
+      while (fuente.widthOfTextAtSize(s, tm) > W - 30 && tm > 8) tm -= 0.5
+      p.drawText(s, { x: x + (W - fuente.widthOfTextAtSize(s, tm)) / 2, y: y + dy, size: tm, font: fuente, color: ctx.color(color) })
+    }
+    t('Para', H - 34, ctx.f.cursiva, 11, GRIS)
+    t(e.nombre, H - 58, ctx.f.negrita, 16, VINO)
+    t(e.matrimonio, H - 80, ctx.f.texto, 11.5)
+    t(`${e.codigo} · ${e.cartas} ${e.cartas === 1 ? 'carta' : 'cartas'}`, 26, ctx.f.sans, 8.5, GRIS)
+    t(retiro.nombre, 14, ctx.f.cursiva, 8, GRIS)
+  })
   return new Blob([await ctx.doc.save()], { type: 'application/pdf' })
 }
