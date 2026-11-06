@@ -121,9 +121,10 @@ export async function listarCategorias() {
   return data || []
 }
 
-export async function enviarConsulta(consulta) {
+export async function enviarConsulta(consulta, { aviso = true } = {}) {
   const { error } = await supabase.from('consultas').insert({ ...consulta, estado: 'nueva' })
   if (error) throw error
+  if (!aviso) return
   const d = consulta.datos || {}
   avisar({
     tipo: consulta.tipo, nombre: consulta.nombre,

@@ -8,6 +8,8 @@ import { supabase } from '../../lib/supabase.js'
 import { precio } from '../../lib/formato.js'
 import { enviarConsulta, estadoEfectivo } from '../catalogo/obrasService.js'
 import { registrarEvento } from '../../lib/analytics.js'
+import { avisar } from '../../lib/avisos.js'
+import { anticipoPedido } from '../../lib/anticipo.js'
 
 const ENTREGAS = [
   { id: 'retiro', t: 'Retiro en San Salvador', d: 'Coordinamos día y hora contigo' },
@@ -78,6 +80,20 @@ export default function Carrito() {
       if (!ventana) window.location.href = wa
     }
 
+    // Aviso inmediato a Telegram con el detalle del pedido (no espera a que se guarde)
+    const itemsPedido = validos.map(x => ({ id: x.id, titulo: x.titulo, precio: Number(x.precio) || null, cantidad: x.cantidad || 1, medidas: x.medidas, porPedido: !!x.porPedido }))
+    const ant = anticipoPedido({ items: itemsPedido, total: totalValidos }, cfg.pedido_anticipo)
+    avisar({
+      tipo: 'compra', nombre: form.nombre.trim() || 'Cliente',
+      detalle: `${validos.length} ${validos.length === 1 ? 'obra' : 'obras'} · ${precio(totalValidos) || 'a consultar'}`,
+      lineas: [
+        ...itemsPedido.map(x => `• ${x.titulo}${x.cantidad > 1 ? ` ×${x.cantidad}` : ''}${x.precio ? ` — ${precio(x.precio * x.cantidad)}` : ''}${x.porPedido ? ' (por pedido)' : ''}`),
+        `Entrega: ${form.entrega === 'envio' ? 'envío a domicilio' : 'la recoge el cliente'}${form.instalacion ? ' · con instalación' : ''}`,
+        ant ? `Anticipo ${ant.pct}%: ${precio(ant.anticipo)} · saldo ${precio(ant.saldo)}` : null,
+        'El cliente terminará de enviarlo por WhatsApp.',
+      ].filter(Boolean),
+    })
+
     // Dejar registro del pedido en Admin › Consultas (sin detener al cliente)
     enviarConsulta({
       tipo: 'compra',
@@ -87,11 +103,11 @@ export default function Carrito() {
       mensaje: form.notas.trim() || null,
       datos: {
         pedido: true, canal: 'whatsapp',
-        items: validos.map(x => ({ id: x.id, titulo: x.titulo, precio: Number(x.precio) || null, cantidad: x.cantidad || 1, medidas: x.medidas, porPedido: !!x.porPedido })),
+        items: itemsPedido,
         total: totalValidos, entrega: form.entrega, direccion: form.entrega === 'envio' ? form.direccion.trim() || null : null,
         instalacion: form.instalacion,
       },
-    }).catch(() => {})
+    }, { aviso: false }).catch(() => {})
     registrarEvento('pedido_whatsapp', '/carrito', null, resumen)
     setPedido({ resumen, total: totalValidos, wa })
     vaciar()

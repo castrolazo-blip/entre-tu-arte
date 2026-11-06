@@ -64,7 +64,8 @@ Deno.serve(async req => {
   else {
     const [titulo, ruta] = TIPOS[limpiar(cuerpo.tipo, 20)] || TIPOS.consulta
     const detalle = limpiar(cuerpo.detalle, 120)
-    texto = `${titulo}\n${nombreCorto(cuerpo.nombre)}${detalle ? ' — ' + detalle : ''}\n\nVer en el panel: ${PANEL}${ruta}`
+    const lineas = (Array.isArray(cuerpo.lineas) ? cuerpo.lineas : []).slice(0, 12).map((l: unknown) => limpiar(l, 90)).filter(Boolean)
+    texto = `${titulo}\n${nombreCorto(cuerpo.nombre)}${detalle ? ' — ' + detalle : ''}${lineas.length ? '\n\n' + lineas.join('\n') : ''}\n\nVer en el panel: ${PANEL}${ruta}`
   }
 
   const r = await fetch(`${api}/sendMessage`, {

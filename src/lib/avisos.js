@@ -2,12 +2,12 @@
 // Nunca bloquea ni hace fallar el envío del cliente: si el aviso falla, la consulta igual queda en el panel.
 export const FUNCION_AVISO_URL = 'https://ivvjbuhppuwpgefwqpuz.supabase.co/functions/v1/entre-tu-arte-aviso'
 
-export function avisar({ tipo, nombre, detalle }) {
+export function avisar({ tipo, nombre, detalle, lineas }) {
   try {
     fetch(FUNCION_AVISO_URL, {
       method: 'POST', keepalive: true,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo, nombre, detalle }),
+      body: JSON.stringify({ tipo, nombre, detalle, lineas }),
     }).catch(() => {})
   } catch { /* sin conexión */ }
 }
