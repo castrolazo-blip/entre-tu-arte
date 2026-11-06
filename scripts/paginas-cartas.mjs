@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 const base = readFileSync('dist/index.html', 'utf8')
 const esc = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
-function pagina(titulo, descripcion) {
+function pagina(titulo, descripcion, imagen) {
   return base
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(titulo)}</title>`)
     .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(descripcion)}" />\n    <meta name="robots" content="noindex, nofollow" />`)
@@ -16,13 +16,14 @@ function pagina(titulo, descripcion) {
     .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(descripcion)}" />`)
     .replace(/<meta property="og:site_name"[^>]*>/, '<meta property="og:site_name" content="Cartas con Amor" />')
     .replace(/<meta property="og:url"[^>]*>\n?\s*/, '')
-    .replace(/<meta property="og:image"[^>]*>\n?\s*/, '')
+    .replace(/<meta property="og:image"[^>]*>/, imagen ? `<meta property="og:image" content="${imagen}" />` : '')
     .replace(/<script type="application\/ld\+json">.*?<\/script>\n?\s*/s, '')
 }
 
 mkdirSync('dist/cartas', { recursive: true })
 writeFileSync('dist/cartas/enviar.html', pagina('Escribe una carta · Cartas con Amor',
-  'Escribe una carta para una pareja que vivirá un encuentro matrimonial. Es privada y será una sorpresa.'))
+  'Escribe una carta para una pareja que vivirá un encuentro matrimonial. Es privada y será una sorpresa.',
+  'https://entretuarte.com/cartas/renova-rojo.png'))
 writeFileSync('dist/cartas/equipo.html', pagina('Mis parejas · Cartas con Amor', 'Enlace privado del equipo de cartas.'))
 const privada = pagina('Cartas con Amor · Organizadores', 'Acceso para el equipo organizador del retiro.')
 writeFileSync('dist/cartas/entrar.html', privada)

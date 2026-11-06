@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { MailOpen } from 'lucide-react'
 
 // Marca visual de Cartas con Amor (independiente de la marca Entre tu Arte)
 if (typeof document !== 'undefined' && !document.getElementById('cca-fuente')) {
@@ -12,16 +11,16 @@ if (typeof document !== 'undefined' && !document.getElementById('cca-fuente')) {
 
 export const serif = { fontFamily: '"Cormorant Garamond", Georgia, serif' }
 
+// Logo de Renova (encuentro matrimonial) + nombre de la aplicación.
+// claro = versión blanca para fondos vino · sin claro = versión vino para fondos claros.
 export function Marca({ claro = false, compacta = false }) {
+  const logo = `${import.meta.env.BASE_URL}cartas/renova-${claro ? 'blanco' : 'rojo'}.png`
   return (
-    <div className={`flex items-center gap-2.5 ${claro ? 'text-white' : 'text-vino'}`}>
-      <span className={`flex shrink-0 items-center justify-center rounded-full ${compacta ? 'h-9 w-9' : 'h-11 w-11'} ${claro ? 'bg-white/15' : 'bg-vino-claro'}`}>
-        <MailOpen size={compacta ? 18 : 21} strokeWidth={1.8} />
-      </span>
-      <span className="leading-none">
-        <span style={serif} className={`block font-semibold italic ${compacta ? 'text-[22px]' : 'text-[27px]'}`}>Cartas con Amor</span>
-        {!compacta && <span className={`mt-1 block text-[10.5px] font-bold uppercase tracking-[0.16em] ${claro ? 'text-white/70' : 'text-oro'}`}>Encuentro matrimonial</span>}
-      </span>
+    <div className={`flex items-center ${compacta ? 'gap-2.5' : 'gap-3.5'} ${claro ? 'text-white' : 'text-vino'}`}>
+      <img src={logo} alt="Renova · encuentro matrimonial" width="451" height="360"
+        className={`${compacta ? 'h-10' : 'h-16'} w-auto shrink-0`} />
+      <span className={`self-stretch border-l ${claro ? 'border-white/30' : 'border-vino/20'}`} aria-hidden="true" />
+      <span style={serif} className={`font-semibold italic leading-none ${compacta ? 'text-[21px]' : 'text-[26px]'}`}>Cartas<br />con Amor</span>
     </div>
   )
 }
