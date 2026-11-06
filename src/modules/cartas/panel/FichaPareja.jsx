@@ -8,7 +8,7 @@ import { responsableDe, esValida, enlacePortal, nombreDestinatario, nombrePareja
 import { Etiqueta, Kpi, Semaforo, Vacio, btn } from '../ui.jsx'
 import { FormPareja, Avance } from './Parejas.jsx'
 import { FormRemitente, AccionesRecordatorio } from './remitentes.jsx'
-import { copiar } from './Retiros.jsx'
+import { InvitacionPareja } from './Retiros.jsx'
 import CartaFisica from './CartaFisica.jsx'
 
 export default function FichaPareja() {
@@ -67,7 +67,7 @@ export default function FichaPareja() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => abrirPaquete()} className={btn.vino}><PackagePlus size={16} />Registrar cartas recibidas</button>
-          <button onClick={() => copiar(enlacePortal(retiro, { pareja }), 'Enlace de la pareja copiado')} className={btn.contorno}><Copy size={15} />Enlace de la pareja</button>
+          <InvitacionPareja retiro={retiro} pareja={pareja} compacto={false} />
           <button onClick={() => abrirEditar()} className={btn.contorno}><Pencil size={15} />Editar</button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PackagePlus, ChevronRight, Phone, Link2 } from 'lucide-react'
-import { copiar } from './Retiros.jsx'
+import { InvitacionPareja } from './Retiros.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { useVentana } from '../borrador.js'
 import { enlacePortal, nombrePareja, nombreEquipo, nombreDestinatario, folioTexto, fecha, ORIGENES, esValida, semaforo } from '../constantes.js'
@@ -88,7 +88,7 @@ export default function MisParejas() {
                 )}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button onClick={() => abrirRegistrar(p.id)} className={btn.vino}><PackagePlus size={16} />Registrar cartas recibidas</button>
-                  <button onClick={() => copiar(enlacePortal(retiro, { pareja: p }), 'Enlace de la pareja copiado')} className={btn.contorno}><Link2 size={15} />Enlace de la pareja</button>
+                  <InvitacionPareja retiro={retiro} pareja={p} compacto={false} />
                   <Link to={`/cartas/panel/parejas/${p.id}`} className={btn.contorno}>Ver ficha<ChevronRight size={16} /></Link>
                 </div>
               </li>
