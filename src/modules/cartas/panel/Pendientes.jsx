@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Search, Phone, ChevronDown, StickyNote, UserPlus, Pencil } from 'lucide-react'
+import { Search, Phone, ChevronDown, StickyNote, UserPlus, Pencil, MapPin } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
-import { listarRecordatorios, registrarGestion } from '../cartasService.js'
-import { fecha, nombrePareja, nombreEquipo, mensajeError } from '../constantes.js'
+import { listarRecordatorios, registrarGestion, guardarEntrega } from '../cartasService.js'
+import { fecha, nombrePareja, nombreEquipo, mensajeError, LUGAR_ENTREGA, HORARIO_ENTREGA } from '../constantes.js'
 import { Titulo, Vacio } from '../ui.jsx'
 import { AccionesRecordatorio, FormRemitente } from './remitentes.jsx'
 import { useVentana } from '../borrador.js'
@@ -39,6 +39,9 @@ export default function Pendientes() {
   const { usuario } = useAuth()
   const [q, setQ] = useState('')
   const [matrimonio, setMatrimonio] = useState(miEquipo?.id || 'todos')
+  // El equipo carga después: al conocer el matrimonio propio, se filtra por él (una sola vez)
+  const [filtroElegido, setFiltroElegido] = useState(false)
+  useEffect(() => { if (!filtroElegido && miEquipo) { setMatrimonio(miEquipo.id); setFiltroElegido(true) } }, [miEquipo, filtroElegido])
   const [gestiones, setGestiones] = useState([])
   const [abierto, setAbierto] = useState(null)
   // Contactos gestionados en esta visita: siguen visibles en la pestaña actual aunque ya cambien de estado
@@ -93,12 +96,13 @@ export default function Pendientes() {
       <Titulo titulo="Gestión de cartas" subtitulo="Por pareja del retiro. «Enviar» abre WhatsApp (bienvenida o seguimiento), 📞 llama y queda anotado quién hizo cada gestión." />
 
       {equipo.length > 0 && (
-        <select value={matrimonio} onChange={e => setMatrimonio(e.target.value)} className="campo mb-3" aria-label="Matrimonio asignado">
+        <select value={matrimonio} onChange={e => { setMatrimonio(e.target.value); setFiltroElegido(true) }} className="campo mb-3" aria-label="Matrimonio asignado">
           <option value="todos">Todos los matrimonios · {activas.length} parejas</option>
           {equipo.map(e => <option key={e.id} value={e.id}>{e.id === miEquipo?.id ? 'Mis parejas · ' : ''}{nombreEquipo(e)} · {activas.filter(p => p.equipo_id === e.id).length}</option>)}
           {activas.some(p => !p.equipo_id) && <option value="sin">Sin matrimonio asignado · {activas.filter(p => !p.equipo_id).length}</option>}
         </select>
       )}
+      {(() => { const sel = equipo.find(e => e.id === matrimonio); return sel && <LugarEntrega equipo={sel} editable={esAdmin || sel.id === miEquipo?.id} /> })()}
 
       <p className="mb-3 flex flex-wrap gap-x-4 gap-y-1 rounded-2xl bg-white px-4 py-3 text-[13px]">
         <span><b>{cuantos.sin}</b> <span className="text-gris">sin avisar</span></span>
@@ -202,6 +206,53 @@ export default function Pendientes() {
       {nuevoContacto && parejas.find(p => p.id === nuevoContacto) && (
         <FormRemitente pareja={parejas.find(p => p.id === nuevoContacto)} coordinador onCerrar={cerrarContacto} />
       )}
+    </div>
+  )
+}
+
+// Lugar y horario donde este matrimonio recibe las cartas físicas; se usa en su mensaje de bienvenida
+function LugarEntrega({ equipo: e, editable }) {
+  const { actualizarLocal } = useCartas()
+  const [editando, setEditando] = useState(false)
+  const [lugar, setLugar] = useState('')
+  const [horario, setHorario] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const abrir = () => { setLugar(e.lugar_entrega || ''); setHorario(e.horario_entrega || ''); setEditando(true) }
+
+  async function guardar(ev) {
+    ev.preventDefault()
+    setGuardando(true)
+    try {
+      actualizarLocal('equipo', await guardarEntrega(e.id, lugar, horario))
+      toast.success('Lugar de entrega guardado')
+      setEditando(false)
+    } catch (err) {
+      toast.error(/cca_guardar_entrega|function/i.test(err?.message || '') ? 'Falta activar esta opción en la base de datos (SQL pendiente).'
+        : /sin_permiso/.test(err?.message || '') ? 'Solo el matrimonio responsable o un administrador puede cambiarlo.' : mensajeError(err, 'No se pudo guardar'))
+    } finally { setGuardando(false) }
+  }
+
+  if (editando) return (
+    <form onSubmit={guardar} className="mb-3 space-y-3 rounded-2xl bg-white p-4">
+      <p className="text-sm font-semibold">Dónde reciben las cartas en papel · {nombreEquipo(e)}</p>
+      <label className="etiqueta">Lugar / dirección<textarea rows={2} value={lugar} onChange={x => setLugar(x.target.value)} placeholder={LUGAR_ENTREGA} className="campo mt-1.5" /></label>
+      <label className="etiqueta">Horario<input value={horario} onChange={x => setHorario(x.target.value)} placeholder={HORARIO_ENTREGA} className="campo mt-1.5" /></label>
+      <p className="text-xs text-gris">Sale en el mensaje de bienvenida de sus parejas. Si lo dejas vacío se usa el general.</p>
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={() => setEditando(false)} className="h-10 rounded-full px-4 text-sm font-semibold text-gris hover:bg-crema">Cancelar</button>
+        <button disabled={guardando} className="h-10 rounded-full bg-vino px-5 text-sm font-semibold text-white">{guardando ? 'Guardando…' : 'Guardar'}</button>
+      </div>
+    </form>
+  )
+  return (
+    <div className="mb-3 flex items-start gap-3 rounded-2xl bg-white px-4 py-3">
+      <MapPin size={18} className="mt-0.5 shrink-0 text-vino" />
+      <span className="min-w-0 flex-1 text-[13px]">
+        <span className="block text-xs text-gris">Entrega de cartas en papel{e.lugar_entrega ? '' : ' (general)'}</span>
+        <span className="block font-semibold">{e.lugar_entrega || LUGAR_ENTREGA}</span>
+        <span className="block text-gris">{e.horario_entrega || HORARIO_ENTREGA}</span>
+      </span>
+      {editable && <button onClick={abrir} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-crema-borde px-3 text-xs font-semibold text-vino hover:border-vino"><Pencil size={13} />Editar</button>}
     </div>
   )
 }

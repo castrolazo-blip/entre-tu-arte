@@ -48,6 +48,8 @@ export async function guardarEquipo(e) {
     ? ok(await supabase.from('cca_equipo').update(fila).eq('id', e.id).select().single())
     : ok(await supabase.from('cca_equipo').insert(fila).select().single())
 }
+export const guardarEntrega = async (equipoId, lugar, horario) =>
+  ok(await supabase.rpc('cca_guardar_entrega', { p_equipo: equipoId, p_lugar: lugar || '', p_horario: horario || '' }))
 export const borrarEquipo = async (id) => ok(await supabase.from('cca_equipo').delete().eq('id', id))
 export const asignarParejas = async (ids, equipoId) =>
   ok(await supabase.from('cca_parejas').update({ equipo_id: equipoId || null }).in('id', ids).select('id, equipo_id'))

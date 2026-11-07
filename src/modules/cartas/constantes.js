@@ -142,6 +142,10 @@ export function enlacePortal(retiro, { pareja, remitente } = {}) {
 // ── Recordatorios ──
 // Mensaje para los contactos de la familia (coordinadores). Editable por retiro (Retiros › Editar).
 // Variables: {nombre} {pareja} {responsable} {meta} {fecha_limite} {enlace}
+// Lugar y horario por defecto para las cartas físicas (cada matrimonio responsable puede poner los suyos)
+export const LUGAR_ENTREGA = 'Colegio Highlands ubicado en Carretera a Santa Tecla y pje privado'
+export const HORARIO_ENTREGA = 'Lunes a viernes: 9 am - 2:30 pm'
+
 export const PLANTILLA_FAMILIAS = `¡Venga Tu Reino!
 
 Estimados Familiares:
@@ -157,8 +161,8 @@ Para garantizar que todas las cartas sean entregadas correctamente les pedimos:
 
 *LUGAR Y HORARIOS DE ENTREGA:*
 Pueden hacer la entrega de cartas con {responsable}
-- 📍 *Lugar:* Colegio Highlands ubicado en Carretera a Santa Tecla y pje privado
-- ⏱️ *Horarios:* Lunes a viernes: 9 am - 2:30 pm
+- 📍 *Lugar:* {lugar}
+- ⏱️ *Horarios:* {horario}
 - 🗓️ *La FECHA LÍMITE* para la entrega de cartas será el *{fecha_limite}*
 
 📲 *POR ESTE ENLACE:* 📲
@@ -205,19 +209,23 @@ ${enlace}
 🤫 Es una sorpresa: no les comentes nada.`
 }
 
-export function mensajeFamilias({ retiro, pareja, remitente, enlace, responsable }) {
-  const plantilla = retiro.plantilla_mensaje?.trim() || PLANTILLA_FAMILIAS
+export function mensajeFamilias({ retiro, pareja, remitente, enlace, responsable, entrega }) {
+  let plantilla = retiro.plantilla_mensaje?.trim() || PLANTILLA_FAMILIAS
+  // Plantillas guardadas antes de {lugar}/{horario}: se reemplazan esas líneas por los campos
+  if (!plantilla.includes('{lugar}')) plantilla = plantilla.replace(/(📍\s*\*?Lugar:\*?)[^\n]*/, '$1 {lugar}')
+  if (!plantilla.includes('{horario}')) plantilla = plantilla.replace(/(⏱️\s*\*?Horarios?:\*?)[^\n]*/, '$1 {horario}')
   const valores = {
     nombre: (remitente?.nombre || '').split(' ')[0], pareja: nombrePareja(pareja),
     responsable: responsable || pareja.responsable || 'el equipo de cartas', meta: retiro.meta_por_persona || 10,
     fecha_limite: fechaLarga(retiro.fecha_limite), enlace,
+    lugar: entrega?.lugar_entrega || LUGAR_ENTREGA, horario: entrega?.horario_entrega || HORARIO_ENTREGA,
   }
-  return plantilla.replace(/\{(nombre|pareja|responsable|meta|fecha_limite|enlace)\}/g, (_, k) => valores[k])
+  return plantilla.replace(/\{(nombre|pareja|responsable|meta|fecha_limite|enlace|lugar|horario)\}/g, (_, k) => valores[k])
 }
 
 // Ojo: el mensaje es para familiares y amigos; las parejas no deben enterarse (es sorpresa).
-export function mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable }) {
-  if (remitente.coordinador) return mensajeFamilias({ retiro, pareja, remitente, enlace, responsable })
+export function mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable, entrega }) {
+  if (remitente.coordinador) return mensajeFamilias({ retiro, pareja, remitente, enlace, responsable, entrega })
   const para = nombreDestinatario(pareja, remitente.destinatario)
   const plazo = retiro.fecha_limite ? ` Te pedimos enviarla a más tardar el ${fecha(retiro.fecha_limite)}.` : ''
   const nombre = (remitente.nombre || '').split(' ')[0]
