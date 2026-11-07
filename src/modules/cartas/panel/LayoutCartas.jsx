@@ -11,10 +11,9 @@ import { Etiqueta } from '../ui.jsx'
 const MENU = [
   { to: '/cartas/panel', etiqueta: 'Inicio', Icono: Home, fin: true, simple: true },
   { to: '/cartas/panel/tablero', etiqueta: 'Avance', Icono: LayoutDashboard },
-  { to: '/cartas/panel/mis-parejas', etiqueta: 'Mis parejas', Icono: HeartHandshake, equipo: true, simple: true },
   { to: '/cartas/panel/cartas', etiqueta: 'Cartas', Icono: Inbox, contador: 'posiblesDuplicados', simple: true },
   { to: '/cartas/panel/parejas', etiqueta: 'Parejas', Icono: Users },
-  { to: '/cartas/panel/pendientes', etiqueta: 'Avisar a familias', Icono: BellRing, contador: 'contactosPendientes' },
+  { to: '/cartas/panel/pendientes', etiqueta: 'Avisar a familias', Icono: BellRing, contador: 'contactosPendientes', simple: true },
   { to: '/cartas/panel/impresion', etiqueta: 'Impresión y sobres', Icono: Printer },
   { to: '/cartas/panel/retiros', etiqueta: 'Retiros', Icono: CalendarHeart },
   { to: '/cartas/panel/configuracion', etiqueta: 'Configuración', Icono: Settings, soloAdmin: true },

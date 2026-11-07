@@ -8,6 +8,7 @@ import { listarRecordatorios, registrarGestion } from '../cartasService.js'
 import { fecha, nombrePareja, nombreEquipo, mensajeError } from '../constantes.js'
 import { Titulo, Vacio } from '../ui.jsx'
 import { AccionesRecordatorio } from './remitentes.jsx'
+import { InvitacionPareja } from './Retiros.jsx'
 
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
@@ -31,7 +32,8 @@ function describir(g) {
 }
 
 export default function Pendientes() {
-  const { retiro, parejas, remitentes, equipo, esAdmin, miEquipo, usuarios, actualizarLocal } = useCartas()
+  const { retiro, parejas, remitentes, equipo, esAdmin, miEquipo, usuarios, actualizarLocal, indicadores } = useCartas()
+  const meta = retiro.meta_por_persona || 0
   const { usuario } = useAuth()
   const [vista, setVista] = useState('sin')
   const [q, setQ] = useState('')
@@ -124,6 +126,12 @@ export default function Pendientes() {
                     : <span className="font-semibold text-vino">{nombrePareja(p)}</span>}
                   <span className="ml-auto text-xs font-semibold text-gris">{entregaron}/{total} entregaron</span>
                   <span className="w-full text-[11.5px] text-gris">{resp ? `A cargo de ${nombreEquipo(resp)}` : 'Sin matrimonio asignado'}</span>
+                  <div className="mt-2 flex w-full flex-wrap items-center gap-2">
+                    {(() => { const x = indicadores.porPareja[p.id]; return x && (
+                      <span className="text-xs text-tinta">Cartas: <b>{p.apodo_a || p.nombre_a}</b> {x.paraA}{meta ? `/${meta}` : ''} · <b>{p.apodo_b || p.nombre_b}</b> {x.paraB}{meta ? `/${meta}` : ''}</span>
+                    ) })()}
+                    <span className="ml-auto"><InvitacionPareja retiro={retiro} pareja={p} compacto chico /></span>
+                  </div>
                 </div>
                 <ul className="divide-y divide-crema-borde">
                   {lista.map(r => {

@@ -118,9 +118,14 @@ function FormRetiro({ inicial, onCerrar, onGuardado }) {
 }
 
 // Botones para compartir la invitación de una pareja (mensaje + su enlace, solo esa pareja)
-export function InvitacionPareja({ retiro, pareja, compacto = true, simple = false }) {
+export function InvitacionPareja({ retiro, pareja, compacto = true, simple = false, chico = false }) {
   const texto = mensajeInvitacion({ retiro, pareja, enlace: enlacePortal(retiro, { pareja }) })
   const clase = compacto ? btn.mini : btn.contorno
+  if (chico) return (
+    <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer"
+      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#25D366] px-3 text-xs font-semibold text-white hover:brightness-95">
+      <MessageCircle size={14} />Invitar a otros</a>
+  )
   if (simple) return (
     <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer"
       className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-3 text-sm font-semibold text-white hover:brightness-95">
