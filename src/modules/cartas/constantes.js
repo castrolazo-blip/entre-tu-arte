@@ -153,7 +153,7 @@ Esperamos que se encuentren bien. Nos dirigimos a ustedes pues *{pareja}* partic
 
 ⚠️ *INFORMACIÓN IMPORTANTE SOBRE LA ENTREGA LAS CARTAS:* ⚠️
 Para garantizar que todas las cartas sean entregadas correctamente les pedimos:
-1. Identificar *cada carta* con el *nombre y apellido completo del matrimonio y quién le envía la carta* (ej. Para: {pareja}, De: hermano, padres, amigos, etc// _Solemos tener participantes con los mismos nombres, por lo que identificar correctamente las cartas es *muy* importante._)
+1. Identificar *cada carta* con el *nombre y apellido completo del matrimonio y quién le envía la carta* (ej. Para: {apodos}, De: hermano, padres, amigos, etc// _Solemos tener participantes con los mismos nombres, por lo que identificar correctamente las cartas es *muy* importante._)
 2. Recolectar todas las cartas y *entregarnos el paquete completo.*
 3. *Solo se recibirán cartas*, por favor no enviar regalos, globos, comida, peluches, etc. (Estos pueden llevarlos el día Domingo en la misa de cierre si así lo desean)
 4. Les pedimos su ayuda para que los participantes *NO SEPAN QUE EXISTEN ESTAS CARTAS.* será de gran sorpresa para ellos recibirlas.
@@ -213,15 +213,17 @@ export function mensajeFamilias({ retiro, pareja, remitente, enlace, responsable
   let plantilla = retiro.plantilla_mensaje?.trim() || PLANTILLA_FAMILIAS
   // Plantillas guardadas antes de {lugar}/{horario}: se reemplazan esas líneas por los campos
   if (!plantilla.includes('{lugar}')) plantilla = plantilla.replace(/(📍\s*\*?Lugar:\*?)[^\n]*/, '$1 {lugar}')
-  plantilla = plantilla.replace('Para: Alberto y Katia López', 'Para: {pareja}')  // ejemplo con la pareja en mención
+  // Ejemplo de rotulado con la pareja en mención, por el nombre que les gusta que les digan
+  plantilla = plantilla.replace('Para: Alberto y Katia López', 'Para: {apodos}').replace('ej. Para: {pareja}', 'ej. Para: {apodos}')
   if (!plantilla.includes('{horario}')) plantilla = plantilla.replace(/(⏱️\s*\*?Horarios?:\*?)[^\n]*/, '$1 {horario}')
   const valores = {
     nombre: (remitente?.nombre || '').split(' ')[0], pareja: nombrePareja(pareja),
+    apodos: `${pareja.apodo_a || pareja.nombre_a} y ${pareja.apodo_b || pareja.nombre_b}`,
     responsable: responsable || pareja.responsable || 'el equipo de cartas', meta: retiro.meta_por_persona || 10,
     fecha_limite: fechaLarga(retiro.fecha_limite), enlace,
     lugar: entrega?.lugar_entrega || LUGAR_ENTREGA, horario: entrega?.horario_entrega || HORARIO_ENTREGA,
   }
-  return plantilla.replace(/\{(nombre|pareja|responsable|meta|fecha_limite|enlace|lugar|horario)\}/g, (_, k) => valores[k])
+  return plantilla.replace(/\{(nombre|pareja|apodos|responsable|meta|fecha_limite|enlace|lugar|horario)\}/g, (_, k) => valores[k])
 }
 
 // Ojo: el mensaje es para familiares y amigos; las parejas no deben enterarse (es sorpresa).
