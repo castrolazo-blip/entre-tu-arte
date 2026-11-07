@@ -13,7 +13,7 @@ import { InvitacionPareja } from './Retiros.jsx'
 
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-// «Gestión de cartas» (avisar a las familias): filtrado por matrimonio del equipo, agrupado por pareja del retiro,
+// «Gestión de cartas» (avisar a las familias): una sola lista; cada contacto muestra su estado y sus gestiones: filtrado por matrimonio del equipo, agrupado por pareja del retiro,
 // y con el historial de gestiones (mensajes, llamadas, notas) de cada contacto.
 const PESTANAS = [
   ['sin', 'Sin avisar', r => (r.estado === 'pendiente' || r.estado === 'revision') && !r.ultimo_recordatorio],
@@ -37,15 +37,11 @@ export default function Pendientes() {
   const { retiro, parejas, remitentes, equipo, esAdmin, miEquipo, usuarios, actualizarLocal, indicadores } = useCartas()
   const meta = retiro.meta_por_persona || 0
   const { usuario } = useAuth()
-  const [vista, setVista] = useState('sin')
   const [q, setQ] = useState('')
   const [matrimonio, setMatrimonio] = useState(miEquipo?.id || 'todos')
   const [gestiones, setGestiones] = useState([])
   const [abierto, setAbierto] = useState(null)
   // Contactos gestionados en esta visita: siguen visibles en la pestaña actual aunque ya cambien de estado
-  const [recientes, setRecientes] = useState(() => new Set())
-  const marcar = id => setRecientes(s => new Set(s).add(id))
-  useEffect(() => { setRecientes(new Set()) }, [vista])
   const [nuevoContacto, abrirContacto, cerrarContacto] = useVentana('contacto')
   const [editarId, abrirEditar, cerrarEditar] = useVentana('editar-contacto')
   const editando = editarId && remitentes.find(r => r.id === editarId)
@@ -66,25 +62,23 @@ export default function Pendientes() {
   const idsFiltro = new Set(delFiltro.map(p => p.id))
   const contactos = remitentes.filter(r => r.coordinador && idsFiltro.has(r.pareja_id))
   const cuantos = Object.fromEntries(PESTANAS.map(([k, , f]) => [k, contactos.filter(f).length]))
-  const filtro = PESTANAS.find(([k]) => k === vista)[2]
 
   const grupos = delFiltro
     .sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
     .map(p => {
       const suyos = contactos.filter(r => r.pareja_id === p.id)
       const coincidePareja = !q || norm(`${p.codigo} ${nombrePareja(p)}`).includes(norm(q))
-      const lista = suyos.filter(r => filtro(r) || recientes.has(r.id)).filter(r => coincidePareja || norm(`${r.nombre} ${r.relacion}`).includes(norm(q)))
+      const lista = suyos.filter(r => coincidePareja || norm(`${r.nombre} ${r.relacion}`).includes(norm(q)))
       return { p, lista, total: suyos.length, entregaron: suyos.filter(r => r.estado === 'recibido').length, coincidePareja }
     })
     // En «Sin avisar» también salen las parejas sin contactos, para poder agregarles uno
-    .filter(g => g.lista.length || (vista === 'sin' && !g.total && g.coincidePareja))
+    .filter(g => g.lista.length || (!g.total && g.coincidePareja))
 
   async function gestionar(r, canal, mensaje = null) {
     try {
       const fila = await registrarGestion({ retiro_id: retiro.id, remitente_id: r.id, canal, mensaje, usuario_id: usuario.id })
       if (fila) actualizarLocal('remitentes', fila)
       cargarGestiones()
-      marcar(r.id)
       if (canal === 'nota') toast.success('Nota guardada')
     } catch (err) { toast.error(mensajeError(err, 'No se pudo guardar')) }
   }
@@ -106,14 +100,11 @@ export default function Pendientes() {
         </select>
       )}
 
-      <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-full bg-white p-1.5" role="tablist">
-        {PESTANAS.map(([k, t]) => (
-          <button key={k} role="tab" aria-selected={vista === k} onClick={() => setVista(k)}
-            className={`flex h-11 flex-col items-center justify-center rounded-full text-[13px] font-semibold leading-tight transition ${vista === k ? 'bg-vino text-white' : 'text-tinta'}`}>
-            <span>{t}</span><span className={`text-[11px] ${vista === k ? 'text-white/80' : 'text-gris'}`}>{cuantos[k]}</span>
-          </button>
-        ))}
-      </div>
+      <p className="mb-3 flex flex-wrap gap-x-4 gap-y-1 rounded-2xl bg-white px-4 py-3 text-[13px]">
+        <span><b>{cuantos.sin}</b> <span className="text-gris">sin avisar</span></span>
+        <span><b>{cuantos.avisados}</b> <span className="text-gris">avisados</span></span>
+        <span><b className="text-emerald-700">{cuantos.entregaron}</b> <span className="text-gris">entregaron</span></span>
+      </p>
 
       <label className="relative mb-4 block">
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gris" />
@@ -121,8 +112,8 @@ export default function Pendientes() {
       </label>
 
       {!grupos.length ? (
-        <Vacio titulo={vista === 'sin' ? (contactos.length ? '¡Ya avisaste a todos!' : 'Aún no hay contactos de familia') : 'Nadie en esta lista todavía'}>
-          {!contactos.length && (delFiltro.length ? 'Se cargan al importar el Excel de inscripción.' : 'Este matrimonio aún no tiene parejas asignadas.')}
+        <Vacio titulo={q ? 'Nada coincide con la búsqueda' : 'Aún no hay parejas'}>
+          {!q && !contactos.length && (delFiltro.length ? 'Se cargan al importar el Excel de inscripción.' : 'Este matrimonio aún no tiene parejas asignadas.')}
         </Vacio>
       ) : (
         <ul className="space-y-3">
@@ -156,7 +147,7 @@ export default function Pendientes() {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">{r.nombre} <span className="font-normal text-gris">· {r.relacion}</span></span>
                             <span className={`block text-[11.5px] ${r.estado === 'recibido' ? 'font-semibold text-emerald-700' : 'text-gris'}`}>
-                              {r.estado === 'recibido' ? '✓ Ya entregó cartas' : ultima
+                              {r.estado === 'recibido' ? '✓ Ya entregó cartas' : r.estado === 'exento' ? `No enviará${r.motivo ? ' · ' + r.motivo : ''}` : ultima
                                 ? `Última: ${describir(ultima).tipo.toLowerCase()} · ${fecha(ultima.created_at, true)}`
                                 : r.ultimo_recordatorio ? `Avisado · ${fecha(r.ultimo_recordatorio, true)}` : 'Aún sin avisar'}
                             </span>
@@ -165,7 +156,7 @@ export default function Pendientes() {
                             <a href={`tel:${String(r.telefono).replace(/[^\d+]/g, '')}`} onClick={() => gestionar(r, 'llamada')} aria-label={`Llamar a ${r.nombre}`} title={`Llamar · ${r.telefono}`}
                               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-crema-borde bg-white text-vino hover:border-vino"><Phone size={16} /></a>
                           )}
-                          {r.estado !== 'recibido' && r.estado !== 'exento' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple onRegistrado={() => { marcar(r.id); cargarGestiones(); if (vista === 'sin') toast.success(`${r.nombre} pasó a «Ya avisados»`) }} />}
+                          {r.estado !== 'recibido' && r.estado !== 'exento' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple onRegistrado={cargarGestiones} />}
                         </div>
                         <button onClick={() => setAbierto(abiertoAqui ? null : r.id)} aria-expanded={abiertoAqui}
                           className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-vino">
@@ -209,7 +200,7 @@ export default function Pendientes() {
       )}
       {editando && <FormRemitente pareja={parejas.find(p => p.id === editando.pareja_id)} inicial={editando} onCerrar={cerrarEditar} />}
       {nuevoContacto && parejas.find(p => p.id === nuevoContacto) && (
-        <FormRemitente pareja={parejas.find(p => p.id === nuevoContacto)} coordinador onCerrar={() => { cerrarContacto(); setVista('sin') }} />
+        <FormRemitente pareja={parejas.find(p => p.id === nuevoContacto)} coordinador onCerrar={cerrarContacto} />
       )}
     </div>
   )
