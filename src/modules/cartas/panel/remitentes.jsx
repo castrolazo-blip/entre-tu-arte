@@ -61,7 +61,7 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
 }
 
 // Botones para enviar el recordatorio por WhatsApp o correo (se abre la app; nada se envía solo)
-export function AccionesRecordatorio({ remitente, pareja, compacto = false, simple = false }) {
+export function AccionesRecordatorio({ remitente, pareja, compacto = false, simple = false, onRegistrado }) {
   const { retiro, actualizarLocal, equipo } = useCartas()
   const { usuario } = useAuth()
   const enlace = enlacePortal(retiro, { remitente })
@@ -73,6 +73,7 @@ export function AccionesRecordatorio({ remitente, pareja, compacto = false, simp
     try {
       const fila = await registrarRecordatorio({ retiro_id: retiro.id, remitente_id: remitente.id, canal, mensaje, usuario_id: usuario.id })
       actualizarLocal('remitentes', fila)
+      onRegistrado?.()
     } catch (err) { toast.error(mensajeError(err, 'No se pudo registrar el recordatorio')) }
   }
 

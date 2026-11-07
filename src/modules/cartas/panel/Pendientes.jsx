@@ -1,37 +1,97 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Phone } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { Search, Phone, ChevronDown, StickyNote } from 'lucide-react'
+import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
-import { fecha, nombrePareja } from '../constantes.js'
+import { listarRecordatorios, registrarGestion } from '../cartasService.js'
+import { fecha, nombrePareja, nombreEquipo, mensajeError } from '../constantes.js'
 import { Titulo, Vacio } from '../ui.jsx'
 import { AccionesRecordatorio } from './remitentes.jsx'
 
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-// «Avisar a las familias»: un contacto por línea con llamar y enviar el mensaje por WhatsApp.
-// Tres pestañas simples según en qué va cada contacto.
+// «Avisar a las familias»: filtrado por matrimonio del equipo, agrupado por pareja del retiro,
+// y con el historial de gestiones (mensajes, llamadas, notas) de cada contacto.
 const PESTANAS = [
   ['sin', 'Sin avisar', r => (r.estado === 'pendiente' || r.estado === 'revision') && !r.ultimo_recordatorio],
   ['avisados', 'Ya avisados', r => (r.estado === 'pendiente' || r.estado === 'revision') && !!r.ultimo_recordatorio],
   ['entregaron', 'Ya entregaron', r => r.estado === 'recibido'],
 ]
 
+const TIPOS = { whatsapp: 'Mensaje por WhatsApp', correo: 'Correo', copiado: 'Mensaje copiado', llamada: 'Llamada', nota: 'Nota', otro: 'Gestión' }
+
+// Tipo y texto visibles de una gestión (las guardadas como «otro» traen el tipo al inicio del texto)
+function describir(g) {
+  if (g.canal === 'otro' && /^(Llamada|Nota)\b/.test(g.mensaje || '')) {
+    const [, tipo, resto] = g.mensaje.match(/^(Llamada|Nota):?\s*([\s\S]*)$/)
+    return { tipo, texto: resto || '' }
+  }
+  return { tipo: TIPOS[g.canal] || 'Gestión', texto: g.canal === 'llamada' || g.canal === 'nota' || g.canal === 'otro' ? g.mensaje || '' : '' }
+}
+
 export default function Pendientes() {
-  const { parejas, remitentes, esAdmin } = useCartas()
+  const { retiro, parejas, remitentes, equipo, esAdmin, miEquipo, usuarios, actualizarLocal } = useCartas()
+  const { usuario } = useAuth()
   const [vista, setVista] = useState('sin')
   const [q, setQ] = useState('')
-  const porId = useMemo(() => Object.fromEntries(parejas.map(p => [p.id, p])), [parejas])
-  const contactos = remitentes.filter(r => r.coordinador && porId[r.pareja_id]?.estado === 'activa')
-  const cuantos = Object.fromEntries(PESTANAS.map(([k, , f]) => [k, contactos.filter(f).length]))
+  const [matrimonio, setMatrimonio] = useState(miEquipo?.id || 'todos')
+  const [gestiones, setGestiones] = useState([])
+  const [abierto, setAbierto] = useState(null)
 
+  const cargarGestiones = useCallback(() => {
+    listarRecordatorios(retiro.id).then(setGestiones).catch(() => {})
+  }, [retiro.id])
+  useEffect(() => { cargarGestiones() }, [cargarGestiones])
+
+  const porContacto = useMemo(() => {
+    const m = {}
+    for (const g of gestiones) (m[g.remitente_id] ||= []).push(g)
+    return m
+  }, [gestiones])
+
+  const activas = parejas.filter(p => p.estado === 'activa')
+  const delFiltro = activas.filter(p => matrimonio === 'todos' || (matrimonio === 'sin' ? !p.equipo_id : p.equipo_id === matrimonio))
+  const idsFiltro = new Set(delFiltro.map(p => p.id))
+  const contactos = remitentes.filter(r => r.coordinador && idsFiltro.has(r.pareja_id))
+  const cuantos = Object.fromEntries(PESTANAS.map(([k, , f]) => [k, contactos.filter(f).length]))
   const filtro = PESTANAS.find(([k]) => k === vista)[2]
-  const lista = contactos.filter(filtro)
-    .filter(r => !q || norm(`${r.nombre} ${r.relacion} ${porId[r.pareja_id].codigo} ${nombrePareja(porId[r.pareja_id])}`).includes(norm(q)))
-    .sort((a, b) => porId[a.pareja_id].codigo.localeCompare(porId[b.pareja_id].codigo, 'es', { numeric: true }))
+
+  const grupos = delFiltro
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
+    .map(p => {
+      const suyos = contactos.filter(r => r.pareja_id === p.id)
+      const coincidePareja = !q || norm(`${p.codigo} ${nombrePareja(p)}`).includes(norm(q))
+      const lista = suyos.filter(filtro).filter(r => coincidePareja || norm(`${r.nombre} ${r.relacion}`).includes(norm(q)))
+      return { p, lista, total: suyos.length, entregaron: suyos.filter(r => r.estado === 'recibido').length }
+    })
+    .filter(g => g.lista.length)
+
+  async function gestionar(r, canal, mensaje = null) {
+    try {
+      const fila = await registrarGestion({ retiro_id: retiro.id, remitente_id: r.id, canal, mensaje, usuario_id: usuario.id })
+      if (fila) actualizarLocal('remitentes', fila)
+      cargarGestiones()
+      if (canal === 'nota') toast.success('Nota guardada')
+    } catch (err) { toast.error(mensajeError(err, 'No se pudo guardar')) }
+  }
+
+  function nota(r) {
+    const texto = window.prompt(`Nota sobre ${r.nombre} (ej.: «Dijo que la entrega el viernes»):`)
+    if (texto?.trim()) gestionar(r, 'nota', texto.trim())
+  }
 
   return (
     <div>
-      <Titulo titulo="Avisar a las familias" subtitulo="Toca «Enviar» para mandar el mensaje por WhatsApp a cada contacto, o 📞 para llamarle." />
+      <Titulo titulo="Avisar a las familias" subtitulo="Por pareja del retiro. «Enviar» manda el mensaje por WhatsApp, 📞 llama y queda anotado quién hizo cada gestión." />
+
+      {equipo.length > 0 && (
+        <select value={matrimonio} onChange={e => setMatrimonio(e.target.value)} className="campo mb-3" aria-label="Matrimonio asignado">
+          <option value="todos">Todos los matrimonios · {activas.length} parejas</option>
+          {equipo.map(e => <option key={e.id} value={e.id}>{e.id === miEquipo?.id ? 'Mis parejas · ' : ''}{nombreEquipo(e)} · {activas.filter(p => p.equipo_id === e.id).length}</option>)}
+          {activas.some(p => !p.equipo_id) && <option value="sin">Sin matrimonio asignado · {activas.filter(p => !p.equipo_id).length}</option>}
+        </select>
+      )}
 
       <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-full bg-white p-1.5" role="tablist">
         {PESTANAS.map(([k, t]) => (
@@ -44,31 +104,78 @@ export default function Pendientes() {
 
       <label className="relative mb-4 block">
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gris" />
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar persona o pareja" className="campo pl-10" />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar pareja o código" className="campo pl-10" />
       </label>
 
-      {!lista.length ? (
+      {!grupos.length ? (
         <Vacio titulo={vista === 'sin' ? (contactos.length ? '¡Ya avisaste a todos!' : 'Aún no hay contactos de familia') : 'Nadie en esta lista todavía'}>
-          {!contactos.length && 'Se cargan al importar el Excel de inscripción.'}
+          {!contactos.length && (delFiltro.length ? 'Se cargan al importar el Excel de inscripción.' : 'Este matrimonio aún no tiene parejas asignadas.')}
         </Vacio>
       ) : (
-        <ul className="divide-y divide-crema-borde overflow-hidden rounded-[22px] bg-white">
-          {lista.map(r => {
-            const p = porId[r.pareja_id]
+        <ul className="space-y-3">
+          {grupos.map(({ p, lista, total, entregaron }) => {
+            const resp = equipo.find(e => e.id === p.equipo_id)
             return (
-              <li key={r.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{r.nombre} <span className="font-normal text-gris">· {r.relacion}</span></span>
+              <li key={p.id} className="overflow-hidden rounded-[22px] bg-white">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-crema-borde bg-vino-claro/40 px-4 py-3">
+                  <span className="text-xs font-bold text-gris">{p.codigo}</span>
                   {esAdmin
-                    ? <Link to={`/cartas/panel/parejas/${p.id}`} className="block truncate text-xs font-semibold text-vino">{p.codigo} · {nombrePareja(p)}</Link>
-                    : <span className="block truncate text-xs font-semibold text-vino">{p.codigo} · {nombrePareja(p)}</span>}
-                  <span className="block text-[11.5px] text-gris">{r.estado === 'recibido' ? '✓ Ya entregó cartas' : r.ultimo_recordatorio ? `Avisado el ${fecha(r.ultimo_recordatorio)}` : 'Aún sin avisar'}</span>
-                </span>
-                {r.telefono && (
-                  <a href={`tel:${String(r.telefono).replace(/[^\d+]/g, '')}`} aria-label={`Llamar a ${r.nombre}`}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-crema-borde bg-white text-vino hover:border-vino"><Phone size={16} /></a>
-                )}
-                {r.estado !== 'recibido' && r.estado !== 'exento' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple />}
+                    ? <Link to={`/cartas/panel/parejas/${p.id}`} className="font-semibold text-vino">{nombrePareja(p)}</Link>
+                    : <span className="font-semibold text-vino">{nombrePareja(p)}</span>}
+                  <span className="ml-auto text-xs font-semibold text-gris">{entregaron}/{total} entregaron</span>
+                  <span className="w-full text-[11.5px] text-gris">{resp ? `A cargo de ${nombreEquipo(resp)}` : 'Sin matrimonio asignado'}</span>
+                </div>
+                <ul className="divide-y divide-crema-borde">
+                  {lista.map(r => {
+                    const hist = porContacto[r.id] || []
+                    const ultima = hist[0]
+                    const abiertoAqui = abierto === r.id
+                    return (
+                      <li key={r.id} className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold">{r.nombre} <span className="font-normal text-gris">· {r.relacion}</span></span>
+                            <span className={`block text-[11.5px] ${r.estado === 'recibido' ? 'font-semibold text-emerald-700' : 'text-gris'}`}>
+                              {r.estado === 'recibido' ? '✓ Ya entregó cartas' : ultima
+                                ? `Última: ${describir(ultima).tipo.toLowerCase()} · ${fecha(ultima.created_at, true)}`
+                                : 'Aún sin avisar'}
+                            </span>
+                          </span>
+                          {r.telefono && (
+                            <a href={`tel:${String(r.telefono).replace(/[^\d+]/g, '')}`} onClick={() => gestionar(r, 'llamada')} aria-label={`Llamar a ${r.nombre}`} title={`Llamar · ${r.telefono}`}
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-crema-borde bg-white text-vino hover:border-vino"><Phone size={16} /></a>
+                          )}
+                          {r.estado !== 'recibido' && r.estado !== 'exento' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple onRegistrado={cargarGestiones} />}
+                        </div>
+                        <button onClick={() => setAbierto(abiertoAqui ? null : r.id)} aria-expanded={abiertoAqui}
+                          className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-vino">
+                          Gestiones ({hist.length})<ChevronDown size={14} className={`transition ${abiertoAqui ? 'rotate-180' : ''}`} />
+                        </button>
+                        {abiertoAqui && (
+                          <div className="mt-2 rounded-2xl bg-crema/60 p-3">
+                            {!hist.length ? <p className="text-xs text-gris">Todavía no hay gestiones con este contacto.</p> : (
+                              <ol className="space-y-2">
+                                {hist.map(g => {
+                                  const { tipo, texto } = describir(g)
+                                  return (
+                                    <li key={g.id} className="text-xs">
+                                      <span className="font-semibold">{tipo}</span>
+                                      <span className="text-gris"> · {fecha(g.created_at, true)} · {usuarios[g.usuario_id]?.nombre || 'Equipo'}</span>
+                                      {texto && <span className="mt-0.5 block whitespace-pre-line text-tinta">{texto}</span>}
+                                    </li>
+                                  )
+                                })}
+                              </ol>
+                            )}
+                            <button onClick={() => nota(r)} className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full border border-crema-borde bg-white px-3 text-xs font-semibold text-vino hover:border-vino">
+                              <StickyNote size={14} />Agregar nota
+                            </button>
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
               </li>
             )
           })}
