@@ -11,7 +11,7 @@ import CartaFisica from './CartaFisica.jsx'
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 export default function Bandeja() {
-  const { cartas, parejas } = useCartas()
+  const { cartas, parejas, esAdmin, miEquipo } = useCartas()
   const [params, setParams] = useSearchParams()
   const [f, setF] = useState({ pareja: params.get('pareja') || '', estado: params.get('estado') || '', origen: '', destinatario: '', q: '', desde: '', hasta: '', vinculo: '' })
   const [fisica, abrirFisica, cerrarFisica] = useVentana('registrar')
@@ -55,15 +55,15 @@ export default function Bandeja() {
           </label>
           <select value={f.pareja} onChange={e => set('pareja', e.target.value)} className="campo min-w-[160px] flex-1" aria-label="Pareja">
             <option value="">Todas las parejas</option>
-            {parejas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
+            {parejas.filter(p => esAdmin || !miEquipo || p.equipo_id === miEquipo.id).map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
           </select>
-          <select value={f.estado} onChange={e => set('estado', e.target.value)} className="campo min-w-[150px] flex-1" aria-label="Estado">
+          {esAdmin && <select value={f.estado} onChange={e => set('estado', e.target.value)} className="campo min-w-[150px] flex-1" aria-label="Estado">
             <option value="">Recibidas</option>
             <option value="anuladas">Anuladas o duplicadas</option>
             <option value="todas">Todas</option>
-          </select>
+          </select>}
         </div>
-        <details className="mt-2" open={filtrosActivos > 2}>
+        {esAdmin && <details className="mt-2" open={filtrosActivos > 2}>
           <summary className="flex cursor-pointer items-center gap-1.5 px-1 text-[13px] font-semibold text-gris"><Filter size={14} />Más filtros</summary>
           <div className="mt-2 grid gap-2 sm:grid-cols-5">
             <select value={f.origen} onChange={e => set('origen', e.target.value)} className="campo" aria-label="Origen">
@@ -81,7 +81,7 @@ export default function Bandeja() {
             <input type="date" value={f.desde} onChange={e => set('desde', e.target.value)} className="campo" aria-label="Desde" />
             <input type="date" value={f.hasta} onChange={e => set('hasta', e.target.value)} className="campo" aria-label="Hasta" />
           </div>
-        </details>
+        </details>}
       </div>
 
       {!lista.length ? <Vacio titulo={cartas.length ? 'Ninguna carta coincide con los filtros' : 'Aún no han llegado cartas'}>{!cartas.length && 'Comparte el enlace del retiro con familiares y amigos.'}</Vacio> : (

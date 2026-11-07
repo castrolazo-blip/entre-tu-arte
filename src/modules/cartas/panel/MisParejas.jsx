@@ -21,13 +21,15 @@ export default function MisParejas() {
   useEffect(() => { if (esAdmin && actual && !elegido) setParams({ equipo: actual.id }, { replace: true }) }, [esAdmin, actual, elegido, setParams])
 
   const meta = retiro.meta_por_persona || 0
-  const suyas = useMemo(() => parejas.filter(p => actual && p.equipo_id === actual.id && p.estado === 'activa')
-    .sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true })), [parejas, actual])
+  // Coordinadora sin matrimonio asignado (modo simple): ve todas las parejas
+  const todas = !esAdmin && !miEquipo
+  const suyas = useMemo(() => parejas.filter(p => (todas || (actual && p.equipo_id === actual.id)) && p.estado === 'activa')
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true })), [parejas, actual, todas])
   const ids = new Set(suyas.map(p => p.id))
   const recientes = cartas.filter(c => ids.has(c.pareja_id) && esValida(c)).slice(0, 10)
   const suma = k => suyas.reduce((n, p) => n + indicadores.porPareja[p.id][k], 0)
 
-  if (!actual) {
+  if (!actual && !todas) {
     return <Vacio titulo={equipo.length ? 'No tienes parejas asignadas' : 'Aún no hay equipo registrado'}>
       {esAdmin ? 'Agrega el equipo en Configuración › Equipo.' : 'Pide al administrador que registre tu correo en el equipo y te asigne parejas.'}
     </Vacio>
@@ -35,8 +37,8 @@ export default function MisParejas() {
 
   return (
     <div>
-      <Titulo titulo={actual === miEquipo && !elegido ? 'Mis parejas' : nombreEquipo(actual)}
-        subtitulo={`${actual === miEquipo && !elegido ? nombreEquipo(actual) + ' · r' : 'R'}esponsable de ${suyas.length} ${suyas.length === 1 ? 'pareja' : 'parejas'}`}>
+      <Titulo titulo={todas ? 'Parejas' : actual === miEquipo && !elegido ? 'Mis parejas' : nombreEquipo(actual)}
+        subtitulo={todas ? `${suyas.length} parejas · toca «Invitar a otros por WhatsApp» para pedir cartas` : `${actual === miEquipo && !elegido ? nombreEquipo(actual) + ' · r' : 'R'}esponsable de ${suyas.length} ${suyas.length === 1 ? 'pareja' : 'parejas'}`}>
         {esAdmin && equipo.length > 1 && (
           <select value={actual.id} onChange={e => setParams({ equipo: e.target.value }, { replace: true })} className="campo h-11 min-w-[220px]" aria-label="Matrimonio del equipo">
             {equipo.map(e => <option key={e.id} value={e.id}>{nombreEquipo(e)} · {parejas.filter(p => p.equipo_id === e.id && p.estado === 'activa').length}</option>)}
@@ -44,12 +46,12 @@ export default function MisParejas() {
         )}
       </Titulo>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      {esAdmin && <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi valor={suyas.length} etiqueta="Parejas asignadas" />
         <Kpi valor={suma('recibidas')} etiqueta="Cartas recibidas" tono="vino" detalle={meta ? `meta: ${suyas.length * meta * 2}` : undefined} />
         {meta > 0 && <Kpi valor={suma('faltan')} etiqueta="Faltan para la meta" tono={suma('faltan') ? 'alerta' : 'ok'} />}
         <Kpi valor={`${suma('contactos') - suma('contactosPendientes')}/${suma('contactos')}`} etiqueta="Contactos que entregaron" />
-      </div>
+      </div>}
 
       {!suyas.length ? <div className="mt-5"><Vacio titulo="Sin parejas asignadas todavía">El administrador las asigna en Configuración › Repartición.</Vacio></div> : (
         <ul className="mt-5 space-y-3">
@@ -61,7 +63,7 @@ export default function MisParejas() {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <Semaforo color={semaforo({ retiro, cartasValidas: x.recibidas, pendientes: x.pendientes, x })} />
                   <span className="text-xs font-bold text-gris">{p.codigo}</span>
-                  <Link to={`/cartas/panel/parejas/${p.id}`} className="font-semibold hover:text-vino">{nombrePareja(p)}</Link>
+                  {esAdmin ? <Link to={`/cartas/panel/parejas/${p.id}`} className="font-semibold hover:text-vino">{nombrePareja(p)}</Link> : <span className="font-semibold">{nombrePareja(p)}</span>}
                   <span className="ml-auto text-sm text-gris">{x.recibidas} cartas</span>
                 </div>
                 {meta > 0 && (
@@ -81,15 +83,15 @@ export default function MisParejas() {
                           {r.telefono && <a href={`tel:${r.telefono}`} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-vino"><Phone size={12} />{r.telefono}</a>}
                         </div>
                         <p className="mt-0.5 text-xs text-gris">{r.ultimo_recordatorio ? `Último mensaje ${fecha(r.ultimo_recordatorio, true)}` : 'Aún sin mensaje'}</p>
-                        {r.estado !== 'exento' && <div className="mt-2"><AccionesRecordatorio remitente={r} pareja={p} compacto /></div>}
+                        {r.estado !== 'exento' && <div className="mt-2"><AccionesRecordatorio remitente={r} pareja={p} compacto simple={!esAdmin} /></div>}
                       </li>
                     ))}
                   </ul>
                 )}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button onClick={() => abrirRegistrar(p.id)} className={btn.vino}><PackagePlus size={16} />Registrar cartas recibidas</button>
-                  <InvitacionPareja retiro={retiro} pareja={p} compacto={false} />
-                  <Link to={`/cartas/panel/parejas/${p.id}`} className={btn.contorno}>Ver ficha<ChevronRight size={16} /></Link>
+                  <InvitacionPareja retiro={retiro} pareja={p} compacto={false} simple={!esAdmin} />
+                  {esAdmin && <Link to={`/cartas/panel/parejas/${p.id}`} className={btn.contorno}>Ver ficha<ChevronRight size={16} /></Link>}
                 </div>
               </li>
             )
@@ -97,7 +99,7 @@ export default function MisParejas() {
         </ul>
       )}
 
-      {recientes.length > 0 && (
+      {esAdmin && recientes.length > 0 && (
         <section className="mt-6">
           <h2 className="mb-3 text-lg font-semibold">Últimas cartas de mis parejas</h2>
           <ul className="divide-y divide-crema-borde overflow-hidden rounded-[20px] bg-white">

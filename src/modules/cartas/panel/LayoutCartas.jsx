@@ -9,10 +9,10 @@ import { Marca, useTituloCartas } from '../publico/marca.jsx'
 import { Etiqueta } from '../ui.jsx'
 
 const MENU = [
-  { to: '/cartas/panel', etiqueta: 'Inicio', Icono: Home, fin: true },
+  { to: '/cartas/panel', etiqueta: 'Inicio', Icono: Home, fin: true, simple: true },
   { to: '/cartas/panel/tablero', etiqueta: 'Avance', Icono: LayoutDashboard },
-  { to: '/cartas/panel/mis-parejas', etiqueta: 'Mis parejas', Icono: HeartHandshake, equipo: true },
-  { to: '/cartas/panel/cartas', etiqueta: 'Cartas', Icono: Inbox, contador: 'posiblesDuplicados' },
+  { to: '/cartas/panel/mis-parejas', etiqueta: 'Mis parejas', Icono: HeartHandshake, equipo: true, simple: true },
+  { to: '/cartas/panel/cartas', etiqueta: 'Cartas', Icono: Inbox, contador: 'posiblesDuplicados', simple: true },
   { to: '/cartas/panel/parejas', etiqueta: 'Parejas', Icono: Users },
   { to: '/cartas/panel/pendientes', etiqueta: 'Seguimiento', Icono: BellRing, contador: 'contactosPendientes' },
   { to: '/cartas/panel/impresion', etiqueta: 'Impresión y sobres', Icono: Printer },
@@ -63,10 +63,10 @@ export default function LayoutCartas() {
   const t = indicadores.totales
   const menu = (
     <nav aria-label="Cartas con Amor" className="flex flex-col gap-1">
-      {MENU.filter(m => (!m.soloAdmin || esAdmin) && (!m.equipo || miEquipo || (esAdmin && equipo.length)))
+      {MENU.filter(m => esAdmin ? (!m.equipo || miEquipo || equipo.length) : m.simple)
         // Para un miembro del equipo, «Mis parejas» va primero
         .sort((a, b) => (miEquipo && !esAdmin ? (b.equipo ? 1 : 0) - (a.equipo ? 1 : 0) : 0))
-        .map(({ to, etiqueta: et, Icono, fin, contador, equipo: deEquipo }) => { const etiqueta = deEquipo && !miEquipo ? 'Bandejas del equipo' : et; return (
+        .map(({ to, etiqueta: et, Icono, fin, contador, equipo: deEquipo }) => { const etiqueta = deEquipo && !miEquipo && esAdmin ? 'Bandejas del equipo' : et; return (
         <NavLink key={to} to={to} end={fin}
           className={({ isActive }) => `flex h-11 items-center gap-3 rounded-full px-4 text-sm font-semibold transition ${isActive ? 'bg-white text-vino' : 'text-white hover:bg-white/10'}`}>
           <Icono size={18} /><span className="flex-1">{etiqueta}</span>
