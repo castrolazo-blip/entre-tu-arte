@@ -61,7 +61,7 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
 }
 
 // Botones para enviar el recordatorio por WhatsApp o correo (se abre la app; nada se envía solo)
-export function AccionesRecordatorio({ remitente, pareja, compacto = false }) {
+export function AccionesRecordatorio({ remitente, pareja, compacto = false, simple = false }) {
   const { retiro, actualizarLocal, equipo } = useCartas()
   const { usuario } = useAuth()
   const enlace = enlacePortal(retiro, { remitente })
@@ -81,13 +81,13 @@ export function AccionesRecordatorio({ remitente, pareja, compacto = false }) {
     <div className="flex flex-wrap gap-2">
       <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" rel="noreferrer" onClick={() => registrar('whatsapp')}
         className={`${clase} ${!tel ? 'opacity-70' : ''}`} title={tel ? 'Abrir WhatsApp con el mensaje' : 'Sin teléfono: WhatsApp te pedirá elegir el contacto'}>
-        <MessageCircle size={15} />WhatsApp
+        <MessageCircle size={15} />{simple ? `Enviar a ${remitente.nombre.split(' ')[0]}` : 'WhatsApp'}
       </a>
-      {remitente.correo && (
+      {remitente.correo && !simple && (
         <a href={`mailto:${remitente.correo}?subject=${encodeURIComponent(`Una carta para ${nombreDestinatario(pareja, remitente.destinatario)}`)}&body=${encodeURIComponent(mensaje)}`}
           onClick={() => registrar('correo')} className={clase}><Mail size={15} />Correo</a>
       )}
-      <button onClick={async () => { await copiar(mensaje, 'Mensaje copiado'); registrar('copiado') }} className={clase}><Copy size={15} />Copiar mensaje</button>
+      {!simple && <button onClick={async () => { await copiar(mensaje, 'Mensaje copiado'); registrar('copiado') }} className={clase}><Copy size={15} />Copiar mensaje</button>}
       {!compacto && <button onClick={() => copiar(enlace, 'Enlace personal copiado')} className={clase}><Link2 size={15} />Solo el enlace</button>}
     </div>
   )

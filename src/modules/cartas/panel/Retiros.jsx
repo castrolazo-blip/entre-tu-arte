@@ -118,9 +118,14 @@ function FormRetiro({ inicial, onCerrar, onGuardado }) {
 }
 
 // Botones para compartir la invitación de una pareja (mensaje + su enlace, solo esa pareja)
-export function InvitacionPareja({ retiro, pareja, compacto = true }) {
+export function InvitacionPareja({ retiro, pareja, compacto = true, simple = false }) {
   const texto = mensajeInvitacion({ retiro, pareja, enlace: enlacePortal(retiro, { pareja }) })
   const clase = compacto ? btn.mini : btn.contorno
+  if (simple) return (
+    <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer"
+      className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 text-sm font-semibold text-white hover:brightness-95">
+      <MessageCircle size={17} />Invitar a otros por WhatsApp</a>
+  )
   return (
     <>
       <button type="button" onClick={() => copiar(texto, 'Invitación copiada: pégala en WhatsApp')} className={clase}><Copy size={compacto ? 13 : 15} />Copiar invitación</button>

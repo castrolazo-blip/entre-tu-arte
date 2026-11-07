@@ -16,7 +16,14 @@ export default function Inicio() {
   const misParejas = miEquipo ? parejas.filter(p => p.equipo_id === miEquipo.id && p.estado === 'activa').length : 0
   const aImprimir = t.aImprimir
 
-  const botones = [
+  // Modo simple: coordinadoras y equipo solo ven lo que usan (menos menús, menos confusión)
+  const botonesSimples = [
+    { accion: () => abrirRegistrar(), Icono: PackagePlus, titulo: 'Registrar cartas recibidas', detalle: 'Las que entregan en papel o llegan por correo', principal: true },
+    { to: '/cartas/panel/mis-parejas', Icono: HeartHandshake, titulo: 'Mis parejas',
+      detalle: miEquipo ? `${misParejas} ${misParejas === 1 ? 'pareja' : 'parejas'} · invitar por WhatsApp` : `${t.parejas} parejas · invitar por WhatsApp` },
+    { to: '/cartas/panel/cartas', Icono: Inbox, titulo: 'Cartas que han llegado', detalle: `${t.recibidas} ${t.recibidas === 1 ? 'carta' : 'cartas'}` },
+  ]
+  const botonesAdmin = [
     { accion: () => abrirRegistrar(), Icono: PackagePlus, titulo: 'Registrar cartas recibidas', detalle: 'En papel, por correo o por enlace', principal: true },
     (miEquipo || (esAdmin && equipo.length > 0)) && {
       to: '/cartas/panel/mis-parejas', Icono: HeartHandshake, titulo: miEquipo ? 'Mis parejas' : 'Bandejas del equipo',
@@ -31,6 +38,7 @@ export default function Inicio() {
     { to: '/cartas/panel/retiros', Icono: CalendarHeart, titulo: 'Retiros', detalle: ESTADOS_RETIRO[retiro.estado]?.etiqueta },
     esAdmin && { to: '/cartas/panel/configuracion', Icono: Settings, titulo: 'Configuración', detalle: 'Equipo, repartición, usuarios y actividad' },
   ].filter(Boolean)
+  const botones = esAdmin ? botonesAdmin : botonesSimples
 
   return (
     <div>
@@ -44,10 +52,10 @@ export default function Inicio() {
         )}
       </div>
 
-      <nav aria-label="Acciones" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+      <nav aria-label="Acciones" className={esAdmin ? 'grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4' : 'grid gap-3 md:grid-cols-3'}>
         {botones.map(({ to, accion, Icono, titulo, detalle, principal, alerta }) => {
           const clase = `flex min-h-[132px] flex-col justify-between rounded-[24px] p-4 text-left shadow-[0_14px_30px_-26px_rgba(23,22,20,0.6)] transition active:scale-[0.98] sm:p-5 ${
-            principal ? 'col-span-2 bg-vino text-white hover:bg-vino-oscuro md:col-span-1' : 'bg-white hover:ring-2 hover:ring-vino/30'}`
+            principal ? `${esAdmin ? 'col-span-2' : ''} bg-vino text-white hover:bg-vino-oscuro md:col-span-1` : 'bg-white hover:ring-2 hover:ring-vino/30'}`
           const contenido = (
             <>
               <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${principal ? 'bg-white/15' : 'bg-vino-claro text-vino'}`}><Icono size={24} strokeWidth={1.8} /></span>
