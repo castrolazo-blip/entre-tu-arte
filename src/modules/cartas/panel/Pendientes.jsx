@@ -42,6 +42,10 @@ export default function Pendientes() {
   const [matrimonio, setMatrimonio] = useState(miEquipo?.id || 'todos')
   const [gestiones, setGestiones] = useState([])
   const [abierto, setAbierto] = useState(null)
+  // Contactos gestionados en esta visita: siguen visibles en la pestaña actual aunque ya cambien de estado
+  const [recientes, setRecientes] = useState(() => new Set())
+  const marcar = id => setRecientes(s => new Set(s).add(id))
+  useEffect(() => { setRecientes(new Set()) }, [vista])
   const [nuevoContacto, abrirContacto, cerrarContacto] = useVentana('contacto')
   const [editarId, abrirEditar, cerrarEditar] = useVentana('editar-contacto')
   const editando = editarId && remitentes.find(r => r.id === editarId)
@@ -69,7 +73,7 @@ export default function Pendientes() {
     .map(p => {
       const suyos = contactos.filter(r => r.pareja_id === p.id)
       const coincidePareja = !q || norm(`${p.codigo} ${nombrePareja(p)}`).includes(norm(q))
-      const lista = suyos.filter(filtro).filter(r => coincidePareja || norm(`${r.nombre} ${r.relacion}`).includes(norm(q)))
+      const lista = suyos.filter(r => filtro(r) || recientes.has(r.id)).filter(r => coincidePareja || norm(`${r.nombre} ${r.relacion}`).includes(norm(q)))
       return { p, lista, total: suyos.length, entregaron: suyos.filter(r => r.estado === 'recibido').length, coincidePareja }
     })
     // En «Sin avisar» también salen las parejas sin contactos, para poder agregarles uno
@@ -80,6 +84,7 @@ export default function Pendientes() {
       const fila = await registrarGestion({ retiro_id: retiro.id, remitente_id: r.id, canal, mensaje, usuario_id: usuario.id })
       if (fila) actualizarLocal('remitentes', fila)
       cargarGestiones()
+      marcar(r.id)
       if (canal === 'nota') toast.success('Nota guardada')
     } catch (err) { toast.error(mensajeError(err, 'No se pudo guardar')) }
   }
@@ -153,14 +158,14 @@ export default function Pendientes() {
                             <span className={`block text-[11.5px] ${r.estado === 'recibido' ? 'font-semibold text-emerald-700' : 'text-gris'}`}>
                               {r.estado === 'recibido' ? '✓ Ya entregó cartas' : ultima
                                 ? `Última: ${describir(ultima).tipo.toLowerCase()} · ${fecha(ultima.created_at, true)}`
-                                : 'Aún sin avisar'}
+                                : r.ultimo_recordatorio ? `Avisado · ${fecha(r.ultimo_recordatorio, true)}` : 'Aún sin avisar'}
                             </span>
                           </span>
                           {r.telefono && (
                             <a href={`tel:${String(r.telefono).replace(/[^\d+]/g, '')}`} onClick={() => gestionar(r, 'llamada')} aria-label={`Llamar a ${r.nombre}`} title={`Llamar · ${r.telefono}`}
                               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-crema-borde bg-white text-vino hover:border-vino"><Phone size={16} /></a>
                           )}
-                          {r.estado !== 'recibido' && r.estado !== 'exento' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple onRegistrado={cargarGestiones} />}
+                          {r.estado !== 'recibido' && r.estado !== 'exento' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple onRegistrado={() => { marcar(r.id); cargarGestiones(); if (vista === 'sin') toast.success(`${r.nombre} pasó a «Ya avisados»`) }} />}
                         </div>
                         <button onClick={() => setAbierto(abiertoAqui ? null : r.id)} aria-expanded={abiertoAqui}
                           className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-vino">
