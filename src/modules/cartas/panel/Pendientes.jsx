@@ -29,6 +29,7 @@ function describir(g) {
     const [, tipo, resto] = g.mensaje.match(/^(Llamada|Nota):?\s*([\s\S]*)$/)
     return { tipo, texto: resto || '' }
   }
+  if (g.canal === 'whatsapp') return { tipo: g.mensaje === 'Seguimiento' ? 'Seguimiento por WhatsApp' : 'Bienvenida por WhatsApp', texto: '' }
   return { tipo: TIPOS[g.canal] || 'Gestión', texto: g.canal === 'llamada' || g.canal === 'nota' || g.canal === 'otro' ? g.mensaje || '' : '' }
 }
 
@@ -88,7 +89,7 @@ export default function Pendientes() {
 
   return (
     <div>
-      <Titulo titulo="Gestión de cartas" subtitulo="Por pareja del retiro. «Enviar» manda el mensaje por WhatsApp, 📞 llama y queda anotado quién hizo cada gestión." />
+      <Titulo titulo="Gestión de cartas" subtitulo="Por pareja del retiro. «Enviar» abre WhatsApp (bienvenida o seguimiento), 📞 llama y queda anotado quién hizo cada gestión." />
 
       {equipo.length > 0 && (
         <select value={matrimonio} onChange={e => setMatrimonio(e.target.value)} className="campo mb-3" aria-label="Matrimonio asignado">

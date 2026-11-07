@@ -70,20 +70,48 @@ export function AccionesRecordatorio({ remitente, pareja, compacto = false, simp
   const mensaje = mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable })
   const tel = telefonoWhatsApp(remitente.telefono)
 
-  async function registrar(canal) {
+  const [opciones, setOpciones] = useState(false)
+  async function registrar(canal, texto = mensaje) {
     try {
-      const fila = await registrarRecordatorio({ retiro_id: retiro.id, remitente_id: remitente.id, canal, mensaje, usuario_id: usuario.id })
+      const fila = await registrarRecordatorio({ retiro_id: retiro.id, remitente_id: remitente.id, canal, mensaje: texto, usuario_id: usuario.id })
       actualizarLocal('remitentes', fila)
       onRegistrado?.()
     } catch (err) { toast.error(mensajeError(err, 'No se pudo registrar el recordatorio')) }
   }
 
   const clase = compacto ? btn.mini : btn.contorno
+  // Modo simple: «Enviar» pregunta si es el mensaje de bienvenida o un seguimiento (chat abierto, sin texto)
+  if (simple) return (
+    <>
+      <button type="button" onClick={() => setOpciones(true)} className={clase}><MessageCircle size={15} />Enviar</button>
+      {opciones && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center" onClick={() => setOpciones(false)}>
+          <div role="dialog" aria-label={`WhatsApp a ${remitente.nombre}`} onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-[24px] bg-white p-4 shadow-xl">
+            <p className="px-1 text-sm text-gris">WhatsApp a</p>
+            <p className="mb-3 px-1 font-semibold">{remitente.nombre}</p>
+            <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" rel="noreferrer"
+              onClick={() => { registrar('whatsapp'); setOpciones(false) }}
+              className="mb-2 flex items-center gap-3 rounded-2xl bg-[#25D366] px-4 py-3 text-white hover:brightness-95">
+              <MessageCircle size={20} /><span><b className="block text-[15px]">Mensaje de bienvenida</b><span className="text-xs text-white/85">La invitación con su enlace para enviar las cartas</span></span>
+            </a>
+            {tel ? (
+              <a href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer"
+                onClick={() => { registrar('whatsapp', 'Seguimiento'); setOpciones(false) }}
+                className="flex items-center gap-3 rounded-2xl border border-crema-borde px-4 py-3 hover:border-vino">
+                <MessageCircle size={20} className="text-vino" /><span><b className="block text-[15px]">Mensaje de seguimiento</b><span className="text-xs text-gris">Abre el chat vacío para escribirle tú</span></span>
+              </a>
+            ) : <p className="rounded-2xl bg-crema px-4 py-3 text-xs text-gris">Seguimiento no disponible: este contacto no tiene teléfono.</p>}
+            <button type="button" onClick={() => setOpciones(false)} className="mt-3 h-11 w-full rounded-full text-sm font-semibold text-gris hover:bg-crema">Cancelar</button>
+          </div>
+        </div>
+      )}
+    </>
+  )
   return (
     <div className="flex flex-wrap gap-2">
       <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" rel="noreferrer" onClick={() => registrar('whatsapp')}
         className={`${clase} ${!tel ? 'opacity-70' : ''}`} title={tel ? 'Abrir WhatsApp con el mensaje' : 'Sin teléfono: WhatsApp te pedirá elegir el contacto'}>
-        <MessageCircle size={15} />{simple ? 'Enviar' : 'WhatsApp'}
+        <MessageCircle size={15} />WhatsApp
       </a>
       {remitente.correo && !simple && (
         <a href={`mailto:${remitente.correo}?subject=${encodeURIComponent(`Una carta para ${nombreDestinatario(pareja, remitente.destinatario)}`)}&body=${encodeURIComponent(mensaje)}`}
