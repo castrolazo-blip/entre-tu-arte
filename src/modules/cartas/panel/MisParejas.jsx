@@ -82,6 +82,10 @@ export default function MisParejas() {
                             {r.estado === 'recibido' ? '✓ Ya entregó cartas' : r.ultimo_recordatorio ? `Mensaje enviado ${fecha(r.ultimo_recordatorio)}` : 'Aún sin mensaje'}
                           </span>
                         </span>
+                        {r.telefono && (
+                          <a href={`tel:${String(r.telefono).replace(/[^\d+]/g, '')}`} aria-label={`Llamar a ${r.nombre}`} title={`Llamar · ${r.telefono}`}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-crema-borde bg-white text-vino hover:border-vino"><Phone size={16} /></a>
+                        )}
                         {r.estado !== 'exento' && r.estado !== 'recibido' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple />}
                       </li>
                     ))}
