@@ -101,6 +101,18 @@ export async function registrarRecordatorio({ retiro_id, remitente_id, canal, me
   ok(await supabase.from('cca_recordatorios').insert({ retiro_id, remitente_id, canal, mensaje, usuario_id }))
   return actualizarRemitente(remitente_id, { ultimo_recordatorio: new Date().toISOString(), invitacion: 'invitado' })
 }
+// Gestión por contacto: mensaje, llamada o nota. Las llamadas y mensajes cuentan como «avisado».
+// Si la base aún no admite «llamada»/«nota», se guarda como «otro» con el tipo al inicio del texto.
+export async function registrarGestion({ retiro_id, remitente_id, canal, mensaje = null, usuario_id }) {
+  let r = await supabase.from('cca_recordatorios').insert({ retiro_id, remitente_id, canal, mensaje, usuario_id })
+  if (r.error && /check constraint|violates/i.test(r.error.message) && (canal === 'llamada' || canal === 'nota')) {
+    r = await supabase.from('cca_recordatorios').insert({ retiro_id, remitente_id, canal: 'otro',
+      mensaje: `${canal === 'llamada' ? 'Llamada' : 'Nota'}${mensaje ? ': ' + mensaje : ''}`, usuario_id })
+  }
+  ok(r)
+  if (canal === 'nota') return null
+  return actualizarRemitente(remitente_id, { ultimo_recordatorio: new Date().toISOString(), invitacion: 'invitado' })
+}
 export const listarRecordatorios = async (retiroId) =>
   ok(await supabase.from('cca_recordatorios').select('*').eq('retiro_id', retiroId).order('created_at', { ascending: false }))
 
