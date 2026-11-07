@@ -32,7 +32,7 @@ export default function Inicio() {
       detalle: t.meta ? `${t.recibidas} cartas · faltan ${t.faltanMeta}` : `${t.recibidas} cartas recibidas` },
     { to: '/cartas/panel/cartas', Icono: Inbox, titulo: 'Cartas', detalle: `${t.recibidas} recibidas${t.posiblesDuplicados ? ` · ${t.posiblesDuplicados} por revisar` : ''}` },
     { to: '/cartas/panel/parejas', Icono: Users, titulo: 'Parejas', detalle: t.meta ? `${t.metaCumplida} de ${t.parejas} con la meta` : `${t.parejas} parejas` },
-    { to: '/cartas/panel/pendientes', Icono: BellRing, titulo: 'Seguimiento', detalle: t.contactos ? (t.contactosPendientes ? `${t.contactosPendientes} ${t.contactosPendientes === 1 ? 'contacto' : 'contactos'} sin entregar` : 'Todos los contactos entregaron') : 'Mensajes a las familias', alerta: t.contactosPendientes > 0 },
+    { to: '/cartas/panel/pendientes', Icono: BellRing, titulo: 'Avisar a familias', detalle: t.contactos ? (t.contactosPendientes ? `${t.contactosPendientes} ${t.contactosPendientes === 1 ? 'contacto' : 'contactos'} sin entregar` : 'Todos los contactos entregaron') : 'Mensajes a las familias', alerta: t.contactosPendientes > 0 },
     { to: '/cartas/panel/impresion', Icono: Printer, titulo: 'Impresión y sobres', detalle: `${aImprimir} ${aImprimir === 1 ? 'carta por imprimir' : 'cartas por imprimir'}` },
     { to: '/cartas/panel/parejas', Icono: Link2, titulo: 'Enlaces por pareja', detalle: 'Cada pareja tiene su propio enlace' },
     { to: '/cartas/panel/retiros', Icono: CalendarHeart, titulo: 'Retiros', detalle: ESTADOS_RETIRO[retiro.estado]?.etiqueta },
