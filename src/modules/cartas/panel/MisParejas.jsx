@@ -38,7 +38,7 @@ export default function MisParejas() {
   return (
     <div>
       <Titulo titulo={todas ? 'Parejas' : actual === miEquipo && !elegido ? 'Mis parejas' : nombreEquipo(actual)}
-        subtitulo={todas ? `${suyas.length} parejas · toca «Invitar a otros por WhatsApp» para pedir cartas` : `${actual === miEquipo && !elegido ? nombreEquipo(actual) + ' · r' : 'R'}esponsable de ${suyas.length} ${suyas.length === 1 ? 'pareja' : 'parejas'}`}>
+        subtitulo={todas ? `${suyas.length} parejas · «Invitar a otros» manda por WhatsApp la invitación para escribirles` : `${actual === miEquipo && !elegido ? nombreEquipo(actual) + ' · r' : 'R'}esponsable de ${suyas.length} ${suyas.length === 1 ? 'pareja' : 'parejas'}`}>
         {esAdmin && equipo.length > 1 && (
           <select value={actual.id} onChange={e => setParams({ equipo: e.target.value }, { replace: true })} className="campo h-11 min-w-[220px]" aria-label="Matrimonio del equipo">
             {equipo.map(e => <option key={e.id} value={e.id}>{nombreEquipo(e)} · {parejas.filter(p => p.equipo_id === e.id && p.estado === 'activa').length}</option>)}
@@ -67,31 +67,29 @@ export default function MisParejas() {
                   <span className="ml-auto text-sm text-gris">{x.recibidas} cartas</span>
                 </div>
                 {meta > 0 && (
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-3 grid grid-cols-2 gap-3">
                     <Avance nombre={p.apodo_a || p.nombre_a} n={x.paraA} meta={meta} />
                     <Avance nombre={p.apodo_b || p.nombre_b} n={x.paraB} meta={meta} />
                   </div>
                 )}
                 {contactos.length > 0 && (
-                  <ul className="mt-4 space-y-3 border-t border-crema-borde pt-3">
+                  <ul className="mt-4 divide-y divide-crema-borde border-t border-crema-borde">
                     {contactos.map(r => (
-                      <li key={r.id}>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                          <span className="font-semibold">{r.nombre}</span>
-                          <Etiqueta tipo="remitente" estado={r.estado} />
-                          <span className="text-gris">{r.relacion}</span>
-                          {r.telefono && <a href={`tel:${r.telefono}`} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-vino"><Phone size={12} />{r.telefono}</a>}
-                        </div>
-                        <p className="mt-0.5 text-xs text-gris">{r.ultimo_recordatorio ? `Último mensaje ${fecha(r.ultimo_recordatorio, true)}` : 'Aún sin mensaje'}</p>
-                        {r.estado !== 'exento' && <div className="mt-2"><AccionesRecordatorio remitente={r} pareja={p} compacto simple={!esAdmin} /></div>}
+                      <li key={r.id} className="flex items-center gap-3 py-2.5">
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold">{r.nombre} <span className="font-normal text-gris">· {r.relacion}</span></span>
+                          <span className={`block text-xs ${r.estado === 'recibido' ? 'font-semibold text-emerald-700' : 'text-gris'}`}>
+                            {r.estado === 'recibido' ? '✓ Ya entregó cartas' : r.ultimo_recordatorio ? `Mensaje enviado ${fecha(r.ultimo_recordatorio)}` : 'Aún sin mensaje'}
+                          </span>
+                        </span>
+                        {r.estado !== 'exento' && r.estado !== 'recibido' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple />}
                       </li>
                     ))}
                   </ul>
                 )}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button onClick={() => abrirRegistrar(p.id)} className={btn.vino}><PackagePlus size={16} />Registrar cartas recibidas</button>
-                  <InvitacionPareja retiro={retiro} pareja={p} compacto={false} simple={!esAdmin} />
-                  {esAdmin && <Link to={`/cartas/panel/parejas/${p.id}`} className={btn.contorno}>Ver ficha<ChevronRight size={16} /></Link>}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button onClick={() => abrirRegistrar(p.id)} className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-vino px-3 text-sm font-semibold text-white"><PackagePlus size={17} />Registrar</button>
+                  <InvitacionPareja retiro={retiro} pareja={p} simple />
                 </div>
               </li>
             )
@@ -99,7 +97,7 @@ export default function MisParejas() {
         </ul>
       )}
 
-      {esAdmin && recientes.length > 0 && (
+      {false && recientes.length > 0 && (
         <section className="mt-6">
           <h2 className="mb-3 text-lg font-semibold">Últimas cartas de mis parejas</h2>
           <ul className="divide-y divide-crema-borde overflow-hidden rounded-[20px] bg-white">

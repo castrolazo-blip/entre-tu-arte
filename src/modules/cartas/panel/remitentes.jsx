@@ -81,7 +81,7 @@ export function AccionesRecordatorio({ remitente, pareja, compacto = false, simp
     <div className="flex flex-wrap gap-2">
       <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" rel="noreferrer" onClick={() => registrar('whatsapp')}
         className={`${clase} ${!tel ? 'opacity-70' : ''}`} title={tel ? 'Abrir WhatsApp con el mensaje' : 'Sin teléfono: WhatsApp te pedirá elegir el contacto'}>
-        <MessageCircle size={15} />{simple ? `Enviar a ${remitente.nombre.split(' ')[0]}` : 'WhatsApp'}
+        <MessageCircle size={15} />{simple ? 'Enviar' : 'WhatsApp'}
       </a>
       {remitente.correo && !simple && (
         <a href={`mailto:${remitente.correo}?subject=${encodeURIComponent(`Una carta para ${nombreDestinatario(pareja, remitente.destinatario)}`)}&body=${encodeURIComponent(mensaje)}`}
