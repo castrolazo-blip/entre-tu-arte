@@ -19,15 +19,12 @@ export default function Inicio() {
   // Modo simple: coordinadoras y equipo solo ven lo que usan (menos menús, menos confusión)
   const botonesSimples = [
     { accion: () => abrirRegistrar(), Icono: PackagePlus, titulo: 'Registrar cartas recibidas', detalle: 'Las que entregan en papel o llegan por correo', principal: true },
-    { to: '/cartas/panel/mis-parejas', Icono: HeartHandshake, titulo: 'Mis parejas',
-      detalle: miEquipo ? `${misParejas} ${misParejas === 1 ? 'pareja' : 'parejas'} · invitar por WhatsApp` : `${t.parejas} parejas · invitar por WhatsApp` },
+    { to: '/cartas/panel/pendientes', Icono: BellRing, titulo: 'Avisar a las familias',
+      detalle: `${miEquipo ? misParejas : t.parejas} ${(miEquipo ? misParejas : t.parejas) === 1 ? 'pareja' : 'parejas'} · WhatsApp y llamadas` },
     { to: '/cartas/panel/cartas', Icono: Inbox, titulo: 'Cartas que han llegado', detalle: `${t.recibidas} ${t.recibidas === 1 ? 'carta' : 'cartas'}` },
   ]
   const botonesAdmin = [
     { accion: () => abrirRegistrar(), Icono: PackagePlus, titulo: 'Registrar cartas recibidas', detalle: 'En papel, por correo o por enlace', principal: true },
-    (miEquipo || (esAdmin && equipo.length > 0)) && {
-      to: '/cartas/panel/mis-parejas', Icono: HeartHandshake, titulo: miEquipo ? 'Mis parejas' : 'Bandejas del equipo',
-      detalle: miEquipo ? `${misParejas} ${misParejas === 1 ? 'pareja asignada' : 'parejas asignadas'}` : `${equipo.length} matrimonios del equipo` },
     { to: '/cartas/panel/tablero', Icono: LayoutDashboard, titulo: 'Avance',
       detalle: t.meta ? `${t.recibidas} cartas · faltan ${t.faltanMeta}` : `${t.recibidas} cartas recibidas` },
     { to: '/cartas/panel/cartas', Icono: Inbox, titulo: 'Cartas', detalle: `${t.recibidas} recibidas${t.posiblesDuplicados ? ` · ${t.posiblesDuplicados} por revisar` : ''}` },
