@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check, MessageCircle, Paintbrush, Ruler } from 'lucide-react'
 import { obtenerObra, listarObras, etiquetaExistencias, textoTipo } from './obrasService.js'
@@ -17,6 +17,8 @@ import toast from 'react-hot-toast'
 
 const ROLES = { principal: 'Vista de la obra', ambiente: 'En un ambiente', detalle: 'Detalle de textura' }
 
+const precargadas = new Set()
+
 export default function ObraDetalle() {
   const { id } = useParams()
   const { cfg } = useConfig()
@@ -25,6 +27,30 @@ export default function ObraDetalle() {
   const [foto, setFoto] = useState(0)
   const [consulta, setConsulta] = useState(null)
   const [ampliada, setAmpliada] = useState(false)
+  const [arrastre, setArrastre] = useState(0)
+  const toque = useRef(null)
+  const deslizar = {
+    onTouchStart: e => { const t = e.touches[0]; toque.current = { x: t.clientX, y: t.clientY, horizontal: null } },
+    onTouchMove: e => {
+      const t0 = toque.current; if (!t0) return
+      const t = e.touches[0], dx = t.clientX - t0.x, dy = t.clientY - t0.y
+      if (t0.horizontal === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) t0.horizontal = Math.abs(dx) > Math.abs(dy)
+      if (t0.horizontal) setArrastre(dx)
+    },
+    onTouchEnd: () => {
+      const t0 = toque.current; toque.current = null
+      if (t0?.horizontal) {
+        const n = obraRef.current?.fotos.length || 0
+        if (arrastreRef.current < -45) setFoto(f => Math.min(n - 1, f + 1))
+        else if (arrastreRef.current > 45) setFoto(f => Math.max(0, f - 1))
+        t0.movio = true
+      }
+      setArrastre(0)
+      return t0?.movio
+    },
+  }
+  const arrastreRef = useRef(0); arrastreRef.current = arrastre
+  const obraRef = useRef(null)
   const carrito = useCarrito()
   const navigate = useNavigate()
   const [proporciones, setProporciones] = useState({})   // url → ancho/alto de cada foto
@@ -55,7 +81,13 @@ export default function ObraDetalle() {
   const vendida = vendidaReal && !marketplace
   const proporcion = Math.min(1.5, Math.max(0.72, proporciones[(obra.fotos[foto] || obra.fotos[0])?.url] || 1.25))
   const reservada = obra.estadoEfectivo === 'reservada'
+  obraRef.current = obra
+  if (typeof window !== 'undefined') obra.fotos.forEach(f => { if (!precargadas.has(f.url)) { precargadas.add(f.url); const i = new Image(); i.src = f.url } })
   const actual = obra.fotos[foto] || obra.fotos[0]
+  const total = obra.fotos.length
+  // Resistencia en los extremos (primera y última foto), como en Instagram
+  const desplazado = (foto === 0 && arrastre > 0) || (foto === total - 1 && arrastre < 0) ? arrastre / 3 : arrastre
+  const estiloFoto = { transform: `translateX(${desplazado}px)`, transition: arrastre ? 'none' : 'transform 0.25s ease-out' }
   const ficha = [
     ['Tipo', textoTipo(obra)], ['Certificado', obra.certificado ? 'Incluye certificado de autenticidad' : ''],
     ['Piezas', obra.piezas > 1 ? `${nombreJuego(obra.piezas)} · se vende como juego completo` : ''],
@@ -73,13 +105,19 @@ export default function ObraDetalle() {
       <section className="contenedor flex flex-wrap items-start gap-10 pb-20 pt-6 md:gap-14">
         <div className="flex min-w-0 flex-[1.2_1_560px] flex-col gap-4">
           {/* El visor toma la forma de la foto (vertical u horizontal) y la muestra completa */}
-          <div className="relative overflow-hidden rounded-[28px] bg-tinta-suave shadow-[0_30px_60px_-36px_rgba(23,22,20,0.8)] transition-[aspect-ratio] duration-300 md:rounded-[34px]"
-            style={{ aspectRatio: String(proporcion), width: '100%', maxWidth: `calc(78vh * ${proporcion})`, marginInline: 'auto' }}>
+          <div {...(total > 1 ? deslizar : {})} className="relative overflow-hidden rounded-[28px] bg-tinta-suave shadow-[0_30px_60px_-36px_rgba(23,22,20,0.8)] transition-[aspect-ratio] duration-300 md:rounded-[34px]"
+            style={{ aspectRatio: String(proporcion), width: '100%', maxWidth: `calc(78vh * ${proporcion})`, marginInline: 'auto', touchAction: 'pan-y' }}>
             {actual && <img src={actual.url} alt="" aria-hidden="true" className="absolute -inset-8 h-[calc(100%+64px)] w-[calc(100%+64px)] max-w-none object-cover opacity-60" style={{ filter: 'blur(24px)' }} />}
             {actual && <img src={actual.url} alt={`${obra.titulo}, ${ROLES[actual.rol] || 'foto'}`}
               onLoad={e => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; if (w && h) setProporciones(p => ({ ...p, [actual.url]: w / h })) }}
-              className={`absolute inset-0 h-full w-full object-contain ${actual.rol === 'principal' ? 'p-6 drop-shadow-[0_16px_22px_rgba(0,0,0,0.35)]' : ''}`} />}
-            {actual && <span className="absolute bottom-4 left-4 rounded-full bg-white/95 px-3.5 py-2 text-[13px] font-semibold">{ROLES[actual.rol] || 'Foto'}</span>}
+              style={estiloFoto} draggable={false}
+              className={`absolute inset-0 h-full w-full select-none object-contain ${actual.rol === 'principal' ? 'p-6 drop-shadow-[0_16px_22px_rgba(0,0,0,0.35)]' : ''}`} />}
+            {total > 1 && (
+              <span aria-hidden="true" className="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/35 px-2.5 py-1.5 backdrop-blur">
+                {obra.fotos.map((f, n) => <span key={f.url} className={`h-1.5 rounded-full bg-white transition-all ${n === foto ? 'w-4' : 'w-1.5 opacity-60'}`} />)}
+              </span>
+            )}
+            {actual && <span className={`absolute left-4 rounded-full bg-white/95 px-3.5 py-2 text-[13px] font-semibold ${total > 1 ? 'bottom-12 sm:bottom-4' : 'bottom-4'}`}>{ROLES[actual.rol] || 'Foto'}</span>}
             {actual && <button onClick={() => setAmpliada(true)} aria-label="Ver en pantalla completa" className="absolute right-4 top-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/95"><Maximize2 size={18} /></button>}
           </div>
           {obra.fotos.length > 1 && (
@@ -190,9 +228,13 @@ export default function ObraDetalle() {
 
       {consulta && <FormularioConsulta tipo={consulta} obra={obra} onCerrar={() => setConsulta(null)} />}
       {ampliada && actual && (
-        <button onClick={() => setAmpliada(false)} aria-label="Cerrar imagen" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
-          <img src={actual.url} alt={obra.titulo} className="max-h-full max-w-full object-contain" />
-        </button>
+        <div role="dialog" aria-label="Imagen ampliada" className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90 p-4"
+          {...(total > 1 ? { ...deslizar, onTouchEnd: e => { if (deslizar.onTouchEnd()) e.preventDefault() } } : {})}
+          onClick={() => setAmpliada(false)} style={{ touchAction: 'pan-y' }}>
+          <img src={actual.url} alt={obra.titulo} draggable={false} style={estiloFoto} className="max-h-full max-w-full select-none object-contain" />
+          {total > 1 && <span className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-white">{foto + 1} / {total}</span>}
+          <span className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-2xl text-white" aria-hidden="true">×</span>
+        </div>
       )}
     </>
   )
