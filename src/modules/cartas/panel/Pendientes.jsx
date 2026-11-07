@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Search, Phone, ChevronDown, StickyNote, UserPlus } from 'lucide-react'
+import { Search, Phone, ChevronDown, StickyNote, UserPlus, Pencil } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { listarRecordatorios, registrarGestion } from '../cartasService.js'
@@ -43,6 +43,8 @@ export default function Pendientes() {
   const [gestiones, setGestiones] = useState([])
   const [abierto, setAbierto] = useState(null)
   const [nuevoContacto, abrirContacto, cerrarContacto] = useVentana('contacto')
+  const [editarId, abrirEditar, cerrarEditar] = useVentana('editar-contacto')
+  const editando = editarId && remitentes.find(r => r.id === editarId)
 
   const cargarGestiones = useCallback(() => {
     listarRecordatorios(retiro.id).then(setGestiones).catch(() => {})
@@ -162,7 +164,7 @@ export default function Pendientes() {
                         </div>
                         <button onClick={() => setAbierto(abiertoAqui ? null : r.id)} aria-expanded={abiertoAqui}
                           className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-vino">
-                          Gestiones ({hist.length})<ChevronDown size={14} className={`transition ${abiertoAqui ? 'rotate-180' : ''}`} />
+                          Gestiones ({hist.length}) · Editar<ChevronDown size={14} className={`transition ${abiertoAqui ? 'rotate-180' : ''}`} />
                         </button>
                         {abiertoAqui && (
                           <div className="mt-2 rounded-2xl bg-crema/60 p-3">
@@ -183,6 +185,9 @@ export default function Pendientes() {
                             <button onClick={() => nota(r)} className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full border border-crema-borde bg-white px-3 text-xs font-semibold text-vino hover:border-vino">
                               <StickyNote size={14} />Agregar nota
                             </button>
+                            <button onClick={() => abrirEditar(r.id)} className="ml-2 mt-3 inline-flex h-9 items-center gap-1.5 rounded-full border border-crema-borde bg-white px-3 text-xs font-semibold text-vino hover:border-vino">
+                              <Pencil size={14} />Editar contacto
+                            </button>
                           </div>
                         )}
                       </li>
@@ -197,6 +202,7 @@ export default function Pendientes() {
           })}
         </ul>
       )}
+      {editando && <FormRemitente pareja={parejas.find(p => p.id === editando.pareja_id)} inicial={editando} onCerrar={cerrarEditar} />}
       {nuevoContacto && parejas.find(p => p.id === nuevoContacto) && (
         <FormRemitente pareja={parejas.find(p => p.id === nuevoContacto)} coordinador onCerrar={() => { cerrarContacto(); setVista('sin') }} />
       )}
