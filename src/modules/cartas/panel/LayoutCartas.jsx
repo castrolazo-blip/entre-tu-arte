@@ -14,7 +14,7 @@ const MENU = [
   { to: '/cartas/panel/mis-parejas', etiqueta: 'Mis parejas', Icono: HeartHandshake, equipo: true, simple: true },
   { to: '/cartas/panel/cartas', etiqueta: 'Cartas', Icono: Inbox, contador: 'posiblesDuplicados', simple: true },
   { to: '/cartas/panel/parejas', etiqueta: 'Parejas', Icono: Users },
-  { to: '/cartas/panel/pendientes', etiqueta: 'Seguimiento', Icono: BellRing, contador: 'contactosPendientes' },
+  { to: '/cartas/panel/pendientes', etiqueta: 'Avisar a familias', Icono: BellRing, contador: 'contactosPendientes' },
   { to: '/cartas/panel/impresion', etiqueta: 'Impresión y sobres', Icono: Printer },
   { to: '/cartas/panel/retiros', etiqueta: 'Retiros', Icono: CalendarHeart },
   { to: '/cartas/panel/configuracion', etiqueta: 'Configuración', Icono: Settings, soloAdmin: true },
