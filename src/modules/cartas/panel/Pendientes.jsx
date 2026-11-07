@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Search, Phone, ChevronDown, StickyNote } from 'lucide-react'
+import { Search, Phone, ChevronDown, StickyNote, UserPlus } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { listarRecordatorios, registrarGestion } from '../cartasService.js'
 import { fecha, nombrePareja, nombreEquipo, mensajeError } from '../constantes.js'
 import { Titulo, Vacio } from '../ui.jsx'
-import { AccionesRecordatorio } from './remitentes.jsx'
+import { AccionesRecordatorio, FormRemitente } from './remitentes.jsx'
+import { useVentana } from '../borrador.js'
 import { InvitacionPareja } from './Retiros.jsx'
 
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -40,6 +41,7 @@ export default function Pendientes() {
   const [matrimonio, setMatrimonio] = useState(miEquipo?.id || 'todos')
   const [gestiones, setGestiones] = useState([])
   const [abierto, setAbierto] = useState(null)
+  const [nuevoContacto, abrirContacto, cerrarContacto] = useVentana('contacto')
 
   const cargarGestiones = useCallback(() => {
     listarRecordatorios(retiro.id).then(setGestiones).catch(() => {})
@@ -65,9 +67,10 @@ export default function Pendientes() {
       const suyos = contactos.filter(r => r.pareja_id === p.id)
       const coincidePareja = !q || norm(`${p.codigo} ${nombrePareja(p)}`).includes(norm(q))
       const lista = suyos.filter(filtro).filter(r => coincidePareja || norm(`${r.nombre} ${r.relacion}`).includes(norm(q)))
-      return { p, lista, total: suyos.length, entregaron: suyos.filter(r => r.estado === 'recibido').length }
+      return { p, lista, total: suyos.length, entregaron: suyos.filter(r => r.estado === 'recibido').length, coincidePareja }
     })
-    .filter(g => g.lista.length)
+    // En «Sin avisar» también salen las parejas sin contactos, para poder agregarles uno
+    .filter(g => g.lista.length || (vista === 'sin' && !g.total && g.coincidePareja))
 
   async function gestionar(r, canal, mensaje = null) {
     try {
@@ -134,6 +137,7 @@ export default function Pendientes() {
                   </div>
                 </div>
                 <ul className="divide-y divide-crema-borde">
+                  {!total && <li className="px-4 py-3 text-xs text-gris">Esta pareja aún no tiene contactos de familia.</li>}
                   {lista.map(r => {
                     const hist = porContacto[r.id] || []
                     const ultima = hist[0]
@@ -184,10 +188,16 @@ export default function Pendientes() {
                     )
                   })}
                 </ul>
+                <button onClick={() => abrirContacto(p.id)} className="flex w-full items-center justify-center gap-1.5 border-t border-crema-borde px-4 py-3 text-sm font-semibold text-vino hover:bg-vino-claro/30">
+                  <UserPlus size={16} />Agregar contacto
+                </button>
               </li>
             )
           })}
         </ul>
+      )}
+      {nuevoContacto && parejas.find(p => p.id === nuevoContacto) && (
+        <FormRemitente pareja={parejas.find(p => p.id === nuevoContacto)} coordinador onCerrar={() => { cerrarContacto(); setVista('sin') }} />
       )}
     </div>
   )

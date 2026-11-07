@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { useBorrador, useVentana } from '../borrador.js'
 import { guardarRemitente, registrarRecordatorio } from '../cartasService.js'
-import { enlacePortal, mensajeRecordatorio, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE } from '../constantes.js'
+import { enlacePortal, mensajeRecordatorio, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE, RELACIONES } from '../constantes.js'
 import { Modal, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 
@@ -37,7 +37,8 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
         <label className="etiqueta sm:col-span-2">Nombre *<input required value={f.nombre} onChange={e => set('nombre', e.target.value)} className="campo mt-1.5" /></label>
         <label className="etiqueta">Teléfono (WhatsApp)<input value={f.telefono || ''} onChange={e => set('telefono', e.target.value)} inputMode="tel" className="campo mt-1.5" /></label>
         <label className="etiqueta">Correo<input type="email" value={f.correo || ''} onChange={e => set('correo', e.target.value)} className="campo mt-1.5" /></label>
-        <label className="etiqueta">Relación / vínculo<input value={f.relacion || ''} onChange={e => set('relacion', e.target.value)} placeholder="Hija, mamá de…, amigo" className="campo mt-1.5" /></label>
+        <label className="etiqueta">Relación / vínculo<input value={f.relacion || ''} onChange={e => set('relacion', e.target.value)} placeholder="Mamá, hermana, amigo…" list="relaciones-contacto" className="campo mt-1.5" />
+          <datalist id="relaciones-contacto">{RELACIONES.map(x => <option key={x} value={x} />)}</datalist></label>
         {!f.coordinador && <label className="etiqueta">Carta prevista para
           <select value={f.destinatario} onChange={e => set('destinatario', e.target.value)} className="campo mt-1.5">
             <option value="A">{pareja.apodo_a || pareja.nombre_a}</option><option value="B">{pareja.apodo_b || pareja.nombre_b}</option>
