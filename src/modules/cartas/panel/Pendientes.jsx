@@ -12,7 +12,7 @@ import { InvitacionPareja } from './Retiros.jsx'
 
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-// «Avisar a las familias»: filtrado por matrimonio del equipo, agrupado por pareja del retiro,
+// «Gestión de cartas» (avisar a las familias): filtrado por matrimonio del equipo, agrupado por pareja del retiro,
 // y con el historial de gestiones (mensajes, llamadas, notas) de cada contacto.
 const PESTANAS = [
   ['sin', 'Sin avisar', r => (r.estado === 'pendiente' || r.estado === 'revision') && !r.ultimo_recordatorio],
@@ -85,7 +85,7 @@ export default function Pendientes() {
 
   return (
     <div>
-      <Titulo titulo="Avisar a las familias" subtitulo="Por pareja del retiro. «Enviar» manda el mensaje por WhatsApp, 📞 llama y queda anotado quién hizo cada gestión." />
+      <Titulo titulo="Gestión de cartas" subtitulo="Por pareja del retiro. «Enviar» manda el mensaje por WhatsApp, 📞 llama y queda anotado quién hizo cada gestión." />
 
       {equipo.length > 0 && (
         <select value={matrimonio} onChange={e => setMatrimonio(e.target.value)} className="campo mb-3" aria-label="Matrimonio asignado">

@@ -62,7 +62,7 @@ export default function Tablero() {
       <Titulo titulo="Avance" subtitulo={retiro.fecha_limite ? `Fecha límite: ${fecha(retiro.fecha_limite, true)}` : 'Sin fecha límite configurada'}>
       </Titulo>
 
-      {miEquipo && <Link to="/cartas/panel/pendientes" className="mb-4 flex items-center justify-between gap-3 rounded-[22px] bg-vino p-4 text-white"><span><b>Matrimonio {miEquipo.apellidos}</b><span className="block text-sm text-white/80">Avisar a las familias de tus parejas</span></span><span className="font-semibold">Ir →</span></Link>}
+      {miEquipo && <Link to="/cartas/panel/pendientes" className="mb-4 flex items-center justify-between gap-3 rounded-[22px] bg-vino p-4 text-white"><span><b>Matrimonio {miEquipo.apellidos}</b><span className="block text-sm text-white/80">Gestión de cartas de tus parejas</span></span><span className="font-semibold">Ir →</span></Link>}
       {retiro.estado !== 'activo' && <p className="mb-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">Este retiro está «{retiro.estado}»: el formulario público no recibe cartas. Cámbialo a «Activo» en Retiros cuando quieras abrir la recepción.</p>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
