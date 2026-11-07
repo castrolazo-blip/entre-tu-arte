@@ -66,8 +66,9 @@ export function AccionesRecordatorio({ remitente, pareja, compacto = false, simp
   const { retiro, actualizarLocal, equipo } = useCartas()
   const { usuario } = useAuth()
   const enlace = enlacePortal(retiro, { remitente })
-  const responsable = contactoEquipo(equipo.find(e => e.id === pareja.equipo_id))
-  const mensaje = mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable })
+  const resp = equipo.find(e => e.id === pareja.equipo_id)
+  const responsable = contactoEquipo(resp)
+  const mensaje = mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable, entrega: resp })
   const tel = telefonoWhatsApp(remitente.telefono)
 
   const [opciones, setOpciones] = useState(false)

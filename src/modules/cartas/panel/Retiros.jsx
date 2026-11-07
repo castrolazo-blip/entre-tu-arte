@@ -108,7 +108,7 @@ function FormRetiro({ inicial, onCerrar, onGuardado }) {
         </label>
         <label className="etiqueta sm:col-span-2">Mensaje para las familias (WhatsApp / correo a los contactos)
           <textarea rows={10} value={f.plantilla_mensaje || PLANTILLA_FAMILIAS} onChange={e => set('plantilla_mensaje', e.target.value)} className="campo mt-1.5 font-mono text-[12.5px]" />
-          <span className="mt-1 block text-xs font-normal text-gris">Se completan solos: {'{pareja}'} {'{responsable}'} {'{meta}'} {'{fecha_limite}'} {'{enlace}'} {'{nombre}'}. *negrita* y _cursiva_ funcionan en WhatsApp. <button type="button" onClick={() => set('plantilla_mensaje', '')} className="font-semibold text-vino underline">Restaurar texto original</button></span>
+          <span className="mt-1 block text-xs font-normal text-gris">Se completan solos: {'{pareja}'} {'{responsable}'} {'{meta}'} {'{fecha_limite}'} {'{enlace}'} {'{nombre}'} {'{lugar}'} {'{horario}'} (el lugar y horario de cada matrimonio responsable). *negrita* y _cursiva_ funcionan en WhatsApp. <button type="button" onClick={() => set('plantilla_mensaje', '')} className="font-semibold text-vino underline">Restaurar texto original</button></span>
         </label>
         <label className="etiqueta">Responsable de los datos<input value={f.responsable_datos || ''} onChange={e => set('responsable_datos', e.target.value)} placeholder="Equipo Renova · Regnum Christi" className="campo mt-1.5" /></label>
         <label className="etiqueta">Contacto para pedir eliminación<input value={f.contacto_privacidad || ''} onChange={e => set('contacto_privacidad', e.target.value)} placeholder="WhatsApp 7729-0194" className="campo mt-1.5" /></label>
