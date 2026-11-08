@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check, MessageCircle, Paintbrush, Ruler } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Frame, Maximize2, ShoppingBag, Check, MessageCircle, Paintbrush, Ruler, Share2, Link2, X } from 'lucide-react'
 import { obtenerObra, listarObras, etiquetaExistencias, textoTipo } from './obrasService.js'
 import { precio } from '../../lib/formato.js'
 import { ORIENTACIONES, orientacionPorMedidas } from '../../lib/orientacion.js'
@@ -27,6 +27,7 @@ export default function ObraDetalle() {
   const [foto, setFoto] = useState(0)
   const [consulta, setConsulta] = useState(null)
   const [ampliada, setAmpliada] = useState(false)
+  const [menuCompartir, setMenuCompartir] = useState(false)
   const [arrastre, setArrastre] = useState(0)
   const toque = useRef(null)
   const deslizar = {
@@ -82,6 +83,22 @@ export default function ObraDetalle() {
   const proporcion = Math.min(1.5, Math.max(0.72, proporciones[(obra.fotos[foto] || obra.fotos[0])?.url] || 1.25))
   const reservada = obra.estadoEfectivo === 'reservada'
   obraRef.current = obra
+  const enlaceObra = `${window.location.origin}${import.meta.env.BASE_URL}obra/${obra.id}`
+  const datosObra = [obra.medidasTexto, precio(obra.precio)].filter(Boolean).join(' · ')
+  const waConsulta = enlaceWhatsApp(cfg.whatsapp, `Hola, tengo una consulta sobre la obra "${obra.titulo}"${datosObra ? ` (${datosObra})` : ''} de Entre tu Arte. ${enlaceObra}`)
+  const textoCompartir = `Mira esta obra de Entre tu Arte: "${obra.titulo}"${datosObra ? ` (${datosObra})` : ''}`
+  async function compartir() {
+    registrarEvento('compartir_obra', '/obra', obra.id, obra.titulo)
+    if (navigator.share) {
+      try { await navigator.share({ title: obra.titulo, text: textoCompartir, url: enlaceObra }); return }
+      catch (e) { if (e?.name === 'AbortError') return }
+    }
+    setMenuCompartir(true)
+  }
+  async function copiarEnlace() {
+    try { await navigator.clipboard.writeText(enlaceObra); toast.success('Enlace copiado') } catch { toast.error('No se pudo copiar') }
+    setMenuCompartir(false)
+  }
   if (typeof window !== 'undefined') obra.fotos.forEach(f => { if (!precargadas.has(f.url)) { precargadas.add(f.url); const i = new Image(); i.src = f.url } })
   const actual = obra.fotos[foto] || obra.fotos[0]
   const total = obra.fotos.length
@@ -172,9 +189,7 @@ export default function ObraDetalle() {
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setConsulta('encargo')} className="btn-contorno px-3 text-[15px]">A mi medida</button>
-                  {enlaceWhatsApp(cfg.whatsapp, '') ? (
-                    <a href={enlaceWhatsApp(cfg.whatsapp, `Hola, quiero pedir la obra "${obra.titulo}" de Entre tu Arte${obra.medidasTexto ? ` (${obra.medidasTexto})` : ''}. ${window.location.href}`)} target="_blank" rel="noreferrer" className="btn-contorno px-3 text-[15px]"><MessageCircle size={18} />WhatsApp</a>
-                  ) : <Link to={`/asesoria?obra=${obra.id}`} className="btn-contorno px-3 text-[15px]"><Frame size={18} />En mi pared</Link>}
+                  <Link to={`/asesoria?obra=${obra.id}`} className="btn-contorno px-3 text-[15px]"><Frame size={18} />En mi pared</Link>
                 </div>
               </>
             ) : (
@@ -196,6 +211,15 @@ export default function ObraDetalle() {
                 {!marketplace && <button onClick={() => setConsulta('medida')} className="btn-contorno px-3 text-[15px]"><Ruler size={18} />La quiero en otra medida</button>}
               </>
             )}
+            <div className={`grid gap-3 ${waConsulta ? 'grid-cols-[1fr_auto]' : 'grid-cols-1'}`}>
+              {waConsulta && (
+                <a href={waConsulta} target="_blank" rel="noreferrer" onClick={() => registrarEvento('whatsapp_obra', '/obra', obra.id, obra.titulo)}
+                  className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 text-[15px] font-semibold text-white transition hover:brightness-95">
+                  <MessageCircle size={19} /><span className="whitespace-nowrap">Consultar<span className="hidden min-[400px]:inline"> por WhatsApp</span></span>
+                </a>
+              )}
+              <button onClick={compartir} className="btn-contorno h-14 px-5 text-[15px]"><Share2 size={18} />Compartir</button>
+            </div>
             <button onClick={() => setConsulta('contacto')} className="mt-1 text-[15px] font-semibold underline decoration-mostaza decoration-[3px] underline-offset-[6px]">Tengo una pregunta sobre esta obra</button>
           </div>
 
@@ -226,6 +250,21 @@ export default function ObraDetalle() {
         </FondoImagen>
       )}
 
+      {menuCompartir && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 md:items-center" onClick={() => setMenuCompartir(false)}>
+          <div role="dialog" aria-label="Compartir esta obra" onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-t-[28px] bg-white p-5 md:rounded-[28px]">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-lg font-bold">Compartir esta obra</p>
+              <button onClick={() => setMenuCompartir(false)} aria-label="Cerrar" className="flex h-10 w-10 items-center justify-center rounded-full bg-crema"><X size={18} /></button>
+            </div>
+            <div className="grid gap-2">
+              <a href={`https://wa.me/?text=${encodeURIComponent(`${textoCompartir} ${enlaceObra}`)}`} target="_blank" rel="noreferrer" onClick={() => setMenuCompartir(false)} className="flex h-12 items-center gap-3 rounded-2xl bg-crema-clara px-4 font-semibold"><MessageCircle size={19} className="text-[#25D366]" />WhatsApp</a>
+              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(enlaceObra)}`} target="_blank" rel="noreferrer" onClick={() => setMenuCompartir(false)} className="flex h-12 items-center gap-3 rounded-2xl bg-crema-clara px-4 font-semibold"><Share2 size={19} className="text-[#1877F2]" />Facebook</a>
+              <button onClick={copiarEnlace} className="flex h-12 items-center gap-3 rounded-2xl bg-crema-clara px-4 text-left font-semibold"><Link2 size={19} />Copiar enlace</button>
+            </div>
+          </div>
+        </div>
+      )}
       {consulta && <FormularioConsulta tipo={consulta} obra={obra} onCerrar={() => setConsulta(null)} />}
       {ampliada && actual && (
         <div role="dialog" aria-label="Imagen ampliada" className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/90 p-4"
