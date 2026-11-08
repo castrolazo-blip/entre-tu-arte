@@ -11,10 +11,28 @@ const NOMBRES_PAGINA = {
   '/blog': 'Blog', '/asesoria': 'Asesoría', '/carrito': 'Carrito', '/colecciones': 'Colecciones',
 }
 const nombrePagina = p => NOMBRES_PAGINA[p] || (p?.startsWith('/obra/') ? 'Página de una obra' : p?.startsWith('/artistas/') ? 'Página de un artista' : p?.startsWith('/blog/') ? 'Artículo del blog' : p || '—')
-const dia = d => d.toISOString().slice(0, 10)
+const dia = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const esConsulta = e => e.startsWith('consulta_') || e === 'asesoria' || e === 'contacto'
 // "visita_sitio" es como la página anterior guardaba las visitas
 const esVisita = e => e.evento === 'visita' || e.evento === 'visita_sitio'
+
+// Ingresos a la página: cada vez que una persona entra al sitio (no cada página que abre).
+// Se cuenta un ingreso nuevo cuando la persona no había visto nada en los últimos 30 minutos
+// o cuando cambia el día. Las visitas antiguas sin identificador cuentan como un ingreso cada una.
+const PAUSA = 30 * 60 * 1000
+function ingresos(eventos) {
+  const ultima = new Map(), lista = []
+  eventos.filter(esVisita)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .forEach(e => {
+      const t = new Date(e.created_at)
+      if (!e.visitante) { lista.push({ t, visitante: null }); return }
+      const antes = ultima.get(e.visitante)
+      if (!antes || t - antes > PAUSA || dia(t) !== dia(antes)) lista.push({ t, visitante: e.visitante })
+      ultima.set(e.visitante, t)
+    })
+  return lista
+}
 
 // Lee todos los eventos desde una fecha (de 1000 en 1000, máximo 30 000)
 async function leerEventos(desde) {
@@ -36,6 +54,7 @@ function resumir(eventos) {
   const unicos = (evento) => new Set(eventos.filter(e => e.evento === evento && e.visitante).map(e => e.visitante)).size
   return {
     visitas: visitas.length,
+    ingresos: ingresos(eventos).length,
     visitantes: conId ? ids.size : null,
     obrasVistas: eventos.filter(e => e.evento === 'ver_obra').length,
     carrito: eventos.filter(e => e.evento === 'agregar_carrito').length,
@@ -72,7 +91,11 @@ export default function Estadisticas() {
     const porDia = new Map()
     for (let i = dias - 1; i >= 0; i--) porDia.set(dia(new Date(Date.now() - i * 864e5)), 0)
     visitas.forEach(e => { const k = dia(new Date(e.created_at)); if (porDia.has(k)) porDia.set(k, porDia.get(k) + 1) })
+    // Ingresos por día y personas distintas por día
+    const ingresosDia = new Map([...porDia.keys()].map(k => [k, 0])), personasDia = new Map([...porDia.keys()].map(k => [k, new Set()]))
+    ingresos(eventos).forEach(x => { const k = dia(x.t); if (ingresosDia.has(k)) { ingresosDia.set(k, ingresosDia.get(k) + 1); if (x.visitante) personasDia.get(k).add(x.visitante) } })
     return {
+      ingresosDia: [...ingresosDia.entries()].map(([k, n]) => [k, n, personasDia.get(k).size]),
       ahora: resumir(actual), antes: resumir(anterior),
       porDia: [...porDia.entries()],
       paginas: ranking(visitas, e => nombrePagina(e.pagina)),
@@ -101,8 +124,9 @@ export default function Estadisticas() {
 
       {!datos ? <p className="p-6 text-gris">Cargando…</p> : (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-            <Kpi titulo="Visitantes únicos" valor={datos.ahora.visitantes} antes={datos.antes.visitantes} nota={datos.ahora.visitantes == null ? 'Se activa con el SQL' : null} destacado />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7">
+            <Kpi titulo="Ingresos a la página" valor={datos.ahora.ingresos} antes={datos.antes.ingresos} destacado />
+            <Kpi titulo="Visitantes únicos" valor={datos.ahora.visitantes} antes={datos.antes.visitantes} nota={datos.ahora.visitantes == null ? 'Se activa con el SQL' : null} />
             <Kpi titulo="Páginas vistas" valor={datos.ahora.visitas} antes={datos.antes.visitas} />
             <Kpi titulo="Obras vistas" valor={datos.ahora.obrasVistas} antes={datos.antes.obrasVistas} />
             <Kpi titulo="Agregadas al carrito" valor={datos.ahora.carrito} antes={datos.antes.carrito} />
@@ -113,8 +137,14 @@ export default function Estadisticas() {
           <SemanaPorDia />
 
           <section className="rounded-[28px] bg-white p-5 md:p-6">
+            <h2 className="text-lg font-bold">Ingresos a la página por día</h2>
+            <p className="text-sm text-gris">Cuántas veces entraron a entretuarte.com · últimos {dias} días · toca una barra para ver el día</p>
+            <BarrasPorDia datos={datos.ingresosDia} unidad={['ingreso', 'ingresos']} />
+          </section>
+
+          <section className="rounded-[28px] bg-white p-5 md:p-6">
             <h2 className="text-lg font-bold">Páginas vistas por día</h2>
-            <p className="text-sm text-gris">Últimos {dias} días · toca una barra para ver el día</p>
+            <p className="text-sm text-gris">Todas las páginas que abrieron · últimos {dias} días</p>
             <BarrasPorDia datos={datos.porDia} />
           </section>
 
@@ -168,7 +198,7 @@ function Kpi({ titulo, valor, antes, nota, destacado }) {
 
 // Una sola serie: barras finas con la punta redondeada, separadas por un hueco; al tocar o pasar
 // el mouse se muestra el día y el valor.
-function BarrasPorDia({ datos }) {
+function BarrasPorDia({ datos, unidad = ['página vista', 'páginas vistas'] }) {
   const [activo, setActivo] = useState(null)
   const max = Math.max(1, ...datos.map(d => d[1]))
   const total = datos.reduce((t, d) => t + d[1], 0)
@@ -176,7 +206,7 @@ function BarrasPorDia({ datos }) {
   const sel = activo != null ? datos[activo] : null
   return (
     <div className="mt-4">
-      <p className="h-6 text-sm font-semibold">{sel ? `${fmt(sel[0])}: ${sel[1]} ${sel[1] === 1 ? 'página vista' : 'páginas vistas'}` : `${total.toLocaleString('es-SV')} en total`}</p>
+      <p className="h-6 text-sm font-semibold">{sel ? `${fmt(sel[0])}: ${sel[1]} ${sel[1] === 1 ? unidad[0] : unidad[1]}${sel[2] != null ? ` · ${sel[2]} ${sel[2] === 1 ? 'persona' : 'personas'}` : ''}` : `${total.toLocaleString('es-SV')} en total`}</p>
       <div className="relative mt-2 flex h-48 items-end gap-[2px] border-b border-crema-borde" onMouseLeave={() => setActivo(null)}>
         {datos.map(([k, n], i) => (
           <button key={k} type="button" aria-label={`${fmt(k)}: ${n}`} onMouseEnter={() => setActivo(i)} onClick={() => setActivo(i)} onFocus={() => setActivo(i)}
@@ -228,7 +258,7 @@ function SemanaPorDia() {
     const desde = new Date(lunes); desde.setDate(desde.getDate() - 7)    // incluye la semana anterior para comparar
     const hasta = new Date(lunes); hasta.setDate(hasta.getDate() + 7)
     leerEventos(desde).then(ev => {
-      const visitas = ev.filter(e => esVisita(e) && new Date(e.created_at) < hasta)
+      const visitas = ingresos(ev.filter(e => new Date(e.created_at) < hasta)).map(x => ({ created_at: x.t, visitante: x.visitante }))
       const dias = Array(7).fill(0), unicos = Array.from({ length: 7 }, () => new Set())
       // Semana en curso: se compara contra los mismos días de la semana anterior (lunes a hoy)
       const ultimoDia = Math.min(6, Math.floor((Date.now() - lunes) / 864e5))
@@ -255,7 +285,7 @@ function SemanaPorDia() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">{atras === 0 ? 'Esta semana' : atras === 1 ? 'Semana pasada' : `Hace ${atras} semanas`}</h2>
-          <p className="text-sm text-gris">Lunes {fmt(lunes)} a domingo {fmt(domingo)} · páginas vistas por día</p>
+          <p className="text-sm text-gris">Lunes {fmt(lunes)} a domingo {fmt(domingo)} · ingresos a la página por día</p>
         </div>
         <div className="flex gap-1.5">
           <button type="button" onClick={() => setAtras(a => a + 1)} aria-label="Semana anterior" className="flex h-10 w-10 items-center justify-center rounded-full bg-crema text-lg font-bold">‹</button>
@@ -285,7 +315,7 @@ function SemanaPorDia() {
               return <span key={d} className={dia.getTime() === hoy.getTime() ? 'font-bold' : 'text-gris'}>{d}<span className="block">{dia.getDate()}</span></span>
             })}
           </div>
-          {datos.hayUnicos && <p className="mt-3 text-xs text-gris">Visitantes únicos por día: {datos.unicos.map((u, i) => `${DIAS_SEMANA[i]} ${u}`).join(' · ')}</p>}
+          {datos.hayUnicos && <p className="mt-3 text-xs text-gris">Personas distintas por día: {datos.unicos.map((u, i) => `${DIAS_SEMANA[i]} ${u}`).join(' · ')}</p>}
         </>
       )}
     </section>
