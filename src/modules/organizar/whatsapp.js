@@ -49,3 +49,33 @@ export function mensajesPara(inv, ev, url) {
   ]
   return [{ texto: msgInvitacion(inv.nombre, ev, url), etiqueta: 'Reenviar' }]
 }
+
+// ── Status para compartir (en el grupo o para uno mismo) ─────────────────────
+const lista = nombres => nombres.map(n => primerNombre(n)).join(', ')
+
+export function textoStatus(ev, invitados) {
+  const n = invitados.length
+  if (ev.estado === 'votacion' || ev.estado === 'cerrada') {
+    const si = invitados.filter(i => i.voto), no = invitados.filter(i => !i.voto)
+    return `📊 *${ev.titulo}* · votación\n${si.length} de ${n} ya votaron` +
+      (si.length ? `\n✅ Votaron: ${lista(si.map(i => i.nombre))}` : '') +
+      (no.length ? `\n⏳ Faltan: ${lista(no.map(i => i.nombre))}` : '\n🎉 ¡Ya votaron todos!')
+  }
+  if (ev.estado === 'confirmado') return `📅 *${ev.titulo}* quedó confirmado: ${fechaLarga(ev.fecha_elegida, { mayus: false })}, ${horario(ev).toLowerCase()}.`
+  const si = invitados.filter(i => i.respondio_en), no = invitados.filter(i => !i.respondio_en)
+  return `📊 *${ev.titulo}*\n${si.length} de ${n} ya marcaron sus fechas` +
+    (si.length ? `\n✅ Listos: ${lista(si.map(i => i.nombre))}` : '') +
+    (no.length ? `\n⏳ Faltan: ${lista(no.map(i => i.nombre))}` : '\n🎉 ¡Ya respondieron todos!') +
+    (ev.fecha_limite ? `\n⏰ Plazo: ${fechaLarga(ev.fecha_limite, { mayus: false })}` : '')
+}
+
+export function textoStatusGeneral(eventos) {
+  const lineas = eventos.map(e => {
+    if (e.estado === 'votacion' || e.estado === 'cerrada') {
+      return `🗳️ *${e.titulo}*: ${e.votaron}/${e.invitados} votaron${e.sin_voto?.length ? ` · faltan ${lista(e.sin_voto)}` : ' ✅'}`
+    }
+    if (e.estado === 'confirmado') return `📅 *${e.titulo}*: confirmado para el ${fechaLarga(e.fecha_elegida, { mayus: false })}`
+    return `📝 *${e.titulo}*: ${e.respondieron}/${e.invitados} respondieron${e.pendientes?.length ? ` · faltan ${lista(e.pendientes)}` : ' ✅'}`
+  })
+  return `📊 *Status de Si nos organizamos!*\n\n${lineas.join('\n')}`
+}

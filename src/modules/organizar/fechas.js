@@ -117,3 +117,15 @@ export function descargarIcs(ev, fecha) {
   document.body.appendChild(a2); a2.click(); a2.remove()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
+
+// «hace 5 min», «hace 2 h», «ayer», «hace 3 días»
+export function hace(ts) {
+  if (!ts) return ''
+  const min = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 60000))
+  if (min < 1) return 'ahora'
+  if (min < 60) return `hace ${min} min`
+  const h = Math.round(min / 60)
+  if (h < 24) return `hace ${h} h`
+  const d = Math.round(h / 24)
+  return d === 1 ? 'ayer' : `hace ${d} días`
+}

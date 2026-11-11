@@ -5,8 +5,8 @@ import { ArrowLeft, Pencil, Loader2, MessageCircle, Copy, Check, Vote, Trophy, C
 import { ui, ChipEstado } from '../marca.jsx'
 import Calendario from '../Calendario.jsx'
 import { cargarEvento, actualizarEvento, abrirVotacion, borrarEvento, mensajeError } from '../servicio.js'
-import { periodo, diasTexto, horario, fechaLarga, fechaCorta, diaSemana, DIAS, enlaceGoogle } from '../fechas.js'
-import { enlacePersonal, urlWhatsApp, mensajesPara } from '../whatsapp.js'
+import { periodo, diasTexto, horario, fechaLarga, fechaCorta, diaSemana, DIAS, enlaceGoogle, hace } from '../fechas.js'
+import { enlacePersonal, urlWhatsApp, mensajesPara, textoStatus } from '../whatsapp.js'
 
 const MAX_OPCIONES = 6
 
@@ -100,6 +100,9 @@ export default function DetalleEvento() {
           <Dato valor={ev.estado === 'votacion' || ev.estado === 'cerrada' ? `${d.invitados.filter(i => i.voto).length}/${n}` : '—'} texto="votaron" />
         </div>
       </section>
+
+      {/* Status: quién ya actualizó y quién no */}
+      {ev.estado !== 'cancelado' && ev.estado !== 'confirmado' && <Status ev={ev} invitados={d.invitados} />}
 
       {/* Confirmado */}
       {ev.estado === 'confirmado' && (
@@ -310,6 +313,7 @@ function Invitados({ ev, invitados }) {
                   {i.respondio_en
                     ? <span className={`${'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold'} bg-emerald-100 text-emerald-800`}><Check size={11} strokeWidth={3} />Respondió</span>
                     : <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">Sin respuesta</span>}
+                  {i.actualizado_en && <span className="text-[11px] text-slate-400">actualizó {hace(i.actualizado_en)}</span>}
                   {(ev.estado === 'votacion' || ev.estado === 'cerrada') && (i.voto
                     ? <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800">Votó</span>
                     : <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">Falta voto</span>)}
@@ -326,6 +330,43 @@ function Invitados({ ev, invitados }) {
           )
         })}
       </ul>
+    </section>
+  )
+}
+
+function Status({ ev, invitados }) {
+  const votando = ev.estado === 'votacion' || ev.estado === 'cerrada'
+  const listo = i => (votando ? i.voto : !!i.respondio_en)
+  const si = invitados.filter(listo).sort((a, b) => String(b.actualizado_en || '').localeCompare(String(a.actualizado_en || '')))
+  const no = invitados.filter(i => !listo(i))
+  const texto = textoStatus(ev, invitados)
+  async function copiar() {
+    try { await navigator.clipboard.writeText(texto); toast.success('Status copiado') } catch { toast.error('No se pudo copiar') }
+  }
+  return (
+    <section className={ui.tarjeta}>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="flex-1 text-lg font-bold">Status · {si.length} de {invitados.length} {votando ? 'ya votaron' : 'ya actualizaron'}</h2>
+        <button onClick={copiar} className={ui.btnMini}><Copy size={14} />Copiar</button>
+        <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer" className={ui.btnMini}><MessageCircle size={14} className="text-[#25D366]" />Enviar al grupo</a>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-teal-600" style={{ width: `${invitados.length ? (si.length / invitados.length) * 100 : 0}%` }} /></div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <p className="text-sm font-bold text-emerald-700">✅ {votando ? 'Ya votaron' : 'Ya actualizaron'} ({si.length})</p>
+          <ul className="mt-1.5 space-y-1">
+            {si.map(i => <li key={i.persona_id} className="flex justify-between gap-2 text-sm"><span>{i.nombre}</span><span className="text-slate-400">{hace(votando ? i.actualizado_en : i.respondio_en)}</span></li>)}
+            {!si.length && <li className="text-sm text-slate-400">Nadie todavía</li>}
+          </ul>
+        </div>
+        <div>
+          <p className="text-sm font-bold text-amber-700">⏳ Faltan ({no.length})</p>
+          <ul className="mt-1.5 space-y-1">
+            {no.map(i => <li key={i.persona_id} className="text-sm">{i.nombre}</li>)}
+            {!no.length && <li className="text-sm font-semibold text-emerald-700">¡Todos listos! 🎉</li>}
+          </ul>
+        </div>
+      </div>
     </section>
   )
 }

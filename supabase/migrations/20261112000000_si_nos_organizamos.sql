@@ -37,6 +37,8 @@ create table if not exists public.sno_personas (
   activo            boolean not null default true,
   created_at        timestamptz not null default now()
 );
+-- Última vez que la persona tocó su calendario (para el status del administrador; no dice qué cambió)
+alter table public.sno_personas add column if not exists actualizado_en timestamptz;
 
 create table if not exists public.sno_eventos (
   id            uuid primary key default gen_random_uuid(),
@@ -215,6 +217,7 @@ begin
     insert into sno_bloqueos (persona_id, fecha, hora_desde, hora_hasta)
     values (v_persona, p_fecha, p_desde, p_hasta) returning id into v_id;
   end if;
+  update sno_personas set actualizado_en = now() where id = v_persona;
   return v_id;
 end $$;
 
@@ -226,6 +229,7 @@ begin
   if v_persona is null then raise exception 'sno:enlace_invalido'; end if;
   delete from sno_bloqueos where persona_id = v_persona and id = any(p_ids);
   get diagnostics v_n = row_count;
+  if v_n > 0 then update sno_personas set actualizado_en = now() where id = v_persona; end if;
   return v_n;
 end $$;
 
@@ -241,6 +245,7 @@ begin
   end if;
   update sno_invitados set respondio_en = now() where evento_id = p_evento and persona_id = v_persona;
   if not found then raise exception 'sno:no_invitado'; end if;
+  update sno_personas set actualizado_en = now() where id = v_persona;
   return true;
 end $$;
 
@@ -258,6 +263,7 @@ begin
   end if;
   insert into sno_votos (evento_id, persona_id, fecha, ronda) values (p_evento, v_persona, p_fecha, e.ronda)
   on conflict (evento_id, persona_id) do update set fecha = excluded.fecha, ronda = excluded.ronda, created_at = now();
+  update sno_personas set actualizado_en = now() where id = v_persona;
   return true;
 end $$;
 
@@ -294,7 +300,7 @@ begin
         from (select fecha, count(*) n from sno_votos where evento_id = e.id and ronda = e.ronda group by fecha) v), '[]'::jsonb),
     'invitados', coalesce((
       select jsonb_agg(jsonb_build_object('persona_id', p.id, 'nombre', p.nombre, 'telefono', p.telefono,
-               'token', p.token, 'activo', p.activo, 'respondio_en', i.respondio_en,
+               'token', p.token, 'activo', p.activo, 'respondio_en', i.respondio_en, 'actualizado_en', p.actualizado_en,
                'voto', exists (select 1 from sno_votos v where v.evento_id = e.id and v.persona_id = p.id and v.ronda = e.ronda))
                order by p.nombre)
         from sno_invitados i join sno_personas p on p.id = i.persona_id where i.evento_id = e.id), '[]'::jsonb));
@@ -309,7 +315,13 @@ begin
     select jsonb_agg(jsonb_build_object('id', e.id,
              'invitados', (select count(*) from sno_invitados i where i.evento_id = e.id),
              'respondieron', (select count(*) from sno_invitados i where i.evento_id = e.id and i.respondio_en is not null),
-             'votaron', (select count(*) from sno_votos v where v.evento_id = e.id and v.ronda = e.ronda)))
+             'votaron', (select count(*) from sno_votos v where v.evento_id = e.id and v.ronda = e.ronda),
+             'pendientes', coalesce((select jsonb_agg(p.nombre order by p.nombre) from sno_invitados i join sno_personas p on p.id = i.persona_id
+                                      where i.evento_id = e.id and i.respondio_en is null), '[]'::jsonb),
+             'sin_voto', coalesce((select jsonb_agg(p.nombre order by p.nombre) from sno_invitados i join sno_personas p on p.id = i.persona_id
+                                    where i.evento_id = e.id and not exists (select 1 from sno_votos v where v.evento_id = e.id
+                                      and v.persona_id = i.persona_id and v.ronda = e.ronda)), '[]'::jsonb),
+             'ultima_respuesta', (select max(i.respondio_en) from sno_invitados i where i.evento_id = e.id)))
       from sno_eventos e), '[]'::jsonb);
 end $$;
 
