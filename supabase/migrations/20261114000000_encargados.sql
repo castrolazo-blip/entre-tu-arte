@@ -1,7 +1,8 @@
 -- ════════════════════════════════════════════════════════════════════════════
 -- Si nos organizamos! · Encargados («quién lleva qué») dentro de cada evento
 --
--- El administrador arma la lista (pastel, carne, hielo, vino, mesas, limpieza…) con cupos;
+-- El administrador arma la lista (pastel, carne, hielo, vino, mesas, limpieza…) y decide en cada cosa
+-- si la lleva 1 persona, varias (N) o sin límite;
 -- los invitados se apuntan desde su enlace o el administrador los asigna.
 -- A diferencia del calendario y del amigo secreto, esta lista la ven TODOS los invitados del
 -- evento (es para coordinarse), con el primer nombre de cada responsable. Nunca teléfonos.
@@ -14,10 +15,15 @@ create table if not exists public.sno_encargos (
   evento_id  uuid not null references public.sno_eventos(id) on delete cascade,
   nombre     text not null check (length(btrim(nombre)) between 2 and 60),
   detalle    text check (detalle is null or length(detalle) <= 200),   -- «2 bolsas», «para 12 personas»
-  cupos      int not null default 1 check (cupos between 1 and 20),     -- cuántas personas pueden apuntarse
+  cupos      int default 1 check (cupos is null or cupos between 1 and 50),  -- cuántas personas: 1, varias (N) o vacío = sin límite
   orden      int not null default 0,
   created_at timestamptz not null default now()
 );
+-- Por si la tabla ya existía con cupos obligatorio: vacío = sin límite
+alter table public.sno_encargos alter column cupos drop not null;
+alter table public.sno_encargos drop constraint if exists sno_encargos_cupos_check;
+alter table public.sno_encargos add constraint sno_encargos_cupos_check check (cupos is null or cupos between 1 and 50);
+
 create index if not exists sno_encargos_evento_idx on public.sno_encargos (evento_id, orden);
 
 create table if not exists public.sno_encargo_responsables (
@@ -46,7 +52,7 @@ begin
   if not exists (select 1 from sno_invitados where evento_id = e.evento_id and persona_id = new.persona_id) then
     raise exception 'sno:no_invitado';
   end if;
-  if (select count(*) from sno_encargo_responsables where encargo_id = new.encargo_id) >= e.cupos then
+  if e.cupos is not null and (select count(*) from sno_encargo_responsables where encargo_id = new.encargo_id) >= e.cupos then
     raise exception 'sno:encargo_lleno';
   end if;
   return new;

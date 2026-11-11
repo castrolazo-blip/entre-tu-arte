@@ -10,7 +10,7 @@ export default function EncargosParticipante({ ev, token, recargar }) {
   const items = ev.encargos || []
   if (!items.length) return null
   const mios = items.filter(i => i.responsables.some(r => r.yo))
-  const cubiertos = items.filter(i => i.responsables.length >= i.cupos).length
+  const cubiertos = items.filter(i => (i.cupos == null ? i.responsables.length > 0 : i.responsables.length >= i.cupos)).length
 
   async function cambiar(i, tomar) {
     setOcupado(i.id)
@@ -27,14 +27,15 @@ export default function EncargosParticipante({ ev, token, recargar }) {
       <ul className="mt-3 divide-y divide-slate-100">
         {items.map(i => {
           const yo = i.responsables.some(r => r.yo)
-          const lleno = i.responsables.length >= i.cupos
-          const falta = i.cupos - i.responsables.length
+          const lleno = i.cupos != null && i.responsables.length >= i.cupos
+          const falta = i.cupos == null ? 0 : i.cupos - i.responsables.length
           return (
             <li key={i.id} className="flex items-center gap-3 py-3">
               <div className="min-w-0 flex-1">
                 <p className="font-bold">{i.nombre}{i.detalle && <span className="font-normal text-slate-500"> · {i.detalle}</span>}</p>
                 <p className="text-[13px]">
                   {i.responsables.length > 0 && <span className="font-semibold text-slate-700">{i.responsables.map(r => (r.yo ? 'Vos' : r.nombre)).join(', ')}</span>}
+                  {i.cupos == null && <span className="font-semibold text-slate-500">{i.responsables.length ? ' · pueden ser más' : <span className="text-amber-700">Nadie todavía · pueden ser varios</span>}</span>}
                   {falta > 0 && <span className="font-semibold text-amber-700">{i.responsables.length ? ' · ' : ''}{falta === 1 ? (i.responsables.length ? 'falta 1 más' : 'Nadie todavía') : `faltan ${falta}`}</span>}
                 </p>
               </div>

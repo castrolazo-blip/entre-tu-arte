@@ -38,7 +38,7 @@ quién ya vio la suya. Base de datos: `supabase/migrations/20261113000000_amigo_
 
 ## Quién lleva qué (encargados, dentro de cada evento)
 En el detalle del evento: lista de encargos (sugeridos: comida, pastel, carne, arroz, hielo, vino, cerveza,
-mesas, casa, limpieza… o los propios), cada uno con cupos y detalle. Los invitados se apuntan con
+mesas, casa, limpieza… o los propios), cada uno con «1 persona», «varias: hasta N» o «varias: sin límite» y un detalle opcional. Los invitados se apuntan con
 «Yo lo llevo» desde su enlace, o el administrador asigna. Esta lista sí la ven todos los invitados del evento
 (primer nombre de cada responsable). «Enviar al grupo» manda la lista con lo que falta.
 Base de datos: `supabase/migrations/20261114000000_encargados.sql`.

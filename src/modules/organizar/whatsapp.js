@@ -106,13 +106,22 @@ export function textoStatusSorteo(s, participantes) {
 export const SUGERIDOS = ['🍽️ Comida', '🎂 Pastel', '🥩 Carne', '🍚 Arroz', '🥗 Ensalada', '🥖 Pan', '🍿 Boquitas', '🍰 Postre',
   '🥤 Bebidas', '🧊 Hielo', '🍷 Vino', '🍺 Cerveza', '🥤 Vasos y platos', '🪑 Mesas', '🪑 Sillas', '🏠 Casa / lugar', '🧹 Limpieza', '🎵 Música']
 
+// Cosas que suelen llevar varias personas: se agregan como «sin límite»
+export const SUGERIDOS_VARIOS = ['🍿 Boquitas', '🍰 Postre', '🥤 Bebidas', '🍷 Vino', '🍺 Cerveza']
+
+// cupos: 1 = una persona · N = hasta N · null = sin límite
+export const encargoCubierto = i => (i.cupos == null ? i.nombres.length > 0 : i.nombres.length >= i.cupos)
+export const textoCupos = c => (c == null ? 'varios, sin límite' : c === 1 ? '1 persona' : `hasta ${c} personas`)
+
 // items: [{ nombre, detalle, cupos, nombres: ['Laura', …] }]
 export function textoEncargos(ev, items) {
-  const cubiertos = items.filter(i => i.nombres.length >= i.cupos).length
+  const cubiertos = items.filter(encargoCubierto).length
   const lineas = items.map(i => {
     const quien = i.nombres.length ? lista(i.nombres) : ''
+    const det = i.detalle ? ` (${i.detalle})` : ''
+    if (i.cupos == null) return `• ${i.nombre}${det} · pueden ser varios: ${quien || '⏳ nadie todavía'}`
     const falta = i.cupos - i.nombres.length
-    return `• ${i.nombre}${i.detalle ? ` (${i.detalle})` : ''}: ${quien}${falta > 0 ? `${quien ? ' + ' : ''}⏳ ${falta === 1 && !quien ? 'falta' : `falta${falta > 1 ? 'n' : ''} ${falta}`}` : ' ✅'}`
+    return `• ${i.nombre}${det}: ${quien}${falta > 0 ? `${quien ? ' + ' : ''}⏳ ${falta === 1 && !quien ? 'falta' : `falta${falta > 1 ? 'n' : ''} ${falta}`}` : ' ✅'}`
   })
   return `🧾 *${ev.titulo}* · quién lleva qué\n${cubiertos} de ${items.length} cubiertos\n\n${lineas.join('\n')}\n\nPara apuntarte, abrí tu enlace del evento y tocá «Yo lo llevo».` + firma
 }
