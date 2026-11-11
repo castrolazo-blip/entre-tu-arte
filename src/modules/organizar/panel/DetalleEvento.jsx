@@ -6,6 +6,7 @@ import { ui, ChipEstado } from '../marca.jsx'
 import Calendario from '../Calendario.jsx'
 import AmigoSecreto from './AmigoSecreto.jsx'
 import Encargados from './Encargados.jsx'
+import QueComemos from './QueComemos.jsx'
 import { cargarEvento, actualizarEvento, abrirVotacion, borrarEvento, mensajeError } from '../servicio.js'
 import { periodo, diasTexto, horario, fechaLarga, fechaCorta, diaSemana, DIAS, enlaceGoogle, hace } from '../fechas.js'
 import { enlacePersonal, urlWhatsApp, mensajesPara, textoStatus } from '../whatsapp.js'
@@ -192,6 +193,9 @@ export default function DetalleEvento() {
 
       {/* Invitados */}
       <Invitados ev={ev} invitados={d.invitados} />
+
+      {/* ¿Qué comemos? */}
+      {ev.estado !== 'cancelado' && <QueComemos ev={ev} numInvitados={d.invitados.length} />}
 
       {/* Quién lleva qué */}
       {ev.estado !== 'cancelado' && <Encargados ev={ev} invitados={d.invitados} />}

@@ -192,3 +192,24 @@ export async function quitarResponsable(encargo, persona) {
   const { error } = await supabase.from('sno_encargo_responsables').delete().eq('encargo_id', encargo).eq('persona_id', persona)
   if (error) throw error
 }
+
+// ── ¿Qué comemos? ────────────────────────────────────────────────────────────
+export const votarEncuesta = (token, encuesta, opcion) => rpc('sno_votar_encuesta', { p_token: token, p_encuesta: encuesta, p_opcion: opcion })
+export const resultadosComida = evento => rpc('sno_resultados_comida', { p_evento: evento })
+export async function crearEncuesta(evento, tipo, opciones, resultado = null) {
+  const { error } = await supabase.from('sno_encuestas')
+    .insert({ evento_id: evento, tipo, opciones, ...(resultado ? { estado: 'cerrada', resultado } : {}) })
+  if (error) throw error
+}
+export async function cerrarEncuesta(id, resultado) {
+  const { error } = await supabase.from('sno_encuestas').update({ estado: 'cerrada', resultado }).eq('id', id)
+  if (error) throw error
+}
+export async function reabrirEncuesta(id) {
+  const { error } = await supabase.from('sno_encuestas').update({ estado: 'abierta', resultado: null }).eq('id', id)
+  if (error) throw error
+}
+export async function borrarEncuestas(evento, tipos) {
+  const { error } = await supabase.from('sno_encuestas').delete().eq('evento_id', evento).in('tipo', tipos)
+  if (error) throw error
+}

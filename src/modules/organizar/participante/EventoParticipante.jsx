@@ -5,6 +5,7 @@ import { ui, ChipEstado } from '../marca.jsx'
 import Calendario from '../Calendario.jsx'
 import AmigoParticipante from './AmigoParticipante.jsx'
 import EncargosParticipante from './EncargosParticipante.jsx'
+import ComidaParticipante from './ComidaParticipante.jsx'
 import { bloquear, desbloquear, marcarListo, votar, mensajeError } from '../servicio.js'
 import { fechasEvento, periodo, diasTexto, horario, fechaLarga, choca, textoBloqueo, enlaceGoogle, descargarIcs, hhmm } from '../fechas.js'
 
@@ -27,6 +28,7 @@ export default function EventoParticipante({ ev, token, bloqueos, hoy, deseo, on
       {ev.estado === 'disponibilidad' && <Disponibilidad ev={ev} token={token} bloqueos={bloqueos} hoy={hoy} onBloqueos={onBloqueos} recargar={recargar} />}
       {(ev.estado === 'votacion' || ev.estado === 'cerrada') && <Votacion ev={ev} token={token} bloqueos={bloqueos} recargar={recargar} />}
       {ev.estado === 'confirmado' && <Confirmado ev={ev} />}
+      <ComidaParticipante ev={ev} token={token} recargar={recargar} />
       <EncargosParticipante ev={ev} token={token} recargar={recargar} />
       {ev.amigo && <AmigoParticipante s={ev.amigo} token={token} deseo={deseo} recargar={recargar} />}
     </div>

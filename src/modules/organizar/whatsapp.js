@@ -125,3 +125,24 @@ export function textoEncargos(ev, items) {
   })
   return `🧾 *${ev.titulo}* · quién lleva qué\n${cubiertos} de ${items.length} cubiertos\n\n${lineas.join('\n')}\n\nPara apuntarte, abrí tu enlace del evento y tocá «Yo lo llevo».` + firma
 }
+
+// ── ¿Qué comemos? ────────────────────────────────────────────────────────────
+export const MODOS = ['🍳 Cocinamos', '🛵 Pedimos', '👩‍🍳 Mandamos hacer']
+export const esMandarHacer = t => /mandamos hacer/i.test(t || '')
+export const MENU_SUGERIDO = ['🍕 Pizza', '🫓 Pupusas', '🥩 Carne asada', '🌮 Tacos', '🍗 Pollo', '🍔 Hamburguesas', '🍝 Pasta',
+  '🍣 Sushi', '🥘 Paella', '🍖 Costillas', '🥪 Sándwiches', '🍜 Comida china']
+
+const lineasConteo = q => q.opciones.map(o => `   ${o}: ${q.conteo?.[o] || 0}`).join('\n')
+export function textoComida(ev, r) {
+  const partes = [`🍽️ *${ev.titulo}* · ¿qué comemos?`]
+  if (r.modo) {
+    if (r.modo.estado === 'cerrada') partes.push(`Decidido: ${r.modo.resultado}${esMandarHacer(r.modo.resultado) ? ' (lo acordamos en el evento)' : ''}`)
+    else partes.push(`¿Cocinamos, pedimos o mandamos hacer?\n${lineasConteo(r.modo)}${r.modo.faltan?.length ? `\n⏳ Faltan: ${lista(r.modo.faltan)}` : ''}`)
+  }
+  if (r.menu) {
+    if (r.menu.estado === 'cerrada') partes.push(`Comemos: ${r.menu.resultado} 😋`)
+    else partes.push(`¿Qué comemos?\n${lineasConteo(r.menu)}${r.menu.faltan?.length ? `\n⏳ Faltan: ${lista(r.menu.faltan)}` : ''}`)
+  }
+  if (Object.values(r).some(q => q.estado === 'abierta')) partes.push('Votá en tu enlace del evento.')
+  return partes.join('\n\n') + firma
+}
