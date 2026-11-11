@@ -36,6 +36,26 @@ La lista de deseos es general de cada persona (`sno_personas.deseo`): se escribe
 Las asignaciones (`sno_sorteo_asignaciones`) no tienen reglas de lectura: ni el panel las muestra; solo dice
 quién ya vio la suya. Base de datos: `supabase/migrations/20261113000000_amigo_secreto.sql`.
 
+## Quién lleva qué (encargados, dentro de cada evento)
+En el detalle del evento: lista de encargos (sugeridos: comida, pastel, carne, arroz, hielo, vino, cerveza,
+mesas, casa, limpieza… o los propios), cada uno con «1 persona», «varias: hasta N» o «varias: sin límite» y un detalle opcional. Los invitados se apuntan con
+«Yo lo llevo» desde su enlace, o el administrador asigna. Esta lista sí la ven todos los invitados del evento
+(primer nombre de cada responsable). «Enviar al grupo» manda la lista con lo que falta.
+Base de datos: `supabase/migrations/20261114000000_encargados.sql`.
+
+## ¿Qué comemos? (dentro de cada evento)
+1. ¿Cocinamos, pedimos o mandamos hacer? Que voten los invitados («Que voten») o decidirlo directo.
+2. Si se cocina o se pide: se eligen opciones de menú (pizza, pupusas, carne asada… o propias) y se vota.
+   Si se manda hacer: no hay votación, se acuerda en el evento.
+Un voto por persona; los invitados ven los conteos, nunca quién votó qué. En empate decide el administrador
+(«Elegir»). Base de datos: `supabase/migrations/20261115000000_que_comemos.sql`.
+
+## Gastos (dentro de «Quién lleva qué»)
+Quien lleva algo anota en su enlace cuánto gastó («¿Cuánto gastaste?»); el administrador también puede anotarlo
+tocando el monto junto al nombre. La app suma, divide entre los invitados que pagan (se puede destildar a alguien)
+y calcula quién le paga a quién con el menor número de pagos, al centavo. Los montos y el cuadre los ven todos los
+invitados del evento. Base de datos: `supabase/migrations/20261116000000_gastos.sql`.
+
 ## Privacidad
 `sno_bloqueos` y `sno_votos` no tienen ninguna regla de lectura: nadie los lee directamente, ni siquiera el
 administrador. Cada participante recibe solo lo suyo y el administrador solo conteos (cuántos pueden cada día,

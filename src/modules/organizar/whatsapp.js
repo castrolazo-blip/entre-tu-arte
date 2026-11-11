@@ -1,4 +1,5 @@
 import { periodo, diasTexto, horario, fechaLarga, aFecha } from './fechas.js'
+import { dinero } from './gastos.js'
 
 // Teléfono para wa.me: solo dígitos; 8 dígitos = El Salvador (503)
 export function telWa(tel) {
@@ -100,4 +101,58 @@ export function textoStatusSorteo(s, participantes) {
   return `🎁 *${s.titulo}*\n${si.length} de ${participantes.length} ya vieron a quién les tocó` +
     (si.length ? `\n✅ Ya vieron: ${lista(si.map(p => p.nombre))}` : '') +
     (no.length ? `\n⏳ Faltan: ${lista(no.map(p => p.nombre))}` : '\n🎉 ¡Ya lo vieron todos!')
+}
+
+// ── Encargados ───────────────────────────────────────────────────────────────
+export const SUGERIDOS = ['🍽️ Comida', '🎂 Pastel', '🥩 Carne', '🍚 Arroz', '🥗 Ensalada', '🥖 Pan', '🍿 Boquitas', '🍰 Postre',
+  '🥤 Bebidas', '🧊 Hielo', '🍷 Vino', '🍺 Cerveza', '🥤 Vasos y platos', '🪑 Mesas', '🪑 Sillas', '🏠 Casa / lugar', '🧹 Limpieza', '🎵 Música']
+
+// Cosas que suelen llevar varias personas: se agregan como «sin límite»
+export const SUGERIDOS_VARIOS = ['🍿 Boquitas', '🍰 Postre', '🥤 Bebidas', '🍷 Vino', '🍺 Cerveza']
+
+// cupos: 1 = una persona · N = hasta N · null = sin límite
+export const encargoCubierto = i => (i.cupos == null ? i.nombres.length > 0 : i.nombres.length >= i.cupos)
+export const textoCupos = c => (c == null ? 'varios, sin límite' : c === 1 ? '1 persona' : `hasta ${c} personas`)
+
+// items: [{ nombre, detalle, cupos, nombres: ['Laura', …] }]
+export function textoEncargos(ev, items) {
+  const cubiertos = items.filter(encargoCubierto).length
+  const lineas = items.map(i => {
+    const quien = i.nombres.length ? lista(i.nombres) : ''
+    const det = i.detalle ? ` (${i.detalle})` : ''
+    if (i.cupos == null) return `• ${i.nombre}${det} · pueden ser varios: ${quien || '⏳ nadie todavía'}`
+    const falta = i.cupos - i.nombres.length
+    return `• ${i.nombre}${det}: ${quien}${falta > 0 ? `${quien ? ' + ' : ''}⏳ ${falta === 1 && !quien ? 'falta' : `falta${falta > 1 ? 'n' : ''} ${falta}`}` : ' ✅'}`
+  })
+  return `🧾 *${ev.titulo}* · quién lleva qué\n${cubiertos} de ${items.length} cubiertos\n\n${lineas.join('\n')}\n\nPara apuntarte, abrí tu enlace del evento y tocá «Yo lo llevo».` + firma
+}
+
+// ── ¿Qué comemos? ────────────────────────────────────────────────────────────
+export const MODOS = ['🍳 Cocinamos', '🛵 Pedimos', '👩‍🍳 Mandamos hacer']
+export const esMandarHacer = t => /mandamos hacer/i.test(t || '')
+export const MENU_SUGERIDO = ['🍕 Pizza', '🫓 Pupusas', '🥩 Carne asada', '🌮 Tacos', '🍗 Pollo', '🍔 Hamburguesas', '🍝 Pasta',
+  '🍣 Sushi', '🥘 Paella', '🍖 Costillas', '🥪 Sándwiches', '🍜 Comida china']
+
+const lineasConteo = q => q.opciones.map(o => `   ${o}: ${q.conteo?.[o] || 0}`).join('\n')
+export function textoComida(ev, r) {
+  const partes = [`🍽️ *${ev.titulo}* · ¿qué comemos?`]
+  if (r.modo) {
+    if (r.modo.estado === 'cerrada') partes.push(`Decidido: ${r.modo.resultado}${esMandarHacer(r.modo.resultado) ? ' (lo acordamos en el evento)' : ''}`)
+    else partes.push(`¿Cocinamos, pedimos o mandamos hacer?\n${lineasConteo(r.modo)}${r.modo.faltan?.length ? `\n⏳ Faltan: ${lista(r.modo.faltan)}` : ''}`)
+  }
+  if (r.menu) {
+    if (r.menu.estado === 'cerrada') partes.push(`Comemos: ${r.menu.resultado} 😋`)
+    else partes.push(`¿Qué comemos?\n${lineasConteo(r.menu)}${r.menu.faltan?.length ? `\n⏳ Faltan: ${lista(r.menu.faltan)}` : ''}`)
+  }
+  if (Object.values(r).some(q => q.estado === 'abierta')) partes.push('Votá en tu enlace del evento.')
+  return partes.join('\n\n') + firma
+}
+
+// ── Gastos ───────────────────────────────────────────────────────────────────
+// r = calcularReparto(...) · detalle: [{ nombre, cosa, gasto }]
+export function textoGastos(ev, r, detalle) {
+  const lineas = detalle.map(d => `• ${d.cosa}: ${primerNombre(d.nombre)} ${dinero(Math.round(d.gasto * 100))}`)
+  const pagos = r.transferencias.map(t => `➡️ ${primerNombre(t.de.nombre)} le paga ${dinero(t.monto)} a ${primerNombre(t.a.nombre)}`)
+  return `💸 *${ev.titulo}* · gastos\nTotal: ${dinero(r.total)} · somos ${r.pagan} · toca ${dinero(r.cuota)} c/u\n\n${lineas.join('\n')}` +
+    (pagos.length ? `\n\n*Para quedar a mano:*\n${pagos.join('\n')}` : '\n\n✅ Todos a mano') + firma
 }
