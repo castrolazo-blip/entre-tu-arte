@@ -6,7 +6,6 @@ import { agenda, mensajeError } from '../servicio.js'
 import { periodo, diasTexto, horario, fechaLarga } from '../fechas.js'
 import EventoParticipante from './EventoParticipante.jsx'
 import MiCalendario from './MiCalendario.jsx'
-import SorteoParticipante from './SorteoParticipante.jsx'
 import ListaDeseos from './ListaDeseos.jsx'
 
 const CLAVE = 'sno_enlace'
@@ -16,7 +15,6 @@ export default function Participante() {
   const [params, setParams] = useSearchParams()
   const token = params.get('c') || leerGuardado()
   const eventoId = params.get('e')
-  const sorteoId = params.get('s')
   const pestana = params.get('v') === 'calendario' ? 'calendario' : 'eventos'
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
@@ -33,7 +31,7 @@ export default function Participante() {
   }, [token])
 
   // También al abrir un evento o volver a la lista, para ver siempre el estado actual
-  useEffect(() => { recargar() }, [recargar, eventoId, sorteoId])
+  useEffect(() => { recargar() }, [recargar, eventoId])
   // Al volver a la pestaña se actualiza (por si el organizador abrió la votación o confirmó)
   useEffect(() => {
     const alVolver = () => { if (document.visibilityState === 'visible') recargar() }
@@ -56,7 +54,7 @@ export default function Participante() {
   if (datos.estado !== 'ok') return <Aviso titulo="Este enlace ya no es válido" texto="Puede que el organizador lo haya cambiado. Pedile tu enlace nuevo por WhatsApp." />
 
   const evento = eventoId && datos.eventos.find(e => e.id === eventoId)
-  const sorteo = sorteoId && (datos.sorteos || []).find(x => x.id === sorteoId)
+  const hayAmigo = datos.eventos.some(e => e.amigo)
 
   return (
     <div className={ui.fondo}>
@@ -67,25 +65,18 @@ export default function Participante() {
         </div>
         <div className="mx-auto max-w-xl px-4 pt-6">
           <h1 className="text-[26px] font-bold leading-tight">Hola, {datos.nombre.split(' ')[0]} 👋</h1>
-          {!evento && !sorteo && <p className="mt-1 text-white/80">Marcá solo cuándo <b>no</b> podés. Nosotros hacemos el resto.</p>}
+          {!evento && <p className="mt-1 text-white/80">Marcá solo cuándo <b>no</b> podés. Nosotros hacemos el resto.</p>}
         </div>
       </header>
 
       <main className="mx-auto -mt-10 max-w-xl px-4 pb-16">
-        {sorteoId && !sorteo ? (
-          <div className={ui.tarjeta}>
-            <p className="font-semibold">Este sorteo ya no está disponible.</p>
-            <button onClick={() => ir({ s: null })} className={`${ui.btnSuave} mt-4`}>Ver mis eventos</button>
-          </div>
-        ) : sorteo ? (
-          <SorteoParticipante s={sorteo} token={token} deseo={datos.deseo} recargar={recargar} volver={() => ir({ s: null })} />
-        ) : eventoId && !evento ? (
+        {eventoId && !evento ? (
           <div className={ui.tarjeta}>
             <p className="font-semibold">Este evento ya no está disponible.</p>
             <button onClick={() => ir({ e: null })} className={`${ui.btnSuave} mt-4`}>Ver mis eventos</button>
           </div>
         ) : evento ? (
-          <EventoParticipante ev={evento} token={token} bloqueos={datos.bloqueos} hoy={datos.hoy}
+          <EventoParticipante ev={evento} token={token} bloqueos={datos.bloqueos} hoy={datos.hoy} deseo={datos.deseo}
             onBloqueos={cambiarBloqueos} recargar={recargar} volver={() => ir({ e: null })} />
         ) : (
           <>
@@ -100,9 +91,8 @@ export default function Participante() {
             {pestana === 'calendario'
               ? <MiCalendario token={token} bloqueos={datos.bloqueos} eventos={datos.eventos} hoy={datos.hoy} onBloqueos={cambiarBloqueos} />
               : <>
-                  <ListaSorteos sorteos={datos.sorteos || []} abrir={id => ir({ s: id })} />
-                  <ListaEventos eventos={datos.eventos} haySorteos={(datos.sorteos || []).length > 0} abrir={id => ir({ e: id })} />
-                  {(datos.sorteos || []).length > 0 && <div className="mt-3"><ListaDeseos token={token} deseo={datos.deseo} recargar={recargar} /></div>}
+                  <ListaEventos eventos={datos.eventos} abrir={id => ir({ e: id })} />
+                  {hayAmigo && <div className="mt-3"><ListaDeseos token={token} deseo={datos.deseo} recargar={recargar} /></div>}
                 </>}
           </>
         )}
@@ -121,9 +111,8 @@ function pendiente(e) {
   return { t: '', c: '' }
 }
 
-function ListaEventos({ eventos, abrir, haySorteos }) {
+function ListaEventos({ eventos, abrir }) {
   if (!eventos.length) {
-    if (haySorteos) return null
     return (
       <div className={`${ui.tarjeta} text-center`}>
         <p className="text-lg font-bold">Todavía no tenés eventos</p>
@@ -142,6 +131,7 @@ function ListaEventos({ eventos, abrir, haySorteos }) {
               <p className="mt-2 text-[17px] font-bold leading-snug">{e.titulo}</p>
               <p className="mt-0.5 text-[13px] text-slate-500">{periodo(e.desde, e.hasta)} · {diasTexto(e.dias)} · {horario(e)}</p>
               <p className={`mt-2 text-sm font-bold ${p.c}`}>{p.t}</p>
+              {e.amigo && <p className="mt-1 text-sm font-bold text-rose-600">🎁 {e.amigo.estado !== 'sorteado' ? 'Amigo secreto: escribí tu lista de deseos' : e.amigo.visto ? 'Amigo secreto: ver a quién te tocó' : '¡Descubrí tu amigo secreto!'}</p>}
             </div>
             <ChevronRight className="shrink-0 text-slate-400" />
           </button>
@@ -165,22 +155,3 @@ function Aviso({ titulo, texto, reintentar }) {
   )
 }
 
-function ListaSorteos({ sorteos, abrir }) {
-  if (!sorteos.length) return null
-  return (
-    <div className="mb-3 space-y-3">
-      {sorteos.map(s => (
-        <button key={s.id} onClick={() => abrir(s.id)} className="flex w-full items-center gap-3 rounded-3xl bg-gradient-to-br from-rose-600 to-teal-700 p-5 text-left text-white shadow-sm">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 text-2xl">🎁</span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[17px] font-bold leading-snug">{s.titulo}</span>
-            <span className="mt-0.5 block text-sm font-semibold text-white/85">
-              {s.estado !== 'sorteado' ? 'Todavía no se sortea' : s.visto ? 'Ver de nuevo a quién te tocó' : '¡Ya se sorteó! Descubrí a quién te tocó'}
-            </span>
-          </span>
-          <ChevronRight className="shrink-0 text-white/70" />
-        </button>
-      ))}
-    </div>
-  )
-}

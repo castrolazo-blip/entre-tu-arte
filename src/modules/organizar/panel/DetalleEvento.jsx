@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { ArrowLeft, Pencil, Loader2, MessageCircle, Copy, Check, Vote, Trophy, CalendarPlus, RotateCcw, Ban, Trash2, List, CalendarDays, Lock, ExternalLink } from 'lucide-react'
 import { ui, ChipEstado } from '../marca.jsx'
 import Calendario from '../Calendario.jsx'
+import AmigoSecreto from './AmigoSecreto.jsx'
 import { cargarEvento, actualizarEvento, abrirVotacion, borrarEvento, mensajeError } from '../servicio.js'
 import { periodo, diasTexto, horario, fechaLarga, fechaCorta, diaSemana, DIAS, enlaceGoogle, hace } from '../fechas.js'
 import { enlacePersonal, urlWhatsApp, mensajesPara, textoStatus } from '../whatsapp.js'
@@ -190,6 +191,9 @@ export default function DetalleEvento() {
 
       {/* Invitados */}
       <Invitados ev={ev} invitados={d.invitados} />
+
+      {/* Amigo secreto (dentro del evento) */}
+      {ev.estado !== 'cancelado' && <AmigoSecreto ev={ev} numInvitados={d.invitados.length} />}
 
       {/* Más acciones */}
       <section className="flex flex-wrap gap-2">

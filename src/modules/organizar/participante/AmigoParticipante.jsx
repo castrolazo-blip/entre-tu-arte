@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Gift, Loader2, Lock, Eye, EyeOff } from 'lucide-react'
+import { Gift, Loader2, Lock, Eye, EyeOff } from 'lucide-react'
 import { ui } from '../marca.jsx'
 import { verAmigo, mensajeError } from '../servicio.js'
 import ListaDeseos from './ListaDeseos.jsx'
 import { fechaLarga } from '../fechas.js'
 
-export default function SorteoParticipante({ s, token, deseo, recargar, volver }) {
+// Amigo secreto dentro del evento: descubrir a quién le tocó y la lista de deseos
+export default function AmigoParticipante({ s, token, deseo, recargar }) {
   const [amigo, setAmigo] = useState(null)
   const [mostrar, setMostrar] = useState(true)
   const [cargando, setCargando] = useState(false)
@@ -20,17 +21,12 @@ export default function SorteoParticipante({ s, token, deseo, recargar, volver }
   }
   return (
     <div className="space-y-4">
-      <div className={ui.tarjeta}>
-        <button onClick={volver} className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500"><ArrowLeft size={16} />Mis eventos</button>
-        <span className={`${ui.chip} bg-rose-100 text-rose-800`}>Amigo secreto</span>
-        <h2 className="mt-2 text-[22px] font-bold leading-tight">🎁 {s.titulo}</h2>
-        <div className="mt-3 flex flex-wrap gap-2 text-[13px] font-semibold text-slate-600">
-          <span className="rounded-full bg-slate-100 px-3 py-1.5">{s.participantes} participantes</span>
-          {s.monto && <span className="rounded-full bg-slate-100 px-3 py-1.5">💵 {s.monto}</span>}
-          {s.fecha_intercambio && <span className="rounded-full bg-slate-100 px-3 py-1.5">📅 {fechaLarga(s.fecha_intercambio)}</span>}
-        </div>
-        {s.mensaje && <p className="mt-3 whitespace-pre-line text-[15px] text-slate-700">{s.mensaje}</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="flex items-center gap-2 text-lg font-bold"><Gift size={20} className="text-rose-600" />Amigo secreto</h3>
+        {s.monto && <span className="rounded-full bg-white px-3 py-1 text-[13px] font-semibold text-slate-600 shadow-sm">💵 {s.monto}</span>}
+        {s.fecha_intercambio && <span className="rounded-full bg-white px-3 py-1 text-[13px] font-semibold text-slate-600 shadow-sm">📅 {fechaLarga(s.fecha_intercambio)}</span>}
       </div>
+      {s.mensaje && <p className="whitespace-pre-line text-[15px] text-slate-700">{s.mensaje}</p>}
 
       {/* Revelar */}
       <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-rose-600 to-teal-700 p-6 text-white">

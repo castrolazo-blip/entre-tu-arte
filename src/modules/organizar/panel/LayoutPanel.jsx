@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, NavLink, Outlet } from 'react-router-dom'
-import { CalendarRange, Users, LogOut, Loader2, Gift } from 'lucide-react'
+import { CalendarRange, Users, LogOut, Loader2 } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { esAdmin } from '../servicio.js'
 import { Marca, ui, useTituloApp } from '../marca.jsx'
@@ -44,7 +44,6 @@ export default function LayoutPanel() {
           <NavLink to="/organizar/panel" end><Marca claro chica /></NavLink>
           <nav className="ml-auto flex items-center gap-1">
             <NavLink to="/organizar/panel" end className={enlace}><CalendarRange size={17} /><span className="hidden sm:inline">Eventos</span></NavLink>
-            <NavLink to="/organizar/panel/amigo-secreto" className={enlace}><Gift size={17} /><span className="hidden sm:inline">Amigo secreto</span></NavLink>
             <NavLink to="/organizar/panel/participantes" className={enlace}><Users size={17} /><span className="hidden sm:inline">Participantes</span></NavLink>
             <button onClick={salir} className="grid h-10 w-10 place-items-center rounded-full text-white/85 hover:bg-white/10" aria-label="Cerrar sesión" title="Cerrar sesión"><LogOut size={18} /></button>
           </nav>

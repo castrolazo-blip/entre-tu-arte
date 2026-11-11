@@ -134,53 +134,28 @@ export const verAmigo = (token, sorteo) => rpc('sno_ver_amigo', { p_token: token
 export const guardarDeseo = (token, deseo) => rpc('sno_mi_deseo', { p_token: token, p_deseo: deseo })
 export const sortear = id => rpc('sno_sortear', { p_sorteo: id })
 
-export async function listarSorteos() {
-  const { data, error } = await supabase.from('sno_sorteos')
-    .select('*, sno_sorteo_participantes(persona_id, visto_en, deseo)').order('created_at', { ascending: false })
-  if (error) throw error
-  return data.map(s => ({ ...s, participantes: s.sno_sorteo_participantes || [] }))
-}
+export const activarAmigo = (evento, { monto, fecha, mensaje } = {}) =>
+  rpc('sno_activar_amigo', { p_evento: evento, p_monto: monto || null, p_fecha: fecha || null, p_mensaje: mensaje || null })
 
-export async function cargarSorteo(id) {
+// Amigo secreto de un evento (o null si no está activado). Nunca trae quién le regala a quién.
+export async function amigoDeEvento(eventoId) {
   const { data, error } = await supabase.from('sno_sorteos')
-    .select('*, sno_sorteo_participantes(persona_id, visto_en, deseo, sno_personas(id, nombre, telefono, token, activo, deseo))').eq('id', id).single()
+    .select('*, sno_sorteo_participantes(persona_id, visto_en, sno_personas(id, nombre, telefono, token, activo, deseo))')
+    .eq('evento_id', eventoId).maybeSingle()
   if (error) throw error
+  if (!data) return null
   const participantes = (data.sno_sorteo_participantes || [])
-    .map(p => ({ ...p.sno_personas, persona_id: p.persona_id, visto_en: p.visto_en, tiene_deseo: !!p.sno_personas?.deseo, deseo: undefined }))
+    .map(p => ({ ...p.sno_personas, deseo: undefined, persona_id: p.persona_id, visto_en: p.visto_en, tiene_deseo: !!p.sno_personas?.deseo }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
-  return { ...data, participantes }
+  return { ...data, sno_sorteo_participantes: undefined, participantes }
 }
 
-export async function guardarSorteo(datos, participantes, id = null) {
-  const q = id ? supabase.from('sno_sorteos').update(datos).eq('id', id) : supabase.from('sno_sorteos').insert(datos)
-  const { data: sorteo, error } = await q.select().single()
+export async function actualizarSorteo(id, cambios) {
+  const { error } = await supabase.from('sno_sorteos').update(cambios).eq('id', id)
   if (error) throw error
-  let actuales = []
-  if (id) {
-    const r = await supabase.from('sno_sorteo_participantes').select('persona_id').eq('sorteo_id', id)
-    if (r.error) throw r.error
-    actuales = r.data.map(x => x.persona_id)
-  }
-  const nuevos = participantes.filter(p => !actuales.includes(p))
-  const quitar = actuales.filter(p => !participantes.includes(p))
-  if (nuevos.length) {
-    const r = await supabase.from('sno_sorteo_participantes').insert(nuevos.map(persona_id => ({ sorteo_id: sorteo.id, persona_id })))
-    if (r.error) throw r.error
-  }
-  if (quitar.length) {
-    const r = await supabase.from('sno_sorteo_participantes').delete().eq('sorteo_id', sorteo.id).in('persona_id', quitar)
-    if (r.error) throw r.error
-  }
-  return sorteo
 }
 
 export async function borrarSorteo(id) {
   const { error } = await supabase.from('sno_sorteos').delete().eq('id', id)
   if (error) throw error
-}
-
-export async function listarEventosSimples() {
-  const { data, error } = await supabase.from('sno_eventos').select('id, titulo, estado').neq('estado', 'cancelado').order('created_at', { ascending: false })
-  if (error) throw error
-  return data
 }

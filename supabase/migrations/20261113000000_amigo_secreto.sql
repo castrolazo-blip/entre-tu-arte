@@ -1,7 +1,7 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Si nos organizamos! · Amigo secreto (intercambio de regalos)
+-- Si nos organizamos! · Amigo secreto (intercambio de regalos) dentro de cada evento
 --
--- El administrador arma el sorteo y elige participantes; la base de datos sortea al azar
+-- El administrador lo activa en un evento (participan sus invitados); la base de datos sortea al azar
 -- (un círculo: nadie se saca a sí mismo y cada quien regala y recibe exactamente una vez).
 -- Cada participante ve a quién le tocó con su mismo enlace privado, y la lista de deseos
 -- general de esa persona (sno_personas.deseo: se escribe una vez y sirve para todos los sorteos).
@@ -19,11 +19,17 @@ create table if not exists public.sno_sorteos (
   mensaje           text check (mensaje is null or length(mensaje) <= 1000),
   monto             text check (monto is null or length(monto) <= 60),   -- «$15 a $20»
   fecha_intercambio date,
-  evento_id         uuid references public.sno_eventos(id) on delete set null,
+  evento_id         uuid references public.sno_eventos(id) on delete cascade,
   estado            text not null default 'preparacion' check (estado in ('preparacion', 'sorteado')),
   sorteado_en       timestamptz,
   created_at        timestamptz not null default now()
 );
+
+-- El amigo secreto vive DENTRO de un evento: uno por evento, se borra con el evento
+alter table public.sno_sorteos drop constraint if exists sno_sorteos_evento_id_fkey;
+alter table public.sno_sorteos add constraint sno_sorteos_evento_id_fkey
+  foreign key (evento_id) references public.sno_eventos(id) on delete cascade;
+create unique index if not exists sno_sorteos_evento_uq on public.sno_sorteos (evento_id) where evento_id is not null;
 
 -- Lista de deseos GENERAL de cada persona: la escribe una vez y vale para todos sus sorteos
 alter table public.sno_personas add column if not exists deseo text;
@@ -83,6 +89,43 @@ end $$;
 drop trigger if exists sno_tras_cambio_participantes on public.sno_sorteo_participantes;
 create trigger sno_tras_cambio_participantes after insert or delete on public.sno_sorteo_participantes
   for each row execute function public.sno_tras_cambio_participantes();
+
+-- Activa el amigo secreto de un evento con sus invitados actuales
+create or replace function public.sno_activar_amigo(p_evento uuid, p_monto text default null,
+                                                     p_fecha date default null, p_mensaje text default null)
+returns uuid language plpgsql volatile security definer set search_path = public as $$
+declare v_id uuid; v_titulo text;
+begin
+  if not sno_es_admin() then raise exception 'sno:sin_permiso'; end if;
+  select id into v_id from sno_sorteos where evento_id = p_evento;
+  if v_id is not null then return v_id; end if;
+  select titulo into v_titulo from sno_eventos where id = p_evento;
+  if v_titulo is null then raise exception 'sno:evento_no_encontrado'; end if;
+  insert into sno_sorteos (titulo, evento_id, monto, fecha_intercambio, mensaje)
+  values (left('Amigo secreto · ' || v_titulo, 120), p_evento, nullif(btrim(p_monto), ''), p_fecha, nullif(btrim(p_mensaje), ''))
+  returning id into v_id;
+  insert into sno_sorteo_participantes (sorteo_id, persona_id)
+  select v_id, persona_id from sno_invitados where evento_id = p_evento;
+  return v_id;
+end $$;
+
+-- Los participantes del amigo secreto siguen a los invitados del evento
+create or replace function public.sno_espejo_invitados() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare v_sorteo uuid;
+begin
+  select id into v_sorteo from sno_sorteos where evento_id = coalesce(new.evento_id, old.evento_id);
+  if v_sorteo is null then return null; end if;
+  if tg_op = 'INSERT' then
+    insert into sno_sorteo_participantes (sorteo_id, persona_id) values (v_sorteo, new.persona_id) on conflict do nothing;
+  else
+    delete from sno_sorteo_participantes where sorteo_id = v_sorteo and persona_id = old.persona_id;
+  end if;
+  return null;
+end $$;
+drop trigger if exists sno_espejo_invitados on public.sno_invitados;
+create trigger sno_espejo_invitados after insert or delete on public.sno_invitados
+  for each row execute function public.sno_espejo_invitados();
 
 -- Sortear (o volver a sortear): orden al azar y cada quien le regala al siguiente del círculo
 create or replace function public.sno_sortear(p_sorteo uuid) returns int
@@ -148,22 +191,18 @@ begin
         'opciones', case when e.estado in ('votacion', 'cerrada') then to_jsonb(e.opciones) else '[]'::jsonb end,
         'fecha_elegida', e.fecha_elegida,
         'respondio', i.respondio_en is not null,
-        'mi_voto', (select v.fecha from sno_votos v where v.evento_id = e.id and v.persona_id = p.id and v.ronda = e.ronda)
+        'mi_voto', (select v.fecha from sno_votos v where v.evento_id = e.id and v.persona_id = p.id and v.ronda = e.ronda),
+        'amigo', (select jsonb_build_object('id', s.id, 'monto', s.monto, 'mensaje', s.mensaje,
+                    'fecha_intercambio', s.fecha_intercambio, 'estado', s.estado,
+                    'participantes', (select count(*) from sno_sorteo_participantes x where x.sorteo_id = s.id),
+                    'visto', sp.visto_en is not null)
+                    from sno_sorteos s join sno_sorteo_participantes sp on sp.sorteo_id = s.id and sp.persona_id = p.id
+                   where s.evento_id = e.id)
       ) order by case e.estado when 'votacion' then 0 when 'disponibilidad' then 1 when 'cerrada' then 2 else 3 end,
                  coalesce(e.fecha_elegida, e.desde))
         from sno_invitados i join sno_eventos e on e.id = i.evento_id
        where i.persona_id = p.id and e.estado <> 'cancelado'
          and (e.estado <> 'confirmado' or e.fecha_elegida >= v_hoy - 30)), '[]'::jsonb),
-    'sorteos', coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'id', s.id, 'titulo', s.titulo, 'mensaje', s.mensaje, 'monto', s.monto,
-        'fecha_intercambio', s.fecha_intercambio, 'estado', s.estado,
-        'participantes', (select count(*) from sno_sorteo_participantes x where x.sorteo_id = s.id),
-        'visto', sp.visto_en is not null
-      ) order by s.created_at desc)
-        from sno_sorteo_participantes sp join sno_sorteos s on s.id = sp.sorteo_id
-       where sp.persona_id = p.id
-         and (s.fecha_intercambio is null or s.fecha_intercambio >= v_hoy - 30)), '[]'::jsonb),
     'bloqueos', coalesce((
       select jsonb_agg(jsonb_build_object('id', b.id, 'fecha', b.fecha,
                'desde', to_char(b.hora_desde, 'HH24:MI'), 'hasta', to_char(b.hora_hasta, 'HH24:MI'))
@@ -172,6 +211,8 @@ begin
 end $$;
 
 revoke all on function public.sno_sortear(uuid) from public, anon;
+revoke all on function public.sno_activar_amigo(uuid, text, date, text) from public, anon;
+grant execute on function public.sno_activar_amigo(uuid, text, date, text) to authenticated;
 grant execute on function public.sno_sortear(uuid) to authenticated;
 revoke all on function public.sno_ver_amigo(text, uuid) from public;
 revoke all on function public.sno_mi_deseo(text, text) from public;
