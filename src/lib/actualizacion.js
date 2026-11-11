@@ -12,7 +12,8 @@ async function revisar() {
     // En el panel no se recarga solo (se perdería una subida o un formulario a medias):
     // se avisa y la persona actualiza cuando termine.
     // (Cartas con Amor: tampoco, para no borrar una carta a medio escribir.)
-    if (window.location.pathname.includes('/admin') || window.location.pathname.includes('/cartas')) {
+    if (window.location.pathname.includes('/admin') || window.location.pathname.includes('/cartas')
+        || window.location.pathname.includes('/organizar')) {
       window.dispatchEvent(new CustomEvent('eta-version-nueva', { detail: version }))
       return
     }
