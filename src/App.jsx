@@ -45,6 +45,8 @@ const AdminBlog          = lazy(() => import('./modules/admin/blog/AdminBlog.jsx
 const AdminConfiguracion = lazy(() => import('./modules/admin/configuracion/AdminConfiguracion.jsx'))
 // Cartas con Amor (módulo temporal del retiro; para quitarlo ver docs/cartas/QUITAR_CARTAS.md)
 const RutasCartas = lazy(() => import('./modules/cartas/RutasCartas.jsx'))
+// Si nos organizamos! (aplicación independiente; ver docs/organizar/MANUAL.md)
+const RutasOrganizar = lazy(() => import('./modules/organizar/RutasOrganizar.jsx'))
 
 export default function App() {
   return (
@@ -93,6 +95,7 @@ export default function App() {
                 </Route>
 
                 <Route path="cartas/*" element={<RutasCartas />} />
+                <Route path="organizar/*" element={<RutasOrganizar />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

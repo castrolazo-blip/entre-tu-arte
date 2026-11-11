@@ -38,6 +38,10 @@ legacy/index-anterior.html             El sitio anterior de un solo archivo, com
 | `/blog` · `/blog/:id` · `/asesoria` | `/admin/portadas` · `/admin/destacadas` · `/admin/consultas` |
 | `/login` | `/admin/artistas` · `/admin/colecciones` · `/admin/blog` · `/admin/configuracion` |
 
+## Otras aplicaciones en la misma base
+
+- **Si nos organizamos!** (`/organizar`): encontrar la fecha en que todos pueden. Ver `docs/organizar/MANUAL.md`.
+
 ## Desarrollo
 
 ```bash
