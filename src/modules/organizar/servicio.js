@@ -13,6 +13,9 @@ const ERRORES = {
   pocas_opciones: 'Elegí al menos 2 fechas para votar (o confirmá una directamente).',
   fecha_fuera_del_evento: 'Esa fecha no pertenece al evento.',
   sin_permiso: 'Tu cuenta no es administradora de Si nos organizamos!',
+  pocos_participantes: 'Se necesitan al menos 3 participantes para sortear.',
+  sin_sorteo: 'El sorteo todavía no se ha hecho (o se volvió a armar). Esperá el aviso del organizador.',
+  deseo_largo: 'La lista de deseos puede tener hasta 500 caracteres.',
 }
 export function mensajeError(e, porDefecto = 'Algo salió mal. Revisá tu conexión e intentá de nuevo.') {
   const m = String(e?.message || '')
@@ -125,3 +128,59 @@ export async function borrarPersona(id) {
 }
 
 export const nuevoEnlace = id => rpc('sno_nuevo_enlace', { p_persona: id })
+
+// ── Amigo secreto ────────────────────────────────────────────────────────────
+export const verAmigo = (token, sorteo) => rpc('sno_ver_amigo', { p_token: token, p_sorteo: sorteo })
+export const guardarDeseo = (token, sorteo, deseo) => rpc('sno_mi_deseo', { p_token: token, p_sorteo: sorteo, p_deseo: deseo })
+export const sortear = id => rpc('sno_sortear', { p_sorteo: id })
+
+export async function listarSorteos() {
+  const { data, error } = await supabase.from('sno_sorteos')
+    .select('*, sno_sorteo_participantes(persona_id, visto_en, deseo)').order('created_at', { ascending: false })
+  if (error) throw error
+  return data.map(s => ({ ...s, participantes: s.sno_sorteo_participantes || [] }))
+}
+
+export async function cargarSorteo(id) {
+  const { data, error } = await supabase.from('sno_sorteos')
+    .select('*, sno_sorteo_participantes(persona_id, visto_en, deseo, sno_personas(id, nombre, telefono, token, activo))').eq('id', id).single()
+  if (error) throw error
+  const participantes = (data.sno_sorteo_participantes || [])
+    .map(p => ({ ...p.sno_personas, persona_id: p.persona_id, visto_en: p.visto_en, tiene_deseo: !!p.deseo }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+  return { ...data, participantes }
+}
+
+export async function guardarSorteo(datos, participantes, id = null) {
+  const q = id ? supabase.from('sno_sorteos').update(datos).eq('id', id) : supabase.from('sno_sorteos').insert(datos)
+  const { data: sorteo, error } = await q.select().single()
+  if (error) throw error
+  let actuales = []
+  if (id) {
+    const r = await supabase.from('sno_sorteo_participantes').select('persona_id').eq('sorteo_id', id)
+    if (r.error) throw r.error
+    actuales = r.data.map(x => x.persona_id)
+  }
+  const nuevos = participantes.filter(p => !actuales.includes(p))
+  const quitar = actuales.filter(p => !participantes.includes(p))
+  if (nuevos.length) {
+    const r = await supabase.from('sno_sorteo_participantes').insert(nuevos.map(persona_id => ({ sorteo_id: sorteo.id, persona_id })))
+    if (r.error) throw r.error
+  }
+  if (quitar.length) {
+    const r = await supabase.from('sno_sorteo_participantes').delete().eq('sorteo_id', sorteo.id).in('persona_id', quitar)
+    if (r.error) throw r.error
+  }
+  return sorteo
+}
+
+export async function borrarSorteo(id) {
+  const { error } = await supabase.from('sno_sorteos').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function listarEventosSimples() {
+  const { data, error } = await supabase.from('sno_eventos').select('id, titulo, estado').neq('estado', 'cancelado').order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
