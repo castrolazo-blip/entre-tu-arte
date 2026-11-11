@@ -3,7 +3,8 @@
 --
 -- El administrador arma el sorteo y elige participantes; la base de datos sortea al azar
 -- (un círculo: nadie se saca a sí mismo y cada quien regala y recibe exactamente una vez).
--- Cada participante ve a quién le tocó con su mismo enlace privado.
+-- Cada participante ve a quién le tocó con su mismo enlace privado, y la lista de deseos
+-- general de esa persona (sno_personas.deseo: se escribe una vez y sirve para todos los sorteos).
 --
 -- Privacidad: las asignaciones (sno_sorteo_asignaciones) NO tienen reglas de lectura.
 -- Ni el panel del administrador puede verlas (el administrador también suele participar);
@@ -24,15 +25,24 @@ create table if not exists public.sno_sorteos (
   created_at        timestamptz not null default now()
 );
 
+-- Lista de deseos GENERAL de cada persona: la escribe una vez y vale para todos sus sorteos
+alter table public.sno_personas add column if not exists deseo text;
+alter table public.sno_personas drop constraint if exists sno_personas_deseo_check;
+alter table public.sno_personas add constraint sno_personas_deseo_check check (deseo is null or length(deseo) <= 500);
+
 create table if not exists public.sno_sorteo_participantes (
   sorteo_id  uuid not null references public.sno_sorteos(id) on delete cascade,
   persona_id uuid not null references public.sno_personas(id) on delete cascade,
-  deseo      text check (deseo is null or length(deseo) <= 500),   -- lista de deseos (la ve quien le regala)
+  deseo      text check (deseo is null or length(deseo) <= 500),   -- (sin uso: la lista de deseos es de la persona)
   visto_en   timestamptz,                                          -- cuándo descubrió a su amigo secreto
   created_at timestamptz not null default now(),
   primary key (sorteo_id, persona_id)
 );
 create index if not exists sno_sorteo_part_persona_idx on public.sno_sorteo_participantes (persona_id);
+-- Si alguien ya había escrito una lista dentro de un sorteo, pasa a ser su lista general
+update public.sno_personas p set deseo = sp.deseo
+  from public.sno_sorteo_participantes sp
+ where sp.persona_id = p.id and p.deseo is null and sp.deseo is not null;
 
 -- Quién le regala a quién. SIN reglas de lectura: solo sale por sno_ver_amigo.
 create table if not exists public.sno_sorteo_asignaciones (
@@ -104,22 +114,19 @@ begin
   update sno_sorteo_participantes set visto_en = coalesce(visto_en, now())
    where sorteo_id = p_sorteo and persona_id = v_persona;
   update sno_personas set actualizado_en = now() where id = v_persona;
-  return (select jsonb_build_object('nombre', p.nombre, 'deseo', sp.deseo)
-            from sno_personas p join sno_sorteo_participantes sp on sp.persona_id = p.id and sp.sorteo_id = p_sorteo
-           where p.id = v_amigo);
+  return (select jsonb_build_object('nombre', p.nombre, 'deseo', p.deseo) from sno_personas p where p.id = v_amigo);
 end $$;
 
--- Participante: escribe su lista de deseos (la verá quien le regale)
-create or replace function public.sno_mi_deseo(p_token text, p_sorteo uuid, p_deseo text) returns boolean
+-- Participante: escribe su lista de deseos general (la verá quien le regale, en cualquier sorteo)
+drop function if exists public.sno_mi_deseo(text, uuid, text);
+create or replace function public.sno_mi_deseo(p_token text, p_deseo text) returns boolean
 language plpgsql volatile security definer set search_path = public as $$
 declare v_persona uuid;
 begin
   select id into v_persona from sno_personas where token = p_token and activo;
   if v_persona is null then raise exception 'sno:enlace_invalido'; end if;
   if length(coalesce(p_deseo, '')) > 500 then raise exception 'sno:deseo_largo'; end if;
-  update sno_sorteo_participantes set deseo = nullif(btrim(p_deseo), '')
-   where sorteo_id = p_sorteo and persona_id = v_persona;
-  if not found then raise exception 'sno:no_invitado'; end if;
+  update sno_personas set deseo = nullif(btrim(p_deseo), ''), actualizado_en = now() where id = v_persona;
   return true;
 end $$;
 
@@ -131,7 +138,7 @@ begin
   select * into p from sno_personas where token = p_token and activo;
   if not found then return jsonb_build_object('estado', 'no_encontrado'); end if;
   return jsonb_build_object(
-    'estado', 'ok', 'hoy', v_hoy, 'nombre', p.nombre,
+    'estado', 'ok', 'hoy', v_hoy, 'nombre', p.nombre, 'deseo', p.deseo,
     'eventos', coalesce((
       select jsonb_agg(jsonb_build_object(
         'id', e.id, 'titulo', e.titulo, 'descripcion', e.descripcion, 'lugar', e.lugar,
@@ -152,7 +159,7 @@ begin
         'id', s.id, 'titulo', s.titulo, 'mensaje', s.mensaje, 'monto', s.monto,
         'fecha_intercambio', s.fecha_intercambio, 'estado', s.estado,
         'participantes', (select count(*) from sno_sorteo_participantes x where x.sorteo_id = s.id),
-        'mi_deseo', sp.deseo, 'visto', sp.visto_en is not null
+        'visto', sp.visto_en is not null
       ) order by s.created_at desc)
         from sno_sorteo_participantes sp join sno_sorteos s on s.id = sp.sorteo_id
        where sp.persona_id = p.id
@@ -167,9 +174,9 @@ end $$;
 revoke all on function public.sno_sortear(uuid) from public, anon;
 grant execute on function public.sno_sortear(uuid) to authenticated;
 revoke all on function public.sno_ver_amigo(text, uuid) from public;
-revoke all on function public.sno_mi_deseo(text, uuid, text) from public;
+revoke all on function public.sno_mi_deseo(text, text) from public;
 grant execute on function public.sno_ver_amigo(text, uuid) to anon, authenticated;
-grant execute on function public.sno_mi_deseo(text, uuid, text) to anon, authenticated;
+grant execute on function public.sno_mi_deseo(text, text) to anon, authenticated;
 grant execute on function public.sno_agenda(text) to anon, authenticated;
 
 notify pgrst, 'reload schema';

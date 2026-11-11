@@ -29,7 +29,7 @@ Se puede ejecutar más de una vez. El administrador de Entre tu Arte queda como 
 
 ## Amigo secreto
 Panel › **Amigo secreto** › Nuevo sorteo: nombre, monto sugerido, fecha del intercambio y participantes
-(se pueden copiar los invitados de un evento). Antes del sorteo cada quien puede escribir su lista de deseos.
+(se pueden copiar los invitados de un evento). Cada persona tiene una lista de deseos general: la escribe una vez en su enlace y sirve para todos sus sorteos (`sno_personas.deseo`).
 **Sortear** reparte al azar en un círculo: nadie se saca a sí mismo y todos regalan y reciben una vez.
 Cada participante toca «Descubrir» en su enlace y ve a quién le tocó y su lista de deseos.
 Las asignaciones (`sno_sorteo_asignaciones`) no tienen reglas de lectura: ni el panel las muestra; solo

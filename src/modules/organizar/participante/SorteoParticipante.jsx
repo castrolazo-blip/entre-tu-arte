@@ -1,16 +1,15 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Gift, Loader2, Lock, Eye, EyeOff, Check } from 'lucide-react'
+import { ArrowLeft, Gift, Loader2, Lock, Eye, EyeOff } from 'lucide-react'
 import { ui } from '../marca.jsx'
-import { verAmigo, guardarDeseo, mensajeError } from '../servicio.js'
+import { verAmigo, mensajeError } from '../servicio.js'
+import ListaDeseos from './ListaDeseos.jsx'
 import { fechaLarga } from '../fechas.js'
 
-export default function SorteoParticipante({ s, token, recargar, volver }) {
+export default function SorteoParticipante({ s, token, deseo, recargar, volver }) {
   const [amigo, setAmigo] = useState(null)
   const [mostrar, setMostrar] = useState(true)
   const [cargando, setCargando] = useState(false)
-  const [deseo, setDeseo] = useState(s.mi_deseo || '')
-  const [guardando, setGuardando] = useState(false)
   const sorteado = s.estado === 'sorteado'
 
   async function descubrir() {
@@ -19,13 +18,6 @@ export default function SorteoParticipante({ s, token, recargar, volver }) {
     catch (e) { toast.error(mensajeError(e)) }
     finally { setCargando(false) }
   }
-  async function guardar() {
-    setGuardando(true)
-    try { await guardarDeseo(token, s.id, deseo); await recargar(); toast.success('Lista de deseos guardada') }
-    catch (e) { toast.error(mensajeError(e)) }
-    finally { setGuardando(false) }
-  }
-
   return (
     <div className="space-y-4">
       <div className={ui.tarjeta}>
@@ -73,19 +65,7 @@ export default function SorteoParticipante({ s, token, recargar, volver }) {
         )}
       </div>
 
-      {/* Lista de deseos */}
-      <div className={ui.tarjeta}>
-        <h3 className="text-lg font-bold">Mi lista de deseos</h3>
-        <p className="mt-1 text-[14px] text-slate-600">Ideas de lo que te gustaría recibir. Solo la verá quien te regale.</p>
-        <textarea id="deseo" rows={4} maxLength={500} value={deseo} onChange={e => setDeseo(e.target.value)}
-          placeholder="Ej.: termo para el gym, audífonos, algo de café… Talla M." className={`${ui.campo} mt-3 h-auto py-3`} />
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <span className="text-[12px] text-slate-400">{deseo.length}/500</span>
-          <button onClick={guardar} disabled={guardando || deseo === (s.mi_deseo || '')} className={ui.btn}>
-            {guardando ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}Guardar
-          </button>
-        </div>
-      </div>
+      <ListaDeseos token={token} deseo={deseo} recargar={recargar} />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { periodo, diasTexto, horario, fechaLarga } from '../fechas.js'
 import EventoParticipante from './EventoParticipante.jsx'
 import MiCalendario from './MiCalendario.jsx'
 import SorteoParticipante from './SorteoParticipante.jsx'
+import ListaDeseos from './ListaDeseos.jsx'
 
 const CLAVE = 'sno_enlace'
 
@@ -77,7 +78,7 @@ export default function Participante() {
             <button onClick={() => ir({ s: null })} className={`${ui.btnSuave} mt-4`}>Ver mis eventos</button>
           </div>
         ) : sorteo ? (
-          <SorteoParticipante s={sorteo} token={token} recargar={recargar} volver={() => ir({ s: null })} />
+          <SorteoParticipante s={sorteo} token={token} deseo={datos.deseo} recargar={recargar} volver={() => ir({ s: null })} />
         ) : eventoId && !evento ? (
           <div className={ui.tarjeta}>
             <p className="font-semibold">Este evento ya no está disponible.</p>
@@ -101,6 +102,7 @@ export default function Participante() {
               : <>
                   <ListaSorteos sorteos={datos.sorteos || []} abrir={id => ir({ s: id })} />
                   <ListaEventos eventos={datos.eventos} haySorteos={(datos.sorteos || []).length > 0} abrir={id => ir({ e: id })} />
+                  {(datos.sorteos || []).length > 0 && <div className="mt-3"><ListaDeseos token={token} deseo={datos.deseo} recargar={recargar} /></div>}
                 </>}
           </>
         )}
@@ -173,7 +175,7 @@ function ListaSorteos({ sorteos, abrir }) {
           <span className="min-w-0 flex-1">
             <span className="block text-[17px] font-bold leading-snug">{s.titulo}</span>
             <span className="mt-0.5 block text-sm font-semibold text-white/85">
-              {s.estado !== 'sorteado' ? 'Escribí tu lista de deseos' : s.visto ? 'Ver de nuevo a quién te tocó' : '¡Ya se sorteó! Descubrí a quién te tocó'}
+              {s.estado !== 'sorteado' ? 'Todavía no se sortea' : s.visto ? 'Ver de nuevo a quién te tocó' : '¡Ya se sorteó! Descubrí a quién te tocó'}
             </span>
           </span>
           <ChevronRight className="shrink-0 text-white/70" />

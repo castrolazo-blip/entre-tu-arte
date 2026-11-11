@@ -131,7 +131,7 @@ export const nuevoEnlace = id => rpc('sno_nuevo_enlace', { p_persona: id })
 
 // ── Amigo secreto ────────────────────────────────────────────────────────────
 export const verAmigo = (token, sorteo) => rpc('sno_ver_amigo', { p_token: token, p_sorteo: sorteo })
-export const guardarDeseo = (token, sorteo, deseo) => rpc('sno_mi_deseo', { p_token: token, p_sorteo: sorteo, p_deseo: deseo })
+export const guardarDeseo = (token, deseo) => rpc('sno_mi_deseo', { p_token: token, p_deseo: deseo })
 export const sortear = id => rpc('sno_sortear', { p_sorteo: id })
 
 export async function listarSorteos() {
@@ -143,10 +143,10 @@ export async function listarSorteos() {
 
 export async function cargarSorteo(id) {
   const { data, error } = await supabase.from('sno_sorteos')
-    .select('*, sno_sorteo_participantes(persona_id, visto_en, deseo, sno_personas(id, nombre, telefono, token, activo))').eq('id', id).single()
+    .select('*, sno_sorteo_participantes(persona_id, visto_en, deseo, sno_personas(id, nombre, telefono, token, activo, deseo))').eq('id', id).single()
   if (error) throw error
   const participantes = (data.sno_sorteo_participantes || [])
-    .map(p => ({ ...p.sno_personas, persona_id: p.persona_id, visto_en: p.visto_en, tiene_deseo: !!p.deseo }))
+    .map(p => ({ ...p.sno_personas, persona_id: p.persona_id, visto_en: p.visto_en, tiene_deseo: !!p.sno_personas?.deseo, deseo: undefined }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
   return { ...data, participantes }
 }
