@@ -79,3 +79,25 @@ export function textoStatusGeneral(eventos) {
   })
   return `📊 *Status de Si nos organizamos!*\n\n${lineas.join('\n')}`
 }
+
+// ── Amigo secreto ────────────────────────────────────────────────────────────
+const detallesSorteo = s => [s.monto ? `💵 Monto: ${s.monto}` : '', s.fecha_intercambio ? `📅 Intercambio: ${fechaLarga(s.fecha_intercambio, { mayus: false })}` : '']
+  .filter(Boolean).join('\n')
+
+export function msgSorteoInvitacion(nombre, s, url) {
+  const d = detallesSorteo(s)
+  return `Hola ${primerNombre(nombre)} 🎁 En *${s.titulo.replace(/^Amigo secreto · /, '')}* vamos a hacer amigo secreto.${d ? `\n${d}` : ''}\n\nEn tu enlace privado escribí tu lista de deseos (la verá solo quien te regale). Cuando hagamos el sorteo te aviso:\n${url}` + firma
+}
+
+export function msgSorteoListo(nombre, s, url) {
+  const d = detallesSorteo(s)
+  return `Hola ${primerNombre(nombre)} 🎁 ¡Ya se hizo el sorteo de *${s.titulo}*!${d ? `\n${d}` : ''}\n\nAbrí tu enlace privado y tocá «Descubrir» para ver a quién te tocó. Nadie más lo ve, ni el organizador. 🤫\n${url}` + firma
+}
+
+export function textoStatusSorteo(s, participantes) {
+  if (s.estado !== 'sorteado') return `🎁 *${s.titulo}*: ${participantes.length} participantes, el sorteo todavía no se ha hecho.`
+  const si = participantes.filter(p => p.visto_en), no = participantes.filter(p => !p.visto_en)
+  return `🎁 *${s.titulo}*\n${si.length} de ${participantes.length} ya vieron a quién les tocó` +
+    (si.length ? `\n✅ Ya vieron: ${lista(si.map(p => p.nombre))}` : '') +
+    (no.length ? `\n⏳ Faltan: ${lista(no.map(p => p.nombre))}` : '\n🎉 ¡Ya lo vieron todos!')
+}

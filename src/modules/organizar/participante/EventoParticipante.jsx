@@ -3,10 +3,11 @@ import toast from 'react-hot-toast'
 import { ArrowLeft, Check, Lock, MapPin, CalendarPlus, Download, Loader2, Vote, PartyPopper, Clock } from 'lucide-react'
 import { ui, ChipEstado } from '../marca.jsx'
 import Calendario from '../Calendario.jsx'
+import AmigoParticipante from './AmigoParticipante.jsx'
 import { bloquear, desbloquear, marcarListo, votar, mensajeError } from '../servicio.js'
 import { fechasEvento, periodo, diasTexto, horario, fechaLarga, choca, textoBloqueo, enlaceGoogle, descargarIcs, hhmm } from '../fechas.js'
 
-export default function EventoParticipante({ ev, token, bloqueos, hoy, onBloqueos, recargar, volver }) {
+export default function EventoParticipante({ ev, token, bloqueos, hoy, deseo, onBloqueos, recargar, volver }) {
   return (
     <div className="space-y-4">
       <div className={ui.tarjeta}>
@@ -25,6 +26,7 @@ export default function EventoParticipante({ ev, token, bloqueos, hoy, onBloqueo
       {ev.estado === 'disponibilidad' && <Disponibilidad ev={ev} token={token} bloqueos={bloqueos} hoy={hoy} onBloqueos={onBloqueos} recargar={recargar} />}
       {(ev.estado === 'votacion' || ev.estado === 'cerrada') && <Votacion ev={ev} token={token} bloqueos={bloqueos} recargar={recargar} />}
       {ev.estado === 'confirmado' && <Confirmado ev={ev} />}
+      {ev.amigo && <AmigoParticipante s={ev.amigo} token={token} deseo={deseo} recargar={recargar} />}
     </div>
   )
 }

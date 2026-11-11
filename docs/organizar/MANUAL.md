@@ -27,6 +27,15 @@ Se puede ejecutar más de una vez. El administrador de Entre tu Arte queda como 
 7. **Confirmación**: los invitados ven la fecha con botones para Google Calendar e iPhone/Outlook (.ics).
 8. **WhatsApp**: cada invitado tiene botones con el mensaje listo (invitar, recordar, pedir voto, avisar fecha).
 
+## Amigo secreto (dentro de cada evento)
+En el detalle del evento › **Agregar amigo secreto** (monto, fecha del intercambio y mensaje, opcionales).
+Participan los invitados del evento: si se invita o quita a alguien, se ajusta solo (y si ya se había sorteado,
+se anula para volver a sortear). **Sortear** reparte al azar en un círculo: nadie se saca a sí mismo.
+Cada participante abre el evento con su enlace y toca «Descubrir» para ver a quién le tocó y su lista de deseos.
+La lista de deseos es general de cada persona (`sno_personas.deseo`): se escribe una vez y sirve para todos sus sorteos.
+Las asignaciones (`sno_sorteo_asignaciones`) no tienen reglas de lectura: ni el panel las muestra; solo dice
+quién ya vio la suya. Base de datos: `supabase/migrations/20261113000000_amigo_secreto.sql`.
+
 ## Privacidad
 `sno_bloqueos` y `sno_votos` no tienen ninguna regla de lectura: nadie los lee directamente, ni siquiera el
 administrador. Cada participante recibe solo lo suyo y el administrador solo conteos (cuántos pueden cada día,

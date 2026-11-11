@@ -13,6 +13,9 @@ const ERRORES = {
   pocas_opciones: 'Elegí al menos 2 fechas para votar (o confirmá una directamente).',
   fecha_fuera_del_evento: 'Esa fecha no pertenece al evento.',
   sin_permiso: 'Tu cuenta no es administradora de Si nos organizamos!',
+  pocos_participantes: 'Se necesitan al menos 3 participantes para sortear.',
+  sin_sorteo: 'El sorteo todavía no se ha hecho (o se volvió a armar). Esperá el aviso del organizador.',
+  deseo_largo: 'La lista de deseos puede tener hasta 500 caracteres.',
 }
 export function mensajeError(e, porDefecto = 'Algo salió mal. Revisá tu conexión e intentá de nuevo.') {
   const m = String(e?.message || '')
@@ -125,3 +128,34 @@ export async function borrarPersona(id) {
 }
 
 export const nuevoEnlace = id => rpc('sno_nuevo_enlace', { p_persona: id })
+
+// ── Amigo secreto ────────────────────────────────────────────────────────────
+export const verAmigo = (token, sorteo) => rpc('sno_ver_amigo', { p_token: token, p_sorteo: sorteo })
+export const guardarDeseo = (token, deseo) => rpc('sno_mi_deseo', { p_token: token, p_deseo: deseo })
+export const sortear = id => rpc('sno_sortear', { p_sorteo: id })
+
+export const activarAmigo = (evento, { monto, fecha, mensaje } = {}) =>
+  rpc('sno_activar_amigo', { p_evento: evento, p_monto: monto || null, p_fecha: fecha || null, p_mensaje: mensaje || null })
+
+// Amigo secreto de un evento (o null si no está activado). Nunca trae quién le regala a quién.
+export async function amigoDeEvento(eventoId) {
+  const { data, error } = await supabase.from('sno_sorteos')
+    .select('*, sno_sorteo_participantes(persona_id, visto_en, sno_personas(id, nombre, telefono, token, activo, deseo))')
+    .eq('evento_id', eventoId).maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  const participantes = (data.sno_sorteo_participantes || [])
+    .map(p => ({ ...p.sno_personas, deseo: undefined, persona_id: p.persona_id, visto_en: p.visto_en, tiene_deseo: !!p.sno_personas?.deseo }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+  return { ...data, sno_sorteo_participantes: undefined, participantes }
+}
+
+export async function actualizarSorteo(id, cambios) {
+  const { error } = await supabase.from('sno_sorteos').update(cambios).eq('id', id)
+  if (error) throw error
+}
+
+export async function borrarSorteo(id) {
+  const { error } = await supabase.from('sno_sorteos').delete().eq('id', id)
+  if (error) throw error
+}

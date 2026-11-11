@@ -6,6 +6,7 @@ import { agenda, mensajeError } from '../servicio.js'
 import { periodo, diasTexto, horario, fechaLarga } from '../fechas.js'
 import EventoParticipante from './EventoParticipante.jsx'
 import MiCalendario from './MiCalendario.jsx'
+import ListaDeseos from './ListaDeseos.jsx'
 
 const CLAVE = 'sno_enlace'
 
@@ -53,6 +54,7 @@ export default function Participante() {
   if (datos.estado !== 'ok') return <Aviso titulo="Este enlace ya no es válido" texto="Puede que el organizador lo haya cambiado. Pedile tu enlace nuevo por WhatsApp." />
 
   const evento = eventoId && datos.eventos.find(e => e.id === eventoId)
+  const hayAmigo = datos.eventos.some(e => e.amigo)
 
   return (
     <div className={ui.fondo}>
@@ -74,7 +76,7 @@ export default function Participante() {
             <button onClick={() => ir({ e: null })} className={`${ui.btnSuave} mt-4`}>Ver mis eventos</button>
           </div>
         ) : evento ? (
-          <EventoParticipante ev={evento} token={token} bloqueos={datos.bloqueos} hoy={datos.hoy}
+          <EventoParticipante ev={evento} token={token} bloqueos={datos.bloqueos} hoy={datos.hoy} deseo={datos.deseo}
             onBloqueos={cambiarBloqueos} recargar={recargar} volver={() => ir({ e: null })} />
         ) : (
           <>
@@ -88,7 +90,10 @@ export default function Participante() {
             </div>
             {pestana === 'calendario'
               ? <MiCalendario token={token} bloqueos={datos.bloqueos} eventos={datos.eventos} hoy={datos.hoy} onBloqueos={cambiarBloqueos} />
-              : <ListaEventos eventos={datos.eventos} abrir={id => ir({ e: id })} />}
+              : <>
+                  <ListaEventos eventos={datos.eventos} abrir={id => ir({ e: id })} />
+                  {hayAmigo && <div className="mt-3"><ListaDeseos token={token} deseo={datos.deseo} recargar={recargar} /></div>}
+                </>}
           </>
         )}
       </main>
@@ -126,6 +131,7 @@ function ListaEventos({ eventos, abrir }) {
               <p className="mt-2 text-[17px] font-bold leading-snug">{e.titulo}</p>
               <p className="mt-0.5 text-[13px] text-slate-500">{periodo(e.desde, e.hasta)} · {diasTexto(e.dias)} · {horario(e)}</p>
               <p className={`mt-2 text-sm font-bold ${p.c}`}>{p.t}</p>
+              {e.amigo && <p className="mt-1 text-sm font-bold text-rose-600">🎁 {e.amigo.estado !== 'sorteado' ? 'Amigo secreto: escribí tu lista de deseos' : e.amigo.visto ? 'Amigo secreto: ver a quién te tocó' : '¡Descubrí tu amigo secreto!'}</p>}
             </div>
             <ChevronRight className="shrink-0 text-slate-400" />
           </button>
@@ -148,3 +154,4 @@ function Aviso({ titulo, texto, reintentar }) {
     </div>
   )
 }
+
