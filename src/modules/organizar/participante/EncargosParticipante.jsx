@@ -2,7 +2,8 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { ClipboardList, Loader2, Check } from 'lucide-react'
 import { ui } from '../marca.jsx'
-import { tomarEncargo, soltarEncargo, mensajeError } from '../servicio.js'
+import { tomarEncargo, soltarEncargo, registrarGasto, mensajeError } from '../servicio.js'
+import { dinero } from '../gastos.js'
 
 // «Quién lleva qué»: la ven todos los invitados del evento y cada quien se apunta
 export default function EncargosParticipante({ ev, token, recargar }) {
@@ -30,11 +31,11 @@ export default function EncargosParticipante({ ev, token, recargar }) {
           const lleno = i.cupos != null && i.responsables.length >= i.cupos
           const falta = i.cupos == null ? 0 : i.cupos - i.responsables.length
           return (
-            <li key={i.id} className="flex items-center gap-3 py-3">
+            <li key={i.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
               <div className="min-w-0 flex-1">
                 <p className="font-bold">{i.nombre}{i.detalle && <span className="font-normal text-slate-500"> · {i.detalle}</span>}</p>
                 <p className="text-[13px]">
-                  {i.responsables.length > 0 && <span className="font-semibold text-slate-700">{i.responsables.map(r => (r.yo ? 'Vos' : r.nombre)).join(', ')}</span>}
+                  {i.responsables.length > 0 && <span className="font-semibold text-slate-700">{i.responsables.map(r => `${r.yo ? 'Vos' : r.nombre}${r.gasto != null ? ` (${dinero(Math.round(r.gasto * 100))})` : ''}`).join(', ')}</span>}
                   {i.cupos == null && <span className="font-semibold text-slate-500">{i.responsables.length ? ' · pueden ser más' : <span className="text-amber-700">Nadie todavía · pueden ser varios</span>}</span>}
                   {falta > 0 && <span className="font-semibold text-amber-700">{i.responsables.length ? ' · ' : ''}{falta === 1 ? (i.responsables.length ? 'falta 1 más' : 'Nadie todavía') : `faltan ${falta}`}</span>}
                 </p>
@@ -44,10 +45,38 @@ export default function EncargosParticipante({ ev, token, recargar }) {
               ) : !lleno ? (
                 <button disabled={ocupado === i.id} onClick={() => cambiar(i, true)} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-teal-700 px-3.5 text-[13px] font-semibold text-white disabled:opacity-50">{ocupado === i.id && <Loader2 size={14} className="animate-spin" />}Yo lo llevo</button>
               ) : <span className="shrink-0 text-[12px] font-bold text-emerald-700">✅ Cubierto</span>}
+              {yo && <MiGasto i={i} token={token} recargar={recargar} />}
             </li>
           )
         })}
       </ul>
     </div>
+  )
+}
+
+// «¿Cuánto gastaste?» para lo que lleva la persona (sirve para repartir los gastos)
+function MiGasto({ i, token, recargar }) {
+  const mio = i.responsables.find(r => r.yo)
+  const guardado = mio?.gasto != null ? Number(mio.gasto).toFixed(2) : ''
+  const [valor, setValor] = useState(guardado)
+  const [guardando, setGuardando] = useState(false)
+  const cambio = valor.trim() !== guardado
+  async function guardar(e) {
+    e.preventDefault()
+    const v = valor.trim() === '' ? null : Number(valor.replace(/[$,\s]/g, ''))
+    if (v !== null && (!Number.isFinite(v) || v < 0)) { toast.error('Escribí un monto válido, por ejemplo 12.50'); return }
+    setGuardando(true)
+    try { await registrarGasto(token, i.id, v); await recargar(); toast.success(v == null ? 'Gasto borrado' : `Anotado: ${dinero(Math.round(v * 100))}`) }
+    catch (err) { toast.error(mensajeError(err)) }
+    finally { setGuardando(false) }
+  }
+  return (
+    <form onSubmit={guardar} className="flex w-full items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+      <label htmlFor={`gasto-${i.id}`} className="flex-1 text-[13px] font-semibold text-slate-600">¿Cuánto gastaste?</label>
+      <span className="text-slate-400">$</span>
+      <input id={`gasto-${i.id}`} inputMode="decimal" value={valor} onChange={e => setValor(e.target.value)} placeholder="0.00"
+        className="h-9 w-24 rounded-lg border border-slate-200 bg-white px-2 text-right tabular-nums outline-none focus:border-teal-700" />
+      <button disabled={guardando || !cambio} className="inline-flex h-9 items-center rounded-full bg-teal-700 px-3 text-[13px] font-semibold text-white disabled:opacity-40">{guardando ? <Loader2 size={14} className="animate-spin" /> : 'Guardar'}</button>
+    </form>
   )
 }

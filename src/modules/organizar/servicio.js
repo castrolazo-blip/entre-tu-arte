@@ -17,6 +17,8 @@ const ERRORES = {
   sin_sorteo: 'El sorteo todavía no se ha hecho (o se volvió a armar). Esperá el aviso del organizador.',
   deseo_largo: 'La lista de deseos puede tener hasta 500 caracteres.',
   encargo_lleno: 'Ya está cubierto: alguien más lo tomó. Elegí otra cosa.',
+  monto_invalido: 'Revisá el monto: debe ser un número positivo.',
+  no_es_responsable: 'Solo quien lleva esa cosa puede anotar su gasto.',
 }
 export function mensajeError(e, porDefecto = 'Algo salió mal. Revisá tu conexión e intentá de nuevo.') {
   const m = String(e?.message || '')
@@ -167,10 +169,13 @@ export const soltarEncargo = (token, encargo) => rpc('sno_soltar_encargo', { p_t
 
 export async function encargosDe(eventoId) {
   const { data, error } = await supabase.from('sno_encargos')
-    .select('*, sno_encargo_responsables(persona_id, created_at)').eq('evento_id', eventoId)
+    .select('*, sno_encargo_responsables(persona_id, created_at, gasto)').eq('evento_id', eventoId)
     .order('orden').order('created_at')
   if (error) throw error
-  return data.map(e => ({ ...e, responsables: (e.sno_encargo_responsables || []).map(r => r.persona_id), sno_encargo_responsables: undefined }))
+  return data.map(e => {
+    const rs = [...(e.sno_encargo_responsables || [])].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+    return { ...e, responsables: rs.map(r => r.persona_id), gastos: Object.fromEntries(rs.map(r => [r.persona_id, r.gasto])), sno_encargo_responsables: undefined }
+  })
 }
 export async function crearEncargos(eventoId, items) {
   const { error } = await supabase.from('sno_encargos').insert(items.map(x => ({ evento_id: eventoId, ...x })))
@@ -211,5 +216,21 @@ export async function reabrirEncuesta(id) {
 }
 export async function borrarEncuestas(evento, tipos) {
   const { error } = await supabase.from('sno_encuestas').delete().eq('evento_id', evento).in('tipo', tipos)
+  if (error) throw error
+}
+
+// ── Gastos ───────────────────────────────────────────────────────────────────
+export const registrarGasto = (token, encargo, monto) => rpc('sno_registrar_gasto', { p_token: token, p_encargo: encargo, p_monto: monto })
+export async function anotarGasto(encargo, persona, monto) {
+  const { error } = await supabase.from('sno_encargo_responsables').update({ gasto: monto }).eq('encargo_id', encargo).eq('persona_id', persona)
+  if (error) throw error
+}
+export async function pagadores(eventoId) {
+  const { data, error } = await supabase.from('sno_invitados').select('persona_id, paga').eq('evento_id', eventoId)
+  if (error) throw error
+  return Object.fromEntries(data.map(x => [x.persona_id, x.paga !== false]))
+}
+export async function cambiarPaga(eventoId, persona, paga) {
+  const { error } = await supabase.from('sno_invitados').update({ paga }).eq('evento_id', eventoId).eq('persona_id', persona)
   if (error) throw error
 }

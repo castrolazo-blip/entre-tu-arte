@@ -1,4 +1,5 @@
 import { periodo, diasTexto, horario, fechaLarga, aFecha } from './fechas.js'
+import { dinero } from './gastos.js'
 
 // Teléfono para wa.me: solo dígitos; 8 dígitos = El Salvador (503)
 export function telWa(tel) {
@@ -145,4 +146,13 @@ export function textoComida(ev, r) {
   }
   if (Object.values(r).some(q => q.estado === 'abierta')) partes.push('Votá en tu enlace del evento.')
   return partes.join('\n\n') + firma
+}
+
+// ── Gastos ───────────────────────────────────────────────────────────────────
+// r = calcularReparto(...) · detalle: [{ nombre, cosa, gasto }]
+export function textoGastos(ev, r, detalle) {
+  const lineas = detalle.map(d => `• ${d.cosa}: ${primerNombre(d.nombre)} ${dinero(Math.round(d.gasto * 100))}`)
+  const pagos = r.transferencias.map(t => `➡️ ${primerNombre(t.de.nombre)} le paga ${dinero(t.monto)} a ${primerNombre(t.a.nombre)}`)
+  return `💸 *${ev.titulo}* · gastos\nTotal: ${dinero(r.total)} · somos ${r.pagan} · toca ${dinero(r.cuota)} c/u\n\n${lineas.join('\n')}` +
+    (pagos.length ? `\n\n*Para quedar a mano:*\n${pagos.join('\n')}` : '\n\n✅ Todos a mano') + firma
 }
