@@ -16,6 +16,7 @@ const ERRORES = {
   pocos_participantes: 'Se necesitan al menos 3 participantes para sortear.',
   sin_sorteo: 'El sorteo todavía no se ha hecho (o se volvió a armar). Esperá el aviso del organizador.',
   deseo_largo: 'La lista de deseos puede tener hasta 500 caracteres.',
+  encargo_lleno: 'Ya está cubierto: alguien más lo tomó. Elegí otra cosa.',
 }
 export function mensajeError(e, porDefecto = 'Algo salió mal. Revisá tu conexión e intentá de nuevo.') {
   const m = String(e?.message || '')
@@ -157,5 +158,37 @@ export async function actualizarSorteo(id, cambios) {
 
 export async function borrarSorteo(id) {
   const { error } = await supabase.from('sno_sorteos').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ── Encargados («quién lleva qué») ───────────────────────────────────────────
+export const tomarEncargo = (token, encargo) => rpc('sno_tomar_encargo', { p_token: token, p_encargo: encargo })
+export const soltarEncargo = (token, encargo) => rpc('sno_soltar_encargo', { p_token: token, p_encargo: encargo })
+
+export async function encargosDe(eventoId) {
+  const { data, error } = await supabase.from('sno_encargos')
+    .select('*, sno_encargo_responsables(persona_id, created_at)').eq('evento_id', eventoId)
+    .order('orden').order('created_at')
+  if (error) throw error
+  return data.map(e => ({ ...e, responsables: (e.sno_encargo_responsables || []).map(r => r.persona_id), sno_encargo_responsables: undefined }))
+}
+export async function crearEncargos(eventoId, items) {
+  const { error } = await supabase.from('sno_encargos').insert(items.map(x => ({ evento_id: eventoId, ...x })))
+  if (error) throw error
+}
+export async function actualizarEncargo(id, cambios) {
+  const { error } = await supabase.from('sno_encargos').update(cambios).eq('id', id)
+  if (error) throw error
+}
+export async function borrarEncargo(id) {
+  const { error } = await supabase.from('sno_encargos').delete().eq('id', id)
+  if (error) throw error
+}
+export async function asignarEncargo(encargo, persona) {
+  const { error } = await supabase.from('sno_encargo_responsables').insert({ encargo_id: encargo, persona_id: persona })
+  if (error) throw error
+}
+export async function quitarResponsable(encargo, persona) {
+  const { error } = await supabase.from('sno_encargo_responsables').delete().eq('encargo_id', encargo).eq('persona_id', persona)
   if (error) throw error
 }

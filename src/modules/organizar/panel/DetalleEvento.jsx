@@ -5,6 +5,7 @@ import { ArrowLeft, Pencil, Loader2, MessageCircle, Copy, Check, Vote, Trophy, C
 import { ui, ChipEstado } from '../marca.jsx'
 import Calendario from '../Calendario.jsx'
 import AmigoSecreto from './AmigoSecreto.jsx'
+import Encargados from './Encargados.jsx'
 import { cargarEvento, actualizarEvento, abrirVotacion, borrarEvento, mensajeError } from '../servicio.js'
 import { periodo, diasTexto, horario, fechaLarga, fechaCorta, diaSemana, DIAS, enlaceGoogle, hace } from '../fechas.js'
 import { enlacePersonal, urlWhatsApp, mensajesPara, textoStatus } from '../whatsapp.js'
@@ -191,6 +192,9 @@ export default function DetalleEvento() {
 
       {/* Invitados */}
       <Invitados ev={ev} invitados={d.invitados} />
+
+      {/* Quién lleva qué */}
+      {ev.estado !== 'cancelado' && <Encargados ev={ev} invitados={d.invitados} />}
 
       {/* Amigo secreto (dentro del evento) */}
       {ev.estado !== 'cancelado' && <AmigoSecreto ev={ev} numInvitados={d.invitados.length} />}

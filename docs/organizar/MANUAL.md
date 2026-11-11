@@ -36,6 +36,13 @@ La lista de deseos es general de cada persona (`sno_personas.deseo`): se escribe
 Las asignaciones (`sno_sorteo_asignaciones`) no tienen reglas de lectura: ni el panel las muestra; solo dice
 quién ya vio la suya. Base de datos: `supabase/migrations/20261113000000_amigo_secreto.sql`.
 
+## Quién lleva qué (encargados, dentro de cada evento)
+En el detalle del evento: lista de encargos (sugeridos: comida, pastel, carne, arroz, hielo, vino, cerveza,
+mesas, casa, limpieza… o los propios), cada uno con cupos y detalle. Los invitados se apuntan con
+«Yo lo llevo» desde su enlace, o el administrador asigna. Esta lista sí la ven todos los invitados del evento
+(primer nombre de cada responsable). «Enviar al grupo» manda la lista con lo que falta.
+Base de datos: `supabase/migrations/20261114000000_encargados.sql`.
+
 ## Privacidad
 `sno_bloqueos` y `sno_votos` no tienen ninguna regla de lectura: nadie los lee directamente, ni siquiera el
 administrador. Cada participante recibe solo lo suyo y el administrador solo conteos (cuántos pueden cada día,

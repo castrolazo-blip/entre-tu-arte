@@ -101,3 +101,18 @@ export function textoStatusSorteo(s, participantes) {
     (si.length ? `\n✅ Ya vieron: ${lista(si.map(p => p.nombre))}` : '') +
     (no.length ? `\n⏳ Faltan: ${lista(no.map(p => p.nombre))}` : '\n🎉 ¡Ya lo vieron todos!')
 }
+
+// ── Encargados ───────────────────────────────────────────────────────────────
+export const SUGERIDOS = ['🍽️ Comida', '🎂 Pastel', '🥩 Carne', '🍚 Arroz', '🥗 Ensalada', '🥖 Pan', '🍿 Boquitas', '🍰 Postre',
+  '🥤 Bebidas', '🧊 Hielo', '🍷 Vino', '🍺 Cerveza', '🥤 Vasos y platos', '🪑 Mesas', '🪑 Sillas', '🏠 Casa / lugar', '🧹 Limpieza', '🎵 Música']
+
+// items: [{ nombre, detalle, cupos, nombres: ['Laura', …] }]
+export function textoEncargos(ev, items) {
+  const cubiertos = items.filter(i => i.nombres.length >= i.cupos).length
+  const lineas = items.map(i => {
+    const quien = i.nombres.length ? lista(i.nombres) : ''
+    const falta = i.cupos - i.nombres.length
+    return `• ${i.nombre}${i.detalle ? ` (${i.detalle})` : ''}: ${quien}${falta > 0 ? `${quien ? ' + ' : ''}⏳ ${falta === 1 && !quien ? 'falta' : `falta${falta > 1 ? 'n' : ''} ${falta}`}` : ' ✅'}`
+  })
+  return `🧾 *${ev.titulo}* · quién lleva qué\n${cubiertos} de ${items.length} cubiertos\n\n${lineas.join('\n')}\n\nPara apuntarte, abrí tu enlace del evento y tocá «Yo lo llevo».` + firma
+}
