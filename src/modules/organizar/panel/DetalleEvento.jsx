@@ -9,7 +9,7 @@ import Encargados from './Encargados.jsx'
 import QueComemos from './QueComemos.jsx'
 import { cargarEvento, actualizarEvento, abrirVotacion, borrarEvento, mensajeError } from '../servicio.js'
 import { periodo, diasTexto, horario, fechaLarga, fechaCorta, diaSemana, DIAS, enlaceGoogle, hace } from '../fechas.js'
-import { enlacePersonal, urlWhatsApp, mensajesPara, textoStatus } from '../whatsapp.js'
+import { enlacePersonal, urlWhatsApp, mensajesPara, textoStatus, textoInvitacionGeneral } from '../whatsapp.js'
 
 const MAX_OPCIONES = 6
 
@@ -95,7 +95,10 @@ export default function DetalleEvento() {
             <p className="mt-1 text-slate-500">{periodo(ev.desde, ev.hasta)} · {diasTexto(ev.dias)} · {horario(ev)}{ev.lugar ? ` · ${ev.lugar}` : ''}</p>
             {ev.fecha_limite && <p className="mt-1 text-sm font-semibold text-amber-700">Plazo para responder: {fechaLarga(ev.fecha_limite, { mayus: false })}</p>}
           </div>
-          <Link to={`/organizar/panel/evento/${ev.id}/editar`} className={ui.btnMini}><Pencil size={14} />Editar</Link>
+          <div className="flex flex-wrap gap-1.5">
+            <InvitacionGeneral ev={ev} />
+            <Link to={`/organizar/panel/evento/${ev.id}/editar`} className={ui.btnMini}><Pencil size={14} />Editar</Link>
+          </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           <Dato valor={`${respondieron}/${n}`} texto="respondieron" />
@@ -117,7 +120,7 @@ export default function DetalleEvento() {
             <a href={enlaceGoogle(ev, ev.fecha_elegida)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-teal-800"><CalendarPlus size={17} />Agregar a mi calendario</a>
             <button disabled={trabajando} onClick={() => cambiarEstado('cerrada', '¿Quitar la confirmación? El evento vuelve a «votación cerrada».', { fecha_elegida: null })} className="inline-flex h-11 items-center gap-2 rounded-full border border-white/40 px-5 text-sm font-semibold"><RotateCcw size={16} />Deshacer</button>
           </div>
-          <p className="mt-4 text-sm text-white/80">Avisale a cada invitado con el botón «Avisar fecha» de la lista.</p>
+          <p className="mt-4 text-sm text-white/80">Mandá la invitación al grupo con «Invitación al grupo» (arriba), o a cada invitado con «Avisar fecha» de la lista.</p>
         </section>
       )}
 
@@ -380,5 +383,22 @@ function Status({ ev, invitados }) {
         </div>
       </div>
     </section>
+  )
+}
+
+// Mensaje general para el grupo de WhatsApp: datos del evento, sin enlaces personales
+function InvitacionGeneral({ ev }) {
+  const [copiado, setCopiado] = useState(false)
+  const texto = textoInvitacionGeneral(ev)
+  async function copiar() {
+    try { await navigator.clipboard.writeText(texto); setCopiado(true); setTimeout(() => setCopiado(false), 1500) }
+    catch { toast.error('No se pudo copiar') }
+  }
+  if (ev.estado === 'cancelado') return null
+  return (
+    <>
+      <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer" className={ui.btnMini}><MessageCircle size={14} className="text-[#25D366]" />Invitación al grupo</a>
+      <button onClick={copiar} className={ui.btnMini} title="Copiar invitación">{copiado ? <Check size={14} /> : <Copy size={14} />}</button>
+    </>
   )
 }

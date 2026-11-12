@@ -156,3 +156,15 @@ export function textoGastos(ev, r, detalle) {
   return `💸 *${ev.titulo}* · gastos\nTotal: ${dinero(r.total)} · somos ${r.pagan} · toca ${dinero(r.cuota)} c/u\n\n${lineas.join('\n')}` +
     (pagos.length ? `\n\n*Para quedar a mano:*\n${pagos.join('\n')}` : '\n\n✅ Todos a mano') + firma
 }
+
+// ── Invitación general para el grupo (sin enlaces personales) ────────────────
+export function textoInvitacionGeneral(ev) {
+  const lugar = ev.lugar ? `\n📍 ${ev.lugar}` : ''
+  const detalle = ev.descripcion ? `\n\n${ev.descripcion}` : ''
+  if (ev.estado === 'confirmado' && ev.fecha_elegida) {
+    return `🎉 *${ev.titulo}*\n¡Quedó confirmado!\n\n📅 ${fechaLarga(ev.fecha_elegida)}\n🕖 ${horario(ev)}${lugar}${detalle}\n\n¡Los esperamos! 🙌` + firma
+  }
+  return `🎉 *${ev.titulo}*\n\nEstamos buscando la fecha en que todos podamos:\n📅 ${periodo(ev.desde, ev.hasta)} · ${diasTexto(ev.dias)}\n🕖 ${horario(ev)}${lugar}${detalle}` +
+    `\n\nA cada quien le llega por privado su enlace para marcar los días que no puede.` +
+    (ev.fecha_limite ? `\n⏰ Antes del ${fechaLarga(ev.fecha_limite, { mayus: false })}.` : '') + firma
+}
