@@ -95,7 +95,7 @@ export default function Personas() {
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 basis-48">
                     <p className="font-bold">{p.nombre}{!p.activo && <span className="ml-2 text-[12px] font-semibold text-slate-400">desactivado</span>}</p>
                     <p className="text-[13px] text-slate-500">{p.telefono || 'Sin teléfono'}</p>
                   </div>

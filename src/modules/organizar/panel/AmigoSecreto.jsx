@@ -55,7 +55,7 @@ export default function AmigoSecreto({ ev, numInvitados }) {
         {!editando ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-rose-100 text-rose-700"><Gift size={22} /></span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-48">
               <h2 className="text-lg font-bold">Amigo secreto</h2>
               <p className="text-sm text-slate-500">Sorteá entre los {numInvitados} invitados de este evento. Cada quien ve a quién le tocó en su enlace.</p>
             </div>
@@ -106,7 +106,7 @@ export default function AmigoSecreto({ ev, numInvitados }) {
   return (
     <section className={ui.tarjeta}>
         <div className="flex flex-wrap items-start gap-3">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 basis-64">
             <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold"><Gift size={20} className="text-rose-600" />Amigo secreto
               <span className={`${ui.chip} ${sorteado ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{sorteado ? `Sorteado ${hace(s.sorteado_en)}` : 'Sin sortear'}</span></h2>
             <p className="mt-1 text-slate-500">{n} participantes (los invitados){s.monto ? ` · ${s.monto}` : ''}{s.fecha_intercambio ? ` · Intercambio: ${fechaLarga(s.fecha_intercambio, { mayus: false })}` : ''}</p>
@@ -156,7 +156,7 @@ export default function AmigoSecreto({ ev, numInvitados }) {
             const etiqueta = sorteado ? (p.visto_en ? 'Reenviar' : 'Avisar sorteo') : 'Pedir deseos'
             return (
               <li key={p.persona_id} className="flex flex-wrap items-center gap-2 py-3">
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 basis-48">
                   <p className="font-semibold">{p.nombre}</p>
                   <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11px] font-bold">
                     {sorteado && (p.visto_en

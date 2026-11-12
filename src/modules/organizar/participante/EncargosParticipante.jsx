@@ -32,7 +32,7 @@ export default function EncargosParticipante({ ev, token, recargar }) {
           const falta = i.cupos == null ? 0 : i.cupos - i.responsables.length
           return (
             <li key={i.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-48">
                 <p className="font-bold">{i.nombre}{i.detalle && <span className="font-normal text-slate-500"> · {i.detalle}</span>}</p>
                 <p className="text-[13px]">
                   {i.responsables.length > 0 && <span className="font-semibold text-slate-700">{i.responsables.map(r => `${r.yo ? 'Vos' : r.nombre}${r.gasto != null ? ` (${dinero(Math.round(r.gasto * 100))})` : ''}`).join(', ')}</span>}
