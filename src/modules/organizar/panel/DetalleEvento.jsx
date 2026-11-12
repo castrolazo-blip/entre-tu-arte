@@ -89,7 +89,7 @@ export default function DetalleEvento() {
       {/* Encabezado */}
       <section className={ui.tarjeta}>
         <div className="flex flex-wrap items-start gap-3">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 basis-64">
             <ChipEstado estado={ev.estado} />
             <h1 className="mt-2 text-[26px] font-bold leading-tight">{ev.titulo}</h1>
             <p className="mt-1 text-slate-500">{periodo(ev.desde, ev.hasta)} · {diasTexto(ev.dias)} · {horario(ev)}{ev.lugar ? ` · ${ev.lugar}` : ''}</p>
@@ -322,7 +322,7 @@ function Invitados({ ev, invitados }) {
           const msgs = mensajesPara(i, ev, url)
           return (
             <li key={i.persona_id} className="flex flex-wrap items-center gap-2 py-3">
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-48">
                 <p className="font-semibold">{i.nombre}{!i.activo && <span className="ml-2 text-[12px] text-slate-400">(inactivo)</span>}</p>
                 <div className="mt-0.5 flex flex-wrap gap-1.5">
                   {i.respondio_en

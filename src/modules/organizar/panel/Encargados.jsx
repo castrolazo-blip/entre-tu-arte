@@ -72,7 +72,7 @@ export default function Encargados({ ev, invitados }) {
           return (
             <li key={i.id} className={`rounded-2xl border p-3 ${cubierto ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'}`}>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="min-w-0 flex-1 font-bold">{i.nombre}</p>
+                <p className="min-w-0 flex-1 basis-48 font-bold">{i.nombre}</p>
                 <SelectorCupos id={`cupos-${i.id}`} valor={i.cupos} minimo={i.responsables.length} disabled={ocupado}
                   onChange={v => hacer(() => actualizarEncargo(i.id, { cupos: v }))} />
                 <button disabled={ocupado} onClick={() => { if (window.confirm(`¿Quitar «${i.nombre}» de la lista?`)) hacer(() => borrarEncargo(i.id)) }} className="grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Quitar ${i.nombre}`}><Trash2 size={15} /></button>
