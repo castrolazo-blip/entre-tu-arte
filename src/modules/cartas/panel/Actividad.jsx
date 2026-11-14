@@ -1,27 +1,37 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Download, Loader2 } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
-import { actividad } from '../cartasService.js'
-import { describirActividad, quien } from '../actividad.js'
+import { actividad, listarRecordatorios } from '../cartasService.js'
+import { describirActividad, quien, gestionesComoActividad, esMensajeRepetido } from '../actividad.js'
 import { fecha, mensajeError, nombrePareja, folioTexto } from '../constantes.js'
 import { aCSV, descargar, nombreArchivo } from '../archivos.js'
 import { btn } from '../ui.jsx'
 
 // Bitácora del retiro: quién entró, qué registró, cambió o abrió, y cuándo (últimos 300 movimientos)
 export default function Actividad() {
-  const { retiro, usuarios, parejas, cartas } = useCartas()
+  const { retiro, usuarios, parejas, cartas, remitentes } = useCartas()
   const [filas, setFilas] = useState(null)
   const [error, setError] = useState('')
   const [persona, setPersona] = useState('')
 
-  useEffect(() => { actividad(retiro.id).then(setFilas).catch(e => setError(mensajeError(e))) }, [retiro.id])
+  const [base, setBase] = useState(null)
+  useEffect(() => {
+    Promise.all([actividad(retiro.id), listarRecordatorios(retiro.id).catch(() => [])])
+      .then(([a, g]) => setBase({ a, g })).catch(e => setError(mensajeError(e)))
+  }, [retiro.id])
+  // Movimientos + gestiones con su tipo de mensaje, del más reciente al más antiguo
+  useEffect(() => {
+    if (!base) return
+    setFilas([...base.a.filter(x => !esMensajeRepetido(x)), ...gestionesComoActividad(base.g, remitentes)]
+      .sort((x, y) => (y.created_at > x.created_at ? 1 : -1)))
+  }, [base, remitentes])
 
   const porPareja = useMemo(() => Object.fromEntries(parejas.map(p => [p.id, p])), [parejas])
   const porCarta = useMemo(() => Object.fromEntries(cartas.map(c => [c.id, c])), [cartas])
   // A qué pareja se refiere el movimiento (si se puede saber)
   const contexto = a => {
     const c = a.entidad === 'cartas' && (porCarta[a.entidad_id] || a.datos)
-    const p = porPareja[c?.pareja_id] || (a.entidad === 'parejas' && porPareja[a.entidad_id])
+    const p = (a.entidad === 'gestion' && porPareja[a.datos.pareja_id]) || porPareja[c?.pareja_id] || (a.entidad === 'parejas' && porPareja[a.entidad_id])
     return [c?.folio && folioTexto(c.folio), p && `${p.codigo} ${nombrePareja(p)}`].filter(Boolean).join(' · ')
   }
 
