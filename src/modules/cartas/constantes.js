@@ -226,6 +226,15 @@ export function mensajeFamilias({ retiro, pareja, remitente, enlace, responsable
   return plantilla.replace(/\{(nombre|pareja|apodos|responsable|meta|fecha_limite|enlace|lugar|horario)\}/g, (_, k) => valores[k])
 }
 
+// Mensaje corto: solo el enlace para subir las cartas de esa pareja
+export function mensajeEnlace({ retiro, pareja, remitente, enlace }) {
+  const nombre = (remitente?.nombre || '').split(' ')[0]
+  const plazo = retiro.fecha_limite ? `\n🗓️ Fecha límite: *${fechaLarga(retiro.fecha_limite)}*` : ''
+  return `Hola${nombre ? ' ' + nombre : ''} 👋 Este es el enlace para subir las cartas para *${apodo(pareja, 'A')} y ${apodo(pareja, 'B')}*. Solo adjunta una foto o el archivo de cada carta:
+${enlace}${plazo}
+🤫 Es sorpresa. ¡Gracias!`
+}
+
 // Ojo: el mensaje es para familiares y amigos; las parejas no deben enterarse (es sorpresa).
 export function mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable, entrega }) {
   if (remitente.coordinador) return mensajeFamilias({ retiro, pareja, remitente, enlace, responsable, entrega })

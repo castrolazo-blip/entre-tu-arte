@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { useBorrador, useVentana } from '../borrador.js'
 import { guardarRemitente, registrarRecordatorio } from '../cartasService.js'
-import { enlacePortal, mensajeRecordatorio, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE, RELACIONES } from '../constantes.js'
+import { enlacePortal, mensajeRecordatorio, mensajeEnlace, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE, RELACIONES } from '../constantes.js'
 import { Modal, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 
@@ -94,6 +94,11 @@ export function AccionesRecordatorio({ remitente, pareja, compacto = false, simp
               onClick={() => { registrar('whatsapp'); setOpciones(false) }}
               className="mb-2 flex items-center gap-3 rounded-2xl bg-[#25D366] px-4 py-3 text-white hover:brightness-95">
               <MessageCircle size={20} /><span><b className="block text-[15px]">Mensaje de bienvenida</b><span className="text-xs text-white/85">La invitación con su enlace para enviar las cartas</span></span>
+            </a>
+            <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensajeEnlace({ retiro, pareja, remitente, enlace }))}`} target="_blank" rel="noreferrer"
+              onClick={() => { registrar('whatsapp', 'Enlace'); setOpciones(false) }}
+              className="mb-2 flex items-center gap-3 rounded-2xl border border-crema-borde px-4 py-3 hover:border-vino">
+              <Link2 size={20} className="text-vino" /><span><b className="block text-[15px]">Enviar enlace</b><span className="text-xs text-gris">Mensaje corto con el enlace para subir las cartas</span></span>
             </a>
             {tel ? (
               <a href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer"
