@@ -9,6 +9,7 @@ import { fecha, nombrePareja, nombreEquipo, mensajeError, LUGAR_ENTREGA, HORARIO
 import { Titulo, Vacio } from '../ui.jsx'
 import { AccionesRecordatorio, FormRemitente } from './remitentes.jsx'
 import { useVentana } from '../borrador.js'
+import { describirGestion as describir } from '../actividad.js'
 import { InvitacionPareja } from './Retiros.jsx'
 
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -20,18 +21,6 @@ const PESTANAS = [
   ['avisados', 'Ya avisados', r => (r.estado === 'pendiente' || r.estado === 'revision') && !!r.ultimo_recordatorio],
   ['entregaron', 'Ya entregaron', r => r.estado === 'recibido'],
 ]
-
-const TIPOS = { whatsapp: 'Mensaje por WhatsApp', correo: 'Correo', copiado: 'Mensaje copiado', llamada: 'Llamada', nota: 'Nota', otro: 'Gestión' }
-
-// Tipo y texto visibles de una gestión (las guardadas como «otro» traen el tipo al inicio del texto)
-function describir(g) {
-  if (g.canal === 'otro' && /^(Llamada|Nota)\b/.test(g.mensaje || '')) {
-    const [, tipo, resto] = g.mensaje.match(/^(Llamada|Nota):?\s*([\s\S]*)$/)
-    return { tipo, texto: resto || '' }
-  }
-  if (g.canal === 'whatsapp') return { tipo: g.mensaje === 'Seguimiento' ? 'Seguimiento por WhatsApp' : g.mensaje === 'Enlace' ? 'Enlace por WhatsApp' : 'Bienvenida por WhatsApp', texto: '' }
-  return { tipo: TIPOS[g.canal] || 'Gestión', texto: g.canal === 'llamada' || g.canal === 'nota' || g.canal === 'otro' ? g.mensaje || '' : '' }
-}
 
 export default function Pendientes() {
   const { retiro, parejas, remitentes, equipo, esAdmin, miEquipo, usuarios, actualizarLocal, indicadores } = useCartas()
