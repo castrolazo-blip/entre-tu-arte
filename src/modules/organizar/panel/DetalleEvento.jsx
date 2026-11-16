@@ -9,7 +9,7 @@ import Encargados from './Encargados.jsx'
 import QueComemos from './QueComemos.jsx'
 import { cargarEvento, actualizarEvento, abrirVotacion, borrarEvento, mensajeError } from '../servicio.js'
 import { periodo, diasTexto, horario, fechaLarga, fechaCorta, diaSemana, DIAS, enlaceGoogle, hace } from '../fechas.js'
-import { enlacePersonal, urlWhatsApp, mensajesPara, textoStatus, textoInvitacionGeneral } from '../whatsapp.js'
+import { enlacePersonal, urlWhatsApp, mensajesPara, textoStatus, textoInvitacionGeneral, diasPendientes } from '../whatsapp.js'
 
 const MAX_OPCIONES = 6
 
@@ -328,7 +328,9 @@ function Invitados({ ev, invitados }) {
                 <div className="mt-0.5 flex flex-wrap gap-1.5">
                   {i.respondio_en
                     ? <span className={`${'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold'} bg-emerald-100 text-emerald-800`}><Check size={11} strokeWidth={3} />{i.heredado ? 'Respondió (de otro evento)' : 'Respondió'}</span>
-                    : <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">Sin respuesta</span>}
+                    : diasPendientes(i)
+                      ? <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">{diasPendientes(i) === 1 ? 'Le falta 1 día' : `Le faltan ${diasPendientes(i)} días`}</span>
+                      : <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">Sin respuesta</span>}
                   {i.actualizado_en && <span className="text-[11px] text-slate-400">actualizó {hace(i.actualizado_en)}</span>}
                   {(ev.estado === 'votacion' || ev.estado === 'cerrada') && (i.voto
                     ? <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-800">Votó</span>
@@ -378,7 +380,7 @@ function Status({ ev, invitados }) {
         <div>
           <p className="text-sm font-bold text-amber-700">⏳ Faltan ({no.length})</p>
           <ul className="mt-1.5 space-y-1">
-            {no.map(i => <li key={i.persona_id} className="text-sm">{i.nombre}</li>)}
+            {no.map(i => <li key={i.persona_id} className="text-sm">{i.nombre}{!votando && diasPendientes(i) > 0 && <span className="text-amber-700"> · {diasPendientes(i) === 1 ? 'le falta 1 día' : `le faltan ${diasPendientes(i)} días`}</span>}</li>)}
             {!no.length && <li className="text-sm font-semibold text-emerald-700">¡Todos listos! 🎉</li>}
           </ul>
         </div>
