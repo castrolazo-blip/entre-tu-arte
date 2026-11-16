@@ -76,7 +76,7 @@ export default function Participante() {
             <button onClick={() => ir({ e: null })} className={`${ui.btnSuave} mt-4`}>Ver mis eventos</button>
           </div>
         ) : evento ? (
-          <EventoParticipante ev={evento} token={token} bloqueos={datos.bloqueos} hoy={datos.hoy} deseo={datos.deseo}
+          <EventoParticipante ev={evento} token={token} bloqueos={datos.bloqueos} hoy={datos.hoy} deseo={datos.deseo} otros={datos.eventos}
             onBloqueos={cambiarBloqueos} recargar={recargar} volver={() => ir({ e: null })} />
         ) : (
           <>
