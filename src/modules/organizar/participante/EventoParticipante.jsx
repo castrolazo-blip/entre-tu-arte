@@ -10,7 +10,7 @@ import GastosParticipante from './GastosParticipante.jsx'
 import { bloquear, desbloquear, marcarListo, votar, mensajeError } from '../servicio.js'
 import { fechasEvento, periodo, diasTexto, horario, fechaLarga, choca, textoBloqueo, enlaceGoogle, descargarIcs, hhmm } from '../fechas.js'
 
-export default function EventoParticipante({ ev, token, bloqueos, hoy, deseo, onBloqueos, recargar, volver }) {
+export default function EventoParticipante({ ev, token, bloqueos, hoy, deseo, otros = [], onBloqueos, recargar, volver }) {
   return (
     <div className="space-y-4">
       <div className={ui.tarjeta}>
@@ -26,7 +26,7 @@ export default function EventoParticipante({ ev, token, bloqueos, hoy, deseo, on
         {ev.descripcion && <p className="mt-3 whitespace-pre-line text-[15px] text-slate-700">{ev.descripcion}</p>}
       </div>
 
-      {ev.estado === 'disponibilidad' && <Disponibilidad ev={ev} token={token} bloqueos={bloqueos} hoy={hoy} onBloqueos={onBloqueos} recargar={recargar} />}
+      {ev.estado === 'disponibilidad' && <Disponibilidad ev={ev} token={token} bloqueos={bloqueos} hoy={hoy} otros={otros} onBloqueos={onBloqueos} recargar={recargar} />}
       {(ev.estado === 'votacion' || ev.estado === 'cerrada') && <Votacion ev={ev} token={token} bloqueos={bloqueos} recargar={recargar} />}
       {ev.estado === 'confirmado' && <Confirmado ev={ev} />}
       <ComidaParticipante ev={ev} token={token} recargar={recargar} />
@@ -38,7 +38,7 @@ export default function EventoParticipante({ ev, token, bloqueos, hoy, deseo, on
 }
 
 // ── Paso 1: marcar cuándo NO puede ──────────────────────────────────────────
-function Disponibilidad({ ev, token, bloqueos, hoy, onBloqueos, recargar }) {
+function Disponibilidad({ ev, token, bloqueos, hoy, otros = [], onBloqueos, recargar }) {
   const [modo, setModo] = useState('horario')      // horario del evento · todo el día
   const [ocupado, setOcupado] = useState(() => new Set())
   const [enviando, setEnviando] = useState(false)
@@ -50,11 +50,21 @@ function Disponibilidad({ ev, token, bloqueos, hoy, onBloqueos, recargar }) {
     for (const b of bloqueos) (m[b.fecha] ||= []).push(b)
     return m
   }, [bloqueos])
-  const noPuedo = f => (porFecha[f] || []).some(b => choca(b, ev))
+  // Otros eventos ya confirmados ese día a una hora que choca: cuentan como ocupado (no se pueden desmarcar)
+  const confirmados = useMemo(() => {
+    const m = {}
+    for (const o of otros) {
+      if (o.id === ev.id || o.estado !== 'confirmado' || !o.fecha_elegida) continue
+      if (choca({ desde: hhmm(o.hora_inicio), hasta: hhmm(o.hora_fin) }, ev)) (m[o.fecha_elegida] ||= []).push(o.titulo)
+    }
+    return m
+  }, [otros, ev])
+  const noPuedo = f => !!confirmados[f] || (porFecha[f] || []).some(b => choca(b, ev))
   const marcadas = [...posibles].filter(f => f >= hoy && noPuedo(f)).length
   const futuras = [...posibles].filter(f => f >= hoy).length
 
   async function tocar(fecha) {
+    if (confirmados[fecha]) { toast(`Ese día ya tenés: ${confirmados[fecha].join(', ')}`, { icon: '🎉' }); return }
     if (ocupado.has(fecha)) return
     setOcupado(s => new Set(s).add(fecha))
     try {
@@ -108,9 +118,9 @@ function Disponibilidad({ ev, token, bloqueos, hoy, onBloqueos, recargar }) {
           const otraHora = !no && (porFecha[f] || []).length > 0
           return {
             activa: true,
-            titulo: no ? 'No puedo' : otraHora ? `Tenés algo a otra hora: ${(porFecha[f] || []).map(textoBloqueo).join(', ')}` : 'Disponible',
+            titulo: confirmados[f] ? `Ya tenés: ${confirmados[f].join(', ')}` : no ? 'No puedo' : otraHora ? `Tenés algo a otra hora: ${(porFecha[f] || []).map(textoBloqueo).join(', ')}` : 'Disponible',
             clase: `${no ? 'bg-rose-500 text-white line-through decoration-2' : 'bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200'} ${ocupado.has(f) ? 'opacity-50' : ''}`,
-            marca: otraHora ? <span className="block h-1.5 w-1.5 rounded-full bg-amber-500" /> : null,
+            marca: confirmados[f] ? <span className="block text-[9px] leading-none">🎉</span> : otraHora ? <span className="block h-1.5 w-1.5 rounded-full bg-amber-500" /> : null,
           }
         }} />
       </div>
@@ -119,6 +129,7 @@ function Disponibilidad({ ev, token, bloqueos, hoy, onBloqueos, recargar }) {
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded bg-rose-500" />No puedo</span>
         <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded bg-emerald-50 ring-1 ring-emerald-200" />Disponible</span>
         <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Ocupado a otra hora (no afecta)</span>
+        {Object.keys(confirmados).length > 0 && <span className="flex items-center gap-1.5">🎉 Otro evento ya confirmado</span>}
       </div>
 
       <p className="mt-5 flex gap-2 rounded-2xl bg-teal-50 p-3 text-[13px] text-teal-900">
@@ -133,6 +144,7 @@ function Disponibilidad({ ev, token, bloqueos, hoy, onBloqueos, recargar }) {
         </div>
       ) : (
         <>
+          {marcadas > 0 && <p className="mt-5 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">Ya pusimos los días que marcaste antes{Object.keys(confirmados).length ? ' y tus eventos confirmados' : ''}. Revisá si falta alguno y tocá «Listo».</p>}
           <button onClick={listo} disabled={enviando} className={`${ui.btn} mt-5 h-14 w-full text-base`}>
             {enviando ? <Loader2 className="animate-spin" size={19} /> : <Check size={19} />}
             {marcadas ? `Listo, no puedo ${marcadas} ${marcadas === 1 ? 'día' : 'días'}` : 'Puedo todos estos días'}

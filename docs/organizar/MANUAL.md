@@ -56,6 +56,14 @@ tocando el monto junto al nombre. La app suma, divide entre los invitados que pa
 y calcula quién le paga a quién con el menor número de pagos, al centavo. Los montos y el cuadre los ven todos los
 invitados del evento. Base de datos: `supabase/migrations/20261116000000_gastos.sql`.
 
+## Respuestas heredadas y eventos confirmados
+- Quien ya confirmó su calendario en un evento que cubre al nuevo (mismas fechas posibles y horario, o más amplio)
+  queda como «Respondió (de otro evento)». Si solo lo cubre en parte, sigue «sin respuesta», pero sus días
+  ocupados ya están puestos: al abrir el evento solo revisa y toca «Listo».
+- Un evento confirmado cuenta como «no puede» para sus invitados en los demás eventos si el horario choca; en el
+  calendario del invitado aparece con 🎉 y no se puede desmarcar.
+Base de datos: `supabase/migrations/20261117000000_herencia_y_conflictos.sql`.
+
 ## Privacidad
 `sno_bloqueos` y `sno_votos` no tienen ninguna regla de lectura: nadie los lee directamente, ni siquiera el
 administrador. Cada participante recibe solo lo suyo y el administrador solo conteos (cuántos pueden cada día,

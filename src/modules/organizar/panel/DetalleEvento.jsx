@@ -245,6 +245,7 @@ function FilaFecha({ f, n, elegible, elegida, onElegir }) {
           <div className="bg-rose-400" style={{ width: `${n ? (f.no_pueden / n) * 100 : 0}%` }} />
         </div>
         <p className="mt-1 text-[12px] text-slate-500">{pct}% pueden{f.no_pueden ? ` · ${f.no_pueden} no` : ''}{f.sin_respuesta ? ` · ${f.sin_respuesta} sin responder` : ''}</p>
+        {f.eventos?.length > 0 && <p className="mt-0.5 text-[12px] font-semibold text-violet-700">🎉 Ya tienen: {f.eventos.join(', ')}</p>}
       </div>
     </li>
   )
@@ -326,7 +327,7 @@ function Invitados({ ev, invitados }) {
                 <p className="font-semibold">{i.nombre}{!i.activo && <span className="ml-2 text-[12px] text-slate-400">(inactivo)</span>}</p>
                 <div className="mt-0.5 flex flex-wrap gap-1.5">
                   {i.respondio_en
-                    ? <span className={`${'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold'} bg-emerald-100 text-emerald-800`}><Check size={11} strokeWidth={3} />Respondió</span>
+                    ? <span className={`${'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold'} bg-emerald-100 text-emerald-800`}><Check size={11} strokeWidth={3} />{i.heredado ? 'Respondió (de otro evento)' : 'Respondió'}</span>
                     : <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">Sin respuesta</span>}
                   {i.actualizado_en && <span className="text-[11px] text-slate-400">actualizó {hace(i.actualizado_en)}</span>}
                   {(ev.estado === 'votacion' || ev.estado === 'cerrada') && (i.voto
