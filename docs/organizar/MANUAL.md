@@ -57,9 +57,10 @@ y calcula quién le paga a quién con el menor número de pagos, al centavo. Los
 invitados del evento. Base de datos: `supabase/migrations/20261116000000_gastos.sql`.
 
 ## Respuestas heredadas y eventos confirmados
-- Quien ya confirmó su calendario en un evento que cubre al nuevo (mismas fechas posibles y horario, o más amplio)
-  queda como «Respondió (de otro evento)». Si solo lo cubre en parte, sigue «sin respuesta», pero sus días
-  ocupados ya están puestos: al abrir el evento solo revisa y toca «Listo».
+- Fecha por fecha: cada día del evento que la persona ya cubrió al confirmar otro evento (que incluye ese día y
+  un horario igual o más amplio) cuenta como respondido. Si entre todos sus eventos cubre todas las fechas
+  futuras, queda como «Respondió (de otro evento)»; si no, el panel dice «Le faltan N días» y el recordatorio
+  le pide confirmar solo esos días (`20261118000000_herencia_por_fecha.sql`).
 - Un evento confirmado cuenta como «no puede» para sus invitados en los demás eventos si el horario choca; en el
   calendario del invitado aparece con 🎉 y no se puede desmarcar.
 Base de datos: `supabase/migrations/20261117000000_herencia_y_conflictos.sql`.

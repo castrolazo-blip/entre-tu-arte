@@ -22,9 +22,15 @@ export function msgInvitacion(nombre, ev, url) {
     `\n\nEn tu enlace privado marcá solo los días que *NO podés*. Nadie más ve tu calendario:\n${url}` + limite(ev) + firma
 }
 
-export function msgRecordatorio(nombre, ev, url) {
+export function msgRecordatorio(nombre, ev, url, faltanDias = 0) {
+  if (faltanDias > 0) {
+    return `Hola ${primerNombre(nombre)} 🙌 Para *${ev.titulo}* ya tenemos casi todo tu calendario de otros eventos: solo ${faltanDias === 1 ? 'falta 1 día' : `faltan ${faltanDias} días`} por confirmar.\n\nAbrí tu enlace, revisá y tocá «Listo»:\n${url}` + limite(ev) + firma
+  }
   return `Hola ${primerNombre(nombre)} 🙌 Solo faltás vos para encontrar la fecha de *${ev.titulo}*.\n\nTe toma 1 minuto: marcá los días que no podés (o confirmá que podés todos):\n${url}` + limite(ev) + firma
 }
+
+// Días del evento que a la persona todavía le faltan por confirmar (0 si no aplica)
+export const diasPendientes = inv => (!inv.respondio_en && inv.cubiertas > 0 && inv.posibles > inv.cubiertas ? inv.posibles - inv.cubiertas : 0)
 
 export function msgVotacion(nombre, ev, url) {
   return `Hola ${primerNombre(nombre)} 🗳️ Ya tenemos las fechas en que más pueden para *${ev.titulo}*.\n\nVotá por tu favorita aquí:\n${url}` + firma
@@ -46,7 +52,7 @@ export function mensajesPara(inv, ev, url) {
   if (ev.estado === 'votacion') return [{ texto: msgVotacion(inv.nombre, ev, url), etiqueta: inv.voto ? 'Reenviar' : 'Pedir voto' }]
   if (ev.estado === 'disponibilidad' && !inv.respondio_en) return [
     { texto: msgInvitacion(inv.nombre, ev, url), etiqueta: 'Invitar' },
-    { texto: msgRecordatorio(inv.nombre, ev, url), etiqueta: 'Recordar' },
+    { texto: msgRecordatorio(inv.nombre, ev, url, diasPendientes(inv)), etiqueta: 'Recordar' },
   ]
   return [{ texto: msgInvitacion(inv.nombre, ev, url), etiqueta: 'Reenviar' }]
 }
