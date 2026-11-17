@@ -46,7 +46,7 @@ Base de datos: `supabase/migrations/20261114000000_encargados.sql`.
 ## ¿Qué comemos? (dentro de cada evento)
 1. ¿Cocinamos, pedimos o mandamos hacer? Que voten los invitados («Que voten») o decidirlo directo.
 2. Si se cocina o se pide: se eligen opciones de menú (pizza, pupusas, carne asada… o propias) y se vota.
-   Si se manda hacer: no hay votación, se acuerda en el evento.
+   Si se manda hacer: no hay votación; el administrador puede escribir el plato que se decidió (si no, «lo acordamos en el evento").
 Un voto por persona; los invitados ven los conteos, nunca quién votó qué. En empate decide el administrador
 («Elegir»). Base de datos: `supabase/migrations/20261115000000_que_comemos.sql`.
 
