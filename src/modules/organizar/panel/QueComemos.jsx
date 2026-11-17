@@ -62,7 +62,9 @@ export default function QueComemos({ ev, numInvitados }) {
 
       {/* Paso 2: qué comemos (solo si se cocina o se pide) */}
       {r.modo?.estado === 'cerrada' && (esMandarHacer(r.modo.resultado) ? (
-        <p className="mt-4 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">👩‍🍳 Se manda a hacer: el menú lo acuerdan en el evento, sin votación.</p>
+        <PlatoMandado plato={r.menu?.estado === 'cerrada' ? r.menu.resultado : null} ocupado={ocupado}
+          guardar={t => hacer(async () => { if (r.menu) await borrarEncuestas(ev.id, ['menu']); await crearEncuesta(ev.id, 'menu', [t], t) }, 'Plato guardado')}
+          quitar={() => hacer(() => borrarEncuestas(ev.id, ['menu']))} />
       ) : !r.menu ? (
         <ArmarMenu modo={r.modo.resultado} ocupado={ocupado}
           abrir={ops => hacer(() => crearEncuesta(ev.id, 'menu', ops), 'Votación del menú abierta')}
@@ -144,5 +146,33 @@ function ArmarMenu({ modo, ocupado, abrir, decidir }) {
         {ops.length > 0 && <button onClick={() => setOps([])} className={ui.btnMini}><X size={14} />Limpiar</button>}
       </div>
     </div>
+  )
+}
+
+// «Mandamos hacer»: sin votación; el administrador anota el plato que se decidió (opcional)
+function PlatoMandado({ plato, ocupado, guardar, quitar }) {
+  const [editando, setEditando] = useState(!plato)
+  const [texto, setTexto] = useState(plato || '')
+  useEffect(() => { setTexto(plato || ''); setEditando(!plato) }, [plato])
+  if (!editando && plato) {
+    return (
+      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+        <p className="min-w-0 flex-1 basis-48 text-sm"><span className="font-semibold text-slate-500">2. ¿Qué se manda a hacer?</span><br /><span className="text-lg font-bold">👩‍🍳 {plato}</span></p>
+        <button disabled={ocupado} onClick={() => setEditando(true)} className={ui.btnMini}>Cambiar plato</button>
+        <button disabled={ocupado} onClick={() => { if (window.confirm('¿Quitar el plato? Quedará «lo acordamos en el evento».')) quitar() }} className={ui.btnMini}><X size={14} />Quitar plato</button>
+      </div>
+    )
+  }
+  return (
+    <form onSubmit={e => { e.preventDefault(); const t = texto.trim(); if (t.length >= 2) guardar(t) }} className="mt-5 border-t border-slate-100 pt-4">
+      <label htmlFor="plato-mandado" className="font-bold">2. ¿Qué se manda a hacer? <span className="font-normal text-slate-500">Sin votación: escribí el plato que se decidió</span></label>
+      <div className="mt-2 flex gap-2">
+        <input id="plato-mandado" value={texto} onChange={e => setTexto(e.target.value)} maxLength={120}
+          placeholder="Ej.: pavo horneado con puré y ensalada" className={ui.campo} />
+        <button disabled={ocupado || texto.trim().length < 2} className={`${ui.btn} shrink-0`}>{ocupado ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}Guardar</button>
+      </div>
+      <p className="mt-2 text-[12px] text-slate-500">Si todavía no se sabe, dejalo vacío: los invitados verán «lo acordamos en el evento».</p>
+      {plato && <button type="button" onClick={() => setEditando(false)} className={`${ui.btnMini} mt-2`}>Cancelar</button>}
+    </form>
   )
 }

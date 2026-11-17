@@ -14,8 +14,10 @@ export default function ComidaParticipante({ ev, token, recargar }) {
     <div className={ui.tarjeta}>
       <h3 className="flex items-center gap-2 text-lg font-bold"><UtensilsCrossed size={20} className="text-amber-600" />¿Qué comemos?</h3>
       <Pregunta titulo="¿Cocinamos, pedimos o mandamos hacer?" q={c.modo} token={token} recargar={recargar} />
-      {c.modo.estado === 'cerrada' && esMandarHacer(c.modo.resultado) && <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">El menú lo acordamos en el evento. 👩‍🍳</p>}
-      {c.menu && <div className="mt-4 border-t border-slate-100 pt-4"><Pregunta titulo={`¿Qué ${verbo}?`} q={c.menu} token={token} recargar={recargar} /></div>}
+      {c.modo.estado === 'cerrada' && esMandarHacer(c.modo.resultado) && (c.menu?.estado === 'cerrada'
+        ? <p className="mt-4 border-t border-slate-100 pt-4 text-sm"><span className="text-slate-500">Se manda a hacer</span><br /><span className="text-lg font-bold">👩‍🍳 {c.menu.resultado}</span></p>
+        : <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">El menú lo acordamos en el evento. 👩‍🍳</p>)}
+      {c.menu && !esMandarHacer(c.modo.resultado) && <div className="mt-4 border-t border-slate-100 pt-4"><Pregunta titulo={`¿Qué ${verbo}?`} q={c.menu} token={token} recargar={recargar} /></div>}
     </div>
   )
 }

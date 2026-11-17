@@ -143,11 +143,11 @@ const lineasConteo = q => q.opciones.map(o => `   ${o}: ${q.conteo?.[o] || 0}`).
 export function textoComida(ev, r) {
   const partes = [`🍽️ *${ev.titulo}* · ¿qué comemos?`]
   if (r.modo) {
-    if (r.modo.estado === 'cerrada') partes.push(`Decidido: ${r.modo.resultado}${esMandarHacer(r.modo.resultado) ? ' (lo acordamos en el evento)' : ''}`)
+    if (r.modo.estado === 'cerrada') partes.push(`Decidido: ${r.modo.resultado}${esMandarHacer(r.modo.resultado) && !r.menu ? ' (lo acordamos en el evento)' : ''}`)
     else partes.push(`¿Cocinamos, pedimos o mandamos hacer?\n${lineasConteo(r.modo)}${r.modo.faltan?.length ? `\n⏳ Faltan: ${lista(r.modo.faltan)}` : ''}`)
   }
   if (r.menu) {
-    if (r.menu.estado === 'cerrada') partes.push(`Comemos: ${r.menu.resultado} 😋`)
+    if (r.menu.estado === 'cerrada') partes.push(`${esMandarHacer(r.modo?.resultado) ? 'Mandamos a hacer' : 'Comemos'}: ${r.menu.resultado} 😋`)
     else partes.push(`¿Qué comemos?\n${lineasConteo(r.menu)}${r.menu.faltan?.length ? `\n⏳ Faltan: ${lista(r.menu.faltan)}` : ''}`)
   }
   if (Object.values(r).some(q => q.estado === 'abierta')) partes.push('Votá en tu enlace del evento.')
