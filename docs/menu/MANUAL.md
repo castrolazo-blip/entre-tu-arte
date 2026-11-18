@@ -11,6 +11,9 @@ Aplicación independiente en **https://entretuarte.com/menu/**. Muestra qué com
 3. Ve a **Planes y perfiles** › **Importar respaldo** y elige el archivo `menu-en-casa-respaldo.json`. Con eso quedan cargados los planes y perfiles.
 4. En **Miembros con acceso** agrégate como Administrador. Agrega también a quien cocina (permiso Cocina) y a cada integrante. Cada persona necesita antes una cuenta: Supabase › Authentication › **Add user** (correo y contraseña).
 
+## Actualización (protecciones)
+Ejecutar también `supabase/migrations/20261120000000_menu_en_casa_protecciones.sql` en el SQL Editor. Impide que un teléfono con datos viejos borre los planes y que se quite al último administrador.
+
 ## Permisos
 | Permiso | Puede |
 |---|---|

@@ -24,7 +24,7 @@ export default function Members() {
   const del = async (m: Miembro) => {
     if (!confirm(`¿Quitar el acceso de ${m.email}?`)) return;
     const { error } = await cloud!.rpc('menu_quitar_miembro', { p_email: m.email });
-    if (error) setMsg(error.message); else load();
+    if (error) setMsg(error.message.includes('menu:ultimo_admin') ? 'Debe quedar al menos un Administrador.' : error.message); else load();
   };
   return (
     <>
@@ -60,7 +60,7 @@ function MemberRow({ m, onSaved, onDelete }: { m: Miembro; onSaved: (msg: string
     setBusy(true);
     const { error } = await cloud!.rpc('menu_agregar_miembro', { p_email: m.email, p_rol: rol, p_nombre: nombre.trim() || null });
     setBusy(false);
-    if (error) onSaved(error.message); else { setEdit(false); onSaved(`${nombre || m.email}: cambios guardados.`); }
+    if (error) onSaved(error.message.includes('menu:ultimo_admin') ? 'Debe quedar al menos un Administrador. Nombra a otro antes de cambiar este.' : error.message); else { setEdit(false); onSaved(`${nombre || m.email}: cambios guardados.`); }
   };
   return (
     <div className="plan">

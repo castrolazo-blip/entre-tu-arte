@@ -52,6 +52,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState<string | null>(null);
   const [error, setError] = useState('');
   const server = useRef<State | null>(null); // lo último que sabemos que tiene el servidor
+  const base = useRef<string | null>(null);   // fecha de la versión de planes que tenemos
 
   // Modo local: guardar en el teléfono
   useEffect(() => { if (!cloud) try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* ignore */ } }, [s]);
@@ -65,12 +66,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (e1) { setError(e1.message); setSync('error'); return; }
     if (!rol) { setSync('sin-acceso'); return; }
     const [pl, co] = await Promise.all([
-      cloud.from('menu_planes').select('people, plans').eq('hogar', HOGAR).maybeSingle(),
+      cloud.from('menu_planes').select('people, plans, actualizado').eq('hogar', HOGAR).maybeSingle(),
       cloud.from('menu_cocina').select('choices, ready, bought, stock').eq('hogar', HOGAR).maybeSingle(),
     ]);
     if (pl.error || co.error) { setError((pl.error ?? co.error)!.message); setSync('error'); return; }
     const next: State = { ...EMPTY, role: rol as Role, people: pl.data?.people ?? [], plans: pl.data?.plans ?? [],
       choices: co.data?.choices ?? {}, ready: co.data?.ready ?? {}, bought: co.data?.bought ?? {}, stock: co.data?.stock ?? {} };
+    base.current = pl.data?.actualizado ?? null;
     server.current = next;
     setS(next);
     setError('');
@@ -103,11 +105,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     }
     if ((prev.people !== s.people || prev.plans !== s.plans) && s.role === 'admin') {
-      jobs.push(cloud.from('menu_planes').upsert({ hogar: HOGAR, people: s.people, plans: s.plans }));
+      // Solo se guarda si nadie cambió los planes desde que los cargamos (protege contra datos viejos)
+      jobs.push(cloud.rpc('menu_planes_guardar', { p_hogar: HOGAR, p_people: s.people, p_plans: s.plans, p_base: base.current })
+        .then((r) => { if (!r.error) base.current = r.data as string; return r; }));
     }
     Promise.all(jobs).then((rs) => {
       const e = rs.find((r) => r.error)?.error;
-      if (e) { setError(`No se pudo guardar: ${e.message}`); reload(); }
+      if (e) {
+        setError(e.message.includes('menu:desactualizado')
+          ? 'Otro teléfono cambió los planes mientras editabas. Se cargó la versión más reciente; repite tu cambio.'
+          : `No se pudo guardar: ${e.message}`);
+        reload();
+      }
     });
   }, [s, sync, reload]);
 
