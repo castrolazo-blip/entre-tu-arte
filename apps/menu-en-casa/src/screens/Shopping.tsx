@@ -3,14 +3,25 @@ import type { Nav } from '../App';
 import { MEALS } from '../types';
 import { addDays, mondayOf, range, shortDate } from '../dates';
 import { useStore } from '../store';
-import { aggregate, collect, fmtPieces, fmtQty, toLb, type Group } from '../logic';
+import { aggregate, collect, fmtBuy, fmtPieces, fromStock, stockUnit, toStock, type Group, type UnitSystem } from '../logic';
 import { CATEGORIES } from '../catalog';
 
-type Preset = 'hoy' | 'manana' | 'semana' | 'proxima' | 'custom';
+type Preset = 'hoy' | 'manana' | 'semana' | 'proxima' | 'quincena' | 'q15' | 'custom';
+
+/** Quincena del calendario: del 1 al 15, o del 16 al último día del mes. */
+function quincena(d: string): [string, string] {
+  const [y, m, day] = d.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  const p = (n: number) => `${y}-${String(m).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
+  return day <= 15 ? [p(1), p(15)] : [p(16), p(last)];
+}
+const readSys = (): UnitSystem => { try { return localStorage.getItem('menu:unidades') === 'g' ? 'g' : 'lb'; } catch { return 'lb'; } };
 
 export default function Shopping({ date, go }: { date: string; go: (n: Nav) => void }) {
   const { s, set } = useStore();
-  const [preset, setPreset] = useState<Preset>('semana');
+  const [preset, setPreset] = useState<Preset>('quincena');
+  const [sys, setSysState] = useState<UnitSystem>(readSys);
+  const setSys = (v: UnitSystem) => { setSysState(v); try { localStorage.setItem('menu:unidades', v); } catch { /* ignore */ } };
   const [from, setFrom] = useState(date);
   const [to, setTo] = useState(addDays(date, 6));
   const [open, setOpen] = useState<string | null>(null);
@@ -22,6 +33,8 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
       case 'manana': return [addDays(date, 1), addDays(date, 1)];
       case 'semana': return [mondayOf(date), addDays(mondayOf(date), 6)];
       case 'proxima': return [date, addDays(date, 6)];
+      case 'quincena': return quincena(date);
+      case 'q15': return [date, addDays(date, 14)];
       default: return from <= to ? [from, to] : [to, from];
     }
   })();
@@ -41,7 +54,7 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
       const gs = groups.filter((g) => g.category === c.key && !s.bought[bkey(g)]);
       if (!gs.length) continue;
       lines.push('', `${c.icon} ${c.label}`);
-      gs.forEach((g) => lines.push(`☐ ${g.name}: ${g.noAmount ? 'revisar cantidad' : fmtQty(need(g), g.unit)}${g.pieces ? ` (${fmtPieces(g.pieces)})` : ''}${g.estado === 'cocido' ? ' · medido cocido' : ''}`));
+      gs.forEach((g) => lines.push(`☐ ${g.name}: ${g.noAmount ? 'revisar cantidad' : fmtBuy(need(g), g.unit, sys)}${g.pieces ? ` (${fmtPieces(g.pieces)})` : ''}${g.estado === 'cocido' ? ' · medido cocido' : ''}`));
     }
     return lines.join('\n');
   };
@@ -58,7 +71,7 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
         <div className="crumb"><b>Lista del súper</b><span>{shortDate(f)} – {shortDate(t)}</span></div>
       </div>
       <div className="seg wrap noprint">
-        {([['hoy', 'Este día'], ['manana', 'Día siguiente'], ['semana', 'Semana (lun–dom)'], ['proxima', 'Próximos 7 días'], ['custom', 'Personalizado']] as [Preset, string][]).map(([k, l]) => (
+        {([['quincena', 'Quincena'], ['q15', 'Próximos 15 días'], ['semana', 'Semana (lun–dom)'], ['proxima', 'Próximos 7 días'], ['hoy', 'Este día'], ['manana', 'Día siguiente'], ['custom', 'Personalizado']] as [Preset, string][]).map(([k, l]) => (
           <button key={k} className={preset === k ? 'on' : ''} onClick={() => setPreset(k)}>{l}</button>
         ))}
       </div>
@@ -68,6 +81,10 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
           <label>Hasta <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
         </div>
       )}
+      <div className="seg noprint" role="group" aria-label="Unidades">
+        <button className={sys === 'lb' ? 'on' : ''} onClick={() => setSys('lb')}>Libras y onzas</button>
+        <button className={sys === 'g' ? 'on' : ''} onClick={() => setSys('g')}>Gramos y kilos</button>
+      </div>
       <div className="toolbar noprint">
         <span className="muted small">{pending.length} pendientes de {groups.length}</span>
         <label className="small"><input type="checkbox" checked={hideBought} onChange={(e) => setHideBought(e.target.checked)} /> Ocultar comprados</label>
@@ -93,8 +110,7 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
                     <button className="shop-main" onClick={() => setOpen(open === g.key ? null : g.key)}>
                       <span className="shop-name">{g.name}</span>
                       <span className="shop-qty">
-                        {g.noAmount ? 'Revisar' : fmtQty(need(g), g.unit)}
-                        {g.unit === 'g' && !g.noAmount && need(g) >= 200 && <small> ≈ {toLb(need(g))}</small>}
+                        {g.noAmount ? 'Revisar' : fmtBuy(need(g), g.unit, sys)}
                         {g.pieces && <small> · {fmtPieces(g.pieces)}</small>}
                       </span>
                     </button>
@@ -106,15 +122,15 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
                     {g.preparation && <em className="tag">receta casera: ingredientes no detallados</em>}
                     {g.defaulted && <em className="tag warn">incluye alternativas sin elegir</em>}
                     {g.optional && <em className="tag">incluye opcionales</em>}
-                    {stock > 0 && <em className="tag">en casa: {fmtQty(stock, g.unit)}</em>}
+                    {stock > 0 && <em className="tag">en casa: {fmtBuy(stock, g.unit, sys)}</em>}
                   </div>
                   {open === g.key && (
                     <div className="detail">
-                      <p className="small">Total del periodo: <b>{fmtQty(g.total, g.unit)}</b></p>
+                      <p className="small">Total del periodo: <b>{fmtBuy(g.total, g.unit, sys)}</b>{sys === 'lb' && <span className="muted"> ({fmtBuy(g.total, g.unit, 'g')})</span>}</p>
                       {g.unit && (
-                        <label className="small">Ya hay en casa ({g.unit}):{' '}
-                          <input type="number" min={0} inputMode="decimal" value={stock || ''} placeholder="0"
-                            onChange={(e) => set((st) => ({ ...st, stock: { ...st.stock, [g.key]: Math.max(0, Number(e.target.value) || 0) } }))} />
+                        <label className="small">Ya hay en casa ({stockUnit(g.unit, sys)}):{' '}
+                          <input key={sys} type="number" min={0} step="any" inputMode="decimal" defaultValue={stock ? Math.round(fromStock(stock, g.unit, sys) * 10) / 10 : ''} placeholder="0"
+                            onChange={(e) => set((st) => ({ ...st, stock: { ...st.stock, [g.key]: Math.max(0, toStock(Number(e.target.value) || 0, g.unit, sys)) } }))} />
                         </label>
                       )}
                       <ul className="breakdown">
