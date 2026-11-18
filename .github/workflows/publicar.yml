@@ -38,6 +38,16 @@ jobs:
       - run: node scripts/paginas-cartas.mjs
       # Si nos organizamos! (aplicación independiente): vista previa propia para WhatsApp y noindex
       - run: node scripts/paginas-organizar.mjs
+      # Menú en Casa (aplicación independiente y privada en /menu; ver docs/menu/MANUAL.md).
+      # El código es público; los planes viven en Supabase y solo los ven miembros con sesión.
+      - name: Compilar Menú en Casa en /menu
+        run: |
+          npm ci --prefix apps/menu-en-casa
+          npm run build --prefix apps/menu-en-casa
+          cp -r apps/menu-en-casa/dist dist/menu
+        env:
+          VITE_SUPABASE_URL: https://titmjfkpvlsuazqsfniw.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpdG1qZmtwdmxzdWF6cXNmbml3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MjU2MDgsImV4cCI6MjA5MzQwMTYwOH0.kB_bOCQuIEI8nyIqE1I_ERcXVJWfTl0HaKquOYjwwmI
       # Rutas que no tienen página propia: 404.html carga la misma app.
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
