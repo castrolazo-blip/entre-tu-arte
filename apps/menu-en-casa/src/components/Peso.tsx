@@ -84,7 +84,7 @@ function Nueva({ person, date, onSaved }: { person: string; date: string; onSave
   );
 }
 
-function Historial({ person }: { person: string }) {
+export function Historial({ person }: { person: string }) {
   const { s, set } = useStore();
   const h = historial(s.registro, person);
   if (!h.length) return <p className="empty">Todavía no hay mediciones. Sube la foto de la báscula en «Nueva medición».</p>;

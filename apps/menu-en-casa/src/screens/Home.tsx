@@ -42,6 +42,7 @@ export default function Home({ date, setDate, go }: { date: string; setDate: (d:
       </div>
 
       <div className="cards">
+        <button className="card wide" onClick={() => go({ screen: 'perfil' })}><span className="card-ico">👤</span><b>Mi perfil</b><span className="muted">Mis datos, peso, entreno y balance del día</span></button>
         <button className="card" onClick={() => go({ screen: 'shop' })}><span className="card-ico">🛒</span><b>Lista del súper</b><span className="muted">Día, semana o rango</span></button>
         <button className="card" onClick={() => go({ screen: 'admin' })}><span className="card-ico">📋</span><b>Planes y perfiles</b><span className="muted">{s.plans.filter((p) => p.status === 'borrador').length} por revisar</span></button>
       </div>

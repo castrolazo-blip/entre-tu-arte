@@ -8,7 +8,6 @@ import { norm } from '../parser';
 import DishCard from '../components/DishCard';
 import { add, fmtKcal, fmtMacros, mealNut, ZERO } from '../nutrition';
 import Extras, { extrasOf } from '../components/Extras';
-import DaySummary from '../components/Fitness';
 
 export default function MealScreen({ date, meal, person, go }: { date: string; meal: MealKey; person: string; go: (n: Nav) => void }) {
   const { s } = useStore();
@@ -50,7 +49,6 @@ function PersonView({ date, meal, p }: { date: string; meal: MealKey; p: Person 
       {plan && dishes.length > 0 && <Kcal personId={p.id} date={date} meal={meal} />}
       {dishes.map((d, di) => <DishCard key={di} dish={d} di={di} date={date} meal={meal} personId={p.id} />)}
       <Extras person={p.id} date={date} meal={meal} />
-      <DaySummary person={p.id} date={date} />
       {plan && <p className="muted small">Plan: {plan.title} · versión {plan.version} · vigente {plan.start} a {plan.end}</p>}
     </section>
   );

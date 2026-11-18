@@ -193,3 +193,13 @@ input:disabled { background: var(--soft); color: var(--muted); }
 label.leido input { border-color: var(--sage); background: var(--sage-soft); }
 .grafica { width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin: 8px 0 12px; }
 .ok { color: var(--sage); } .err { color: var(--err); }
+.top-actions { display: flex; gap: 8px; align-items: center; }
+.perfil-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--soft); font-size: 18px; }
+.perfil-btn.on { background: var(--accent); }
+.card.wide { grid-column: 1 / -1; }
+.perfil-head { display: flex; gap: 12px; align-items: center; margin: 16px 0 8px; }
+.perfil-head h2 { margin: 0; font-size: 22px; color: var(--pc); }
+.perfil-head p { margin: 2px 0 0; }
+.avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--pc); color: #fff; display: grid; place-items: center; font-size: 24px; font-weight: 700; flex: none; }
+.small-date .bigdate { font-size: 18px; }
+.small-date .arrow { height: 48px; }
