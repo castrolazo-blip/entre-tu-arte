@@ -1,5 +1,6 @@
 import { MEALS, type Plan, type Extra } from './types';
 import { mealNut } from './nutrition';
+import { ultimaMedicion } from './bascula';
 
 export type Sexo = 'f' | 'm';
 export type Meta = 'bajar' | 'mantener' | 'subir';
@@ -42,19 +43,26 @@ export interface Dia {
   consumoPlan: number; extras: number; consumo: number;
   basal: number | null; diario: number | null; ejercicio: number; quema: number | null; balance: number | null;
   veredicto: { tono: 'bien' | 'neutro' | 'mal' | 'alerta'; texto: string } | null; faltanDatos: boolean;
+  basalFuente: 'bascula' | 'formula' | null;
 }
+/** Peso más reciente: la báscula manda sobre «Mis datos». */
+export const pesoActual = (reg: Record<string, unknown>, person: string, date: string) =>
+  ultimaMedicion(reg, person, date)?.peso_lb ?? getCuerpo(reg, person)?.peso_lb ?? null;
 export function resumenDia(plans: Plan[], choices: Record<string, number>, extras: Record<string, Extra>, reg: Record<string, unknown>, person: string, date: string): Dia {
   const consumoPlan = MEALS.reduce((t, m) => t + mealNut(plans, person, date, m.key, choices).total.kcal, 0);
   const ex = Object.values(extras).filter((e) => e && e.person === person && e.date === date).reduce((t, e) => t + (e.kcal ?? 0), 0);
   const consumo = consumoPlan + ex;
   const ejercicio = entrenosOf(reg, person, date).reduce((t, [, e]) => t + (e.kcal || 0), 0);
   const c = getCuerpo(reg, person);
-  if (!c) return { consumoPlan, extras: ex, consumo, basal: null, diario: null, ejercicio, quema: null, balance: null, veredicto: null, faltanDatos: true };
-  const b = basal(c, date);
-  const diario = b * c.actividad;
+  const med = ultimaMedicion(reg, person, date);
+  // Basal: el metabolismo que mide la báscula; si no hay, la fórmula con los datos (y el último peso).
+  const b = med?.metabolismo ?? (c ? basal({ ...c, peso_lb: med?.peso_lb ?? c.peso_lb }, date) : null);
+  if (b == null) return { consumoPlan, extras: ex, consumo, basal: null, diario: null, ejercicio, quema: null, balance: null, veredicto: null, faltanDatos: true, basalFuente: null };
+  const diario = b * (c?.actividad ?? 1.2);
   const quema = diario + ejercicio;
   const balance = consumo - quema;
-  return { consumoPlan, extras: ex, consumo, basal: b, diario, ejercicio, quema, balance, veredicto: veredicto(c.meta, balance), faltanDatos: false };
+  return { consumoPlan, extras: ex, consumo, basal: b, diario, ejercicio, quema, balance, veredicto: veredicto(c?.meta ?? 'mantener', balance), faltanDatos: false,
+    basalFuente: med?.metabolismo ? 'bascula' : 'formula' };
 }
 /** Bueno o malo según la meta. Rangos prudentes: un déficit de 300–700 kcal es lo habitual para bajar. */
 export function veredicto(meta: Meta, bal: number): Dia['veredicto'] {

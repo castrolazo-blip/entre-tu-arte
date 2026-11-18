@@ -188,3 +188,8 @@ input[type=checkbox] { width: auto; min-height: 0; accent-color: var(--accent); 
 .veredicto.mal { background: #F8DEDE; color: var(--err); }
 .veredicto.alerta { background: var(--warn-soft); color: var(--warn); }
 input:disabled { background: var(--soft); color: var(--muted); }
+.foto { display: block; margin: 8px 0 4px; cursor: pointer; }
+.foto .btn { text-align: center; display: block; }
+label.leido input { border-color: var(--sage); background: var(--sage-soft); }
+.grafica { width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin: 8px 0 12px; }
+.ok { color: var(--sage); } .err { color: var(--err); }
