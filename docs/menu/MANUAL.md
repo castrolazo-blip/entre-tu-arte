@@ -17,6 +17,9 @@ Ejecutar también `supabase/migrations/20261120000000_menu_en_casa_protecciones.
 ## Actualización («Comí algo más»)
 Ejecutar `supabase/migrations/20261121000000_menu_en_casa_extras.sql` en el SQL Editor para guardar lo que alguien comió fuera del plan.
 
+## Actualización («Mi entreno» y «Mis datos»)
+Ejecutar `supabase/migrations/20261122000000_menu_en_casa_registro.sql` en el SQL Editor. Guarda los datos personales (para la quema basal) y los entrenos.
+
 ## Permisos
 | Permiso | Puede |
 |---|---|
