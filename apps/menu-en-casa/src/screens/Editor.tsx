@@ -65,6 +65,7 @@ export default function Editor({ planId, go }: { planId: string | null; go: (n: 
       </div>
       {orig && orig.status !== 'borrador' && admin && <p className="banner">Este plan ya fue aprobado. Al guardar se crea una nueva versión en borrador; la anterior queda en el historial.</p>}
 
+      {s.people.length === 0 && <p className="banner">Todavía no hay integrantes. Ve a Planes y perfiles e importa el respaldo o toca «+ Agregar integrante».</p>}
       <div className="grid2">
         <label>Integrante<select disabled={ro} value={personId} onChange={(e) => setPersonId(e.target.value)}>{s.people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
         <label>Título<input disabled={ro} value={title} onChange={(e) => setTitle(e.target.value)} /></label>

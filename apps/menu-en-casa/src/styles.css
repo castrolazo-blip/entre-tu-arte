@@ -5,11 +5,11 @@
   --radius: 16px; color-scheme: light;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-text-size-adjust: 100%; overflow-x: clip; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
 button:disabled { opacity: .5; cursor: default; }
-input, select, textarea { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 12px; min-height: 44px; width: 100%; }
+input, select, textarea { min-width: 0; max-width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 12px; min-height: 44px; width: 100%; }
 .app { max-width: 720px; margin: 0 auto; min-height: 100vh; }
 .topbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); }
 .brand { display: flex; gap: 8px; align-items: center; font-weight: 700; font-size: 18px; letter-spacing: -.2px; }
@@ -117,13 +117,17 @@ input, select, textarea { border: 1px solid var(--line); background: var(--surfa
 .plan { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
 .plan p { margin: 4px 0; }
 .plan-head { display: flex; justify-content: space-between; gap: 8px; }
+.plan-head > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.start { background: var(--accent-soft); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.start p { margin: 0 0 10px; }
 .badge { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: .5px; height: fit-content; }
 .badge.activo { background: var(--sage-soft); color: #3E5233; } .badge.borrador { background: var(--warn-soft); color: var(--warn); } .badge.archivado { background: var(--soft); color: var(--muted); }
 .actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .actions input { width: 140px; }
 .profile { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
 .dot { width: 14px; height: 14px; border-radius: 50%; margin-top: 6px; flex: none; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; margin-bottom: 8px; }
+.grid2 > * { min-width: 0; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; flex: 1; margin-bottom: 8px; }
 .grid2 label { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
 .span2 { grid-column: span 2; }
 .check { flex-direction: row !important; align-items: center; gap: 8px !important; }
