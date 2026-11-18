@@ -43,4 +43,7 @@ export interface Plan {
 
 export interface Person { id: string; name: string; alias: string; color: string; active: boolean; restrictions: string }
 
+/** Algo que alguien comió fuera del plan (sorbete, pupusa…), para contar sus calorías. */
+export interface Extra { person: string; date: string; meal: MealKey; name: string; kcal: number | null; at: string }
+
 export type Role = 'admin' | 'cocina' | 'integrante';

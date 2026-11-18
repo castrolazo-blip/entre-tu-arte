@@ -14,6 +14,9 @@ Aplicación independiente en **https://entretuarte.com/menu/**. Muestra qué com
 ## Actualización (protecciones)
 Ejecutar también `supabase/migrations/20261120000000_menu_en_casa_protecciones.sql` en el SQL Editor. Impide que un teléfono con datos viejos borre los planes y que se quite al último administrador.
 
+## Actualización («Comí algo más»)
+Ejecutar `supabase/migrations/20261121000000_menu_en_casa_extras.sql` en el SQL Editor para guardar lo que alguien comió fuera del plan.
+
 ## Permisos
 | Permiso | Puede |
 |---|---|

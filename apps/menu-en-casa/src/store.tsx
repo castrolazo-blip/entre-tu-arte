@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { cloud, HOGAR } from './cloud';
-import type { Person, Plan, Role } from './types';
+import type { Extra, Person, Plan, Role } from './types';
 import { SEED_PEOPLE, SEED_PLANS, SEED_VERSION } from './seed';
 
 export interface State {
@@ -11,17 +11,18 @@ export interface State {
   ready: Record<string, boolean>;    // platillos marcados como listos
   bought: Record<string, boolean>;   // artículos comprados (por periodo)
   stock: Record<string, number>;     // inventario en casa (g/ml) por ingrediente
+  extras: Record<string, Extra>;     // lo que alguien comió fuera del plan
   role: Role;
   pin: string;
 }
 
 /** Estado de la conexión en línea. 'local' = sin Supabase (todo en el teléfono). */
 export type Sync = 'local' | 'cargando' | 'sin-sesion' | 'sin-acceso' | 'listo' | 'error';
-const DICTS = ['choices', 'ready', 'bought', 'stock'] as const;
+const DICTS = ['choices', 'ready', 'bought', 'stock', 'extras'] as const;
 
 const KEY = 'menu-en-casa:v1';
 function load(): State {
-  const base: State = { seed: SEED_VERSION, people: SEED_PEOPLE, plans: SEED_PLANS, choices: {}, ready: {}, bought: {}, stock: {}, role: 'cocina', pin: '1234' };
+  const base: State = { seed: SEED_VERSION, people: SEED_PEOPLE, plans: SEED_PLANS, choices: {}, ready: {}, bought: {}, stock: {}, extras: {}, role: 'cocina', pin: '1234' };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
@@ -44,7 +45,7 @@ function load(): State {
 interface Ctx { s: State; set: (f: (s: State) => State) => void; sync: Sync; email: string | null; reload: () => void; error: string }
 const Ctx = createContext<Ctx | null>(null);
 
-const EMPTY: State = { seed: SEED_VERSION, people: [], plans: [], choices: {}, ready: {}, bought: {}, stock: {}, role: 'integrante', pin: '' };
+const EMPTY: State = { seed: SEED_VERSION, people: [], plans: [], choices: {}, ready: {}, bought: {}, stock: {}, extras: {}, role: 'integrante', pin: '' };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<State>(() => (cloud ? EMPTY : load()));
@@ -67,11 +68,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!rol) { setSync('sin-acceso'); return; }
     const [pl, co] = await Promise.all([
       cloud.from('menu_planes').select('people, plans, actualizado').eq('hogar', HOGAR).maybeSingle(),
-      cloud.from('menu_cocina').select('choices, ready, bought, stock').eq('hogar', HOGAR).maybeSingle(),
+      cloud.from('menu_cocina').select('*').eq('hogar', HOGAR).maybeSingle(),
     ]);
     if (pl.error || co.error) { setError((pl.error ?? co.error)!.message); setSync('error'); return; }
     const next: State = { ...EMPTY, role: rol as Role, people: pl.data?.people ?? [], plans: pl.data?.plans ?? [],
-      choices: co.data?.choices ?? {}, ready: co.data?.ready ?? {}, bought: co.data?.bought ?? {}, stock: co.data?.stock ?? {} };
+      choices: co.data?.choices ?? {}, ready: co.data?.ready ?? {}, bought: co.data?.bought ?? {}, stock: co.data?.stock ?? {}, extras: co.data?.extras ?? {} };
     base.current = pl.data?.actualizado ?? null;
     server.current = next;
     setS(next);
@@ -112,7 +113,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     Promise.all(jobs).then((rs) => {
       const e = rs.find((r) => r.error)?.error;
       if (e) {
-        setError(e.message.includes('menu:desactualizado')
+        setError(e.message.includes('menu:campo_invalido')
+          ? 'Para guardar lo que comieron fuera del plan falta actualizar la base de datos (archivo SQL de "extras").'
+          : e.message.includes('menu:desactualizado')
           ? 'Otro teléfono cambió los planes mientras editabas. Se cargó la versión más reciente; repite tu cambio.'
           : `No se pudo guardar: ${e.message}`);
         reload();
