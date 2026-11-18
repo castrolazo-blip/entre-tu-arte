@@ -38,7 +38,10 @@ export default function Admin({ go }: { go: (n: Nav) => void }) {
     try {
       const d = JSON.parse(await f.text()) as Partial<State>;
       if (!Array.isArray(d.plans) || !Array.isArray(d.people)) throw new Error();
-      if (confirm('¿Reemplazar los datos actuales con el respaldo?')) set((st) => ({ ...st, ...d, seed: st.seed, role: st.role, pin: st.pin }));
+      if (confirm(`¿Cargar el respaldo? Trae ${d.people.length} integrantes y ${d.plans.length} planes, y reemplaza lo actual.`)) {
+        set((st) => ({ ...st, ...d, seed: st.seed, role: st.role, pin: st.pin }));
+        alert('Respaldo cargado. Vuelve al inicio para ver los menús.');
+      }
     } catch { alert('Archivo de respaldo no válido.'); }
   };
 
@@ -50,6 +53,13 @@ export default function Admin({ go }: { go: (n: Nav) => void }) {
       </div>
       {!admin && <p className="banner">Solo lectura. Para cargar, corregir o activar dietas entra como Administrador (botón arriba a la derecha).</p>}
 
+      <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) importData(f); }} />
+      {admin && s.plans.length === 0 && (
+        <div className="start">
+          <p><b>Para empezar:</b> importa el archivo de respaldo (<i>menu-en-casa-respaldo.json</i>). Trae los integrantes y sus planes.</p>
+          <button className="btn primary block" onClick={() => fileRef.current?.click()}>Importar respaldo</button>
+        </div>
+      )}
       <h2 className="sec">Planes nutricionales</h2>
       {admin && <button className="btn primary block" onClick={() => go({ screen: 'editor', planId: null })}>+ Subir nuevo plan</button>}
       {s.people.map((person) => {
@@ -82,6 +92,7 @@ export default function Admin({ go }: { go: (n: Nav) => void }) {
       })}
 
       <h2 className="sec">Perfiles</h2>
+      {admin && <button className="btn block" onClick={() => set((st) => ({ ...st, people: [...st.people, { id: `p${Date.now()}`, name: 'Nuevo', alias: '', color: ['#C0657A', '#4F6D8A', '#6F8B5E', '#C08A2E', '#8A6FB0'][st.people.length % 5], active: true, restrictions: '' }] }))}>+ Agregar integrante</button>}
       {s.people.map((p) => (
         <div key={p.id} className="profile">
           <span className="dot" style={{ background: p.color }} />
@@ -107,7 +118,6 @@ export default function Admin({ go }: { go: (n: Nav) => void }) {
           <div className="actions">
             <button className="btn" onClick={exportData}>Exportar respaldo</button>
             <button className="btn" onClick={() => fileRef.current?.click()}>Importar respaldo</button>
-            <input ref={fileRef} type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importData(e.target.files[0])} />
             {!cloud && <button className="btn danger" onClick={() => { if (confirm('¿Borrar todos los datos de este dispositivo y volver a los planes iniciales?')) { localStorage.clear(); location.reload(); } }}>Borrar datos locales</button>}
           </div>
         </>
