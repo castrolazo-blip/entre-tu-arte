@@ -109,3 +109,27 @@ export function fmtPieces(p: { n: number; word: string } | null) {
   const w = n === 1 ? p.word : p.word.match(/[aeiou]$/) ? p.word + 's' : p.word + 'es';
   return `${fmtNum(n)} ${w}`;
 }
+
+/** Sistema de unidades para comprar: 'lb' = libras y onzas (como en el súper), 'g' = gramos y kilos. */
+export type UnitSystem = 'lb' | 'g';
+const G_PER_OZ = 28.349523125;
+const ML_PER_FLOZ = 29.5735295625;
+/** Conversión exacta de unidades (no es un factor de rendimiento). */
+export function fmtBuy(n: number, unit: Unit | null, sys: UnitSystem) {
+  if (!unit) return '—';
+  if (sys === 'g') return fmtQty(n, unit);
+  if (unit === 'ml') {
+    const fl = n / ML_PER_FLOZ;
+    return n >= 1000 ? `${fmtNum(fl)} oz fl (${fmtNum(n / 1000)} L)` : `${fmtNum(fl)} oz fl`;
+  }
+  const oz = n / G_PER_OZ;
+  if (oz < 16) return `${fmtNum(oz)} oz`;
+  let lb = Math.floor(oz / 16);
+  let rest = Math.round(oz - lb * 16);
+  if (rest === 16) { lb += 1; rest = 0; }
+  return rest ? `${lb} lb ${rest} oz` : `${lb} lb`;
+}
+/** Para el inventario: cantidad en la unidad que ve la persona ↔ g/ml guardados. */
+export const stockUnit = (unit: Unit | null, sys: UnitSystem) => (unit === 'ml' ? (sys === 'lb' ? 'oz fl' : 'ml') : sys === 'lb' ? 'oz' : 'g');
+export const toStock = (v: number, unit: Unit | null, sys: UnitSystem) => (sys === 'g' ? v : v * (unit === 'ml' ? ML_PER_FLOZ : G_PER_OZ));
+export const fromStock = (v: number, unit: Unit | null, sys: UnitSystem) => (sys === 'g' ? v : v / (unit === 'ml' ? ML_PER_FLOZ : G_PER_OZ));
