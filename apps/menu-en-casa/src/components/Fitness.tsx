@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useStore } from '../store';
-import { ACTIVIDAD, EJERCICIOS, META, cuerpoKey, edad, entrenoKey, entrenosOf, getCuerpo, kcalEjercicio, resumenDia, type Cuerpo, type Entreno, type Meta, type Sexo } from '../fitness';
+import Peso from './Peso';
+import { ACTIVIDAD, EJERCICIOS, META, cuerpoKey, edad, entrenoKey, entrenosOf, getCuerpo, kcalEjercicio, pesoActual, resumenDia, type Cuerpo, type Entreno, type Meta, type Sexo } from '../fitness';
 
 const k = (n: number) => `${Math.round(n).toLocaleString('es-SV')} kcal`;
 
 /** Resumen del día de una persona: consumo vs. quema (basal + ejercicio), con «Mi entreno» y «Mis datos». */
 export default function DaySummary({ person, date }: { person: string; date: string }) {
   const { s, set } = useStore();
-  const [modal, setModal] = useState<'entreno' | 'datos' | null>(null);
+  const [modal, setModal] = useState<'entreno' | 'datos' | 'peso' | null>(null);
   const d = resumenDia(s.plans, s.choices, s.extras, s.registro, person, date);
   const ents = entrenosOf(s.registro, person, date);
   const del = (key: string) => set((st) => { const r = { ...st.registro }; delete r[key]; return { ...st, registro: r }; });
@@ -17,6 +18,7 @@ export default function DaySummary({ person, date }: { person: string; date: str
         <b>Mi día</b>
         <span className="actions" style={{ margin: 0 }}>
           <button className="btn primary" onClick={() => setModal('entreno')}>+ Mi entreno</button>
+          <button className="btn" onClick={() => setModal('peso')}>⚖️ Mi peso</button>
           <button className="btn" onClick={() => setModal('datos')}>Mis datos</button>
         </span>
       </div>
@@ -29,9 +31,9 @@ export default function DaySummary({ person, date }: { person: string; date: str
       <div className="dia-grid">
         <div><span className="eyebrow">Consumo</span><b>{k(d.consumo)}</b><span className="small muted">plan {k(d.consumoPlan)}{d.extras > 0 && ` + extra ${k(d.extras)}`}</span></div>
         <div><span className="eyebrow">Quema</span><b>{d.quema != null ? k(d.quema) : '—'}</b>
-          <span className="small muted">{d.basal != null ? `basal ${k(d.basal)} · día ${k(d.diario! - d.basal)} · ejercicio ${k(d.ejercicio)}` : `ejercicio ${k(d.ejercicio)}`}</span></div>
+          <span className="small muted">{d.basal != null ? `basal${d.basalFuente === 'bascula' ? ' (báscula)' : ''} ${k(d.basal)} · día ${k(d.diario! - d.basal)} · ejercicio ${k(d.ejercicio)}` : `ejercicio ${k(d.ejercicio)}`}</span></div>
       </div>
-      {d.faltanDatos && <p className="banner">Para calcular tu quema basal llena <b>Mis datos</b> (sexo, edad, estatura y peso).</p>}
+      {d.faltanDatos && <p className="banner">Para calcular tu quema basal sube una foto de tu báscula en <b>Mi peso</b> o llena <b>Mis datos</b>.</p>}
       {d.balance != null && d.veredicto && (
         <div className={`veredicto ${d.veredicto.tono}`}>
           <b>{d.balance > 0 ? '+' : ''}{k(d.balance)}</b>
@@ -40,6 +42,7 @@ export default function DaySummary({ person, date }: { person: string; date: str
       )}
       <p className="small muted">El consumo cuenta el plan completo del día (como si se comiera todo) más lo anotado fuera del plan. Basal con fórmula Mifflin-St Jeor; ejercicio estimado con valores MET si no anotas las calorías. Son estimaciones.</p>
       {modal === 'entreno' && <EntrenoModal person={person} date={date} onClose={() => setModal(null)} />}
+      {modal === 'peso' && <Peso person={person} date={date} onClose={() => setModal(null)} />}
       {modal === 'datos' && <DatosModal person={person} date={date} onClose={() => setModal(null)} />}
     </div>
   );
@@ -47,7 +50,7 @@ export default function DaySummary({ person, date }: { person: string; date: str
 
 function EntrenoModal({ person, date, onClose }: { person: string; date: string; onClose: () => void }) {
   const { s, set } = useStore();
-  const c = getCuerpo(s.registro, person);
+  const peso = pesoActual(s.registro, person, date);
   const who = s.people.find((p) => p.id === person)?.name ?? '';
   const [tipo, setTipo] = useState(EJERCICIOS[0][0]);
   const [otro, setOtro] = useState('');
@@ -55,7 +58,7 @@ function EntrenoModal({ person, date, onClose }: { person: string; date: string;
   const [kcal, setKcal] = useState('');
   const met = EJERCICIOS.find(([n]) => n === tipo)?.[1];
   const minutos = Math.max(0, Math.round(Number(min) || 0));
-  const estimado = met && c ? kcalEjercicio(met, minutos, c.peso_lb) : null;
+  const estimado = met && peso ? kcalEjercicio(met, minutos, peso) : null;
   const final = kcal ? Math.max(0, Math.round(Number(kcal))) : estimado;
   const save = () => {
     const nombre = tipo === 'Otro' ? otro.trim() || 'Ejercicio' : tipo;
@@ -79,7 +82,7 @@ function EntrenoModal({ person, date, onClose }: { person: string; date: string;
         <p className="small muted">
           {kcal ? 'Se usarán las calorías que escribiste (de tu reloj o app).'
             : estimado != null ? `Si lo dejas vacío se estima ≈ ${estimado} kcal con tu peso y el tipo de ejercicio.`
-            : !c ? 'Para estimar las calorías llena primero «Mis datos», o escríbelas.' : 'Escribe las calorías quemadas.'}
+            : !peso ? 'Para estimar las calorías registra tu peso (Mi peso o Mis datos), o escríbelas.' : 'Escribe las calorías quemadas.'}
         </p>
         <button className="btn primary block" disabled={!minutos || final == null} onClick={save}>Guardar entreno</button>
       </div>
