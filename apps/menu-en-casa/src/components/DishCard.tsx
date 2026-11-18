@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Dish, MealKey } from '../types';
 import { useStore } from '../store';
 import { choiceKey, hasChange, pickDish, pickItem } from '../logic';
+import { nutOf } from '../nutrition';
 
 /** Platillo de una persona. Si la nutricionista autorizó cambios, avisa y permite elegir. */
 export default function DishCard({ dish: base, di, date, meal, personId }: { dish: Dish; di: number; date: string; meal: MealKey; personId: string }) {
@@ -41,6 +42,7 @@ export default function DishCard({ dish: base, di, date, meal, personId }: { dis
             const k = choiceKey(date, meal, personId, di, ii, ai);
             const p = pickItem(it, s.choices[k]);
             const multi = it.options.length > 1;
+            const nut = nutOf(p.name, p.amount, p.unit);
             return (
               <li key={ii}>
                 <div className="item-row">
@@ -53,6 +55,7 @@ export default function DishCard({ dish: base, di, date, meal, personId }: { dis
                   <span className="item-qty">
                     {p.measure && <span>{p.measure}</span>}
                     {p.amount != null ? <b>{p.amount} {p.unit}</b> : p.own ? null : <b className="warn">sin cantidad</b>}
+                    {nut && <small className="kcal">≈ {Math.round(nut.kcal)} kcal</small>}
                   </span>
                 </div>
                 {multi && open && (
