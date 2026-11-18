@@ -176,3 +176,15 @@ input[type=checkbox] { width: auto; min-height: 0; accent-color: var(--accent); 
 .x { color: var(--muted); padding: 4px 8px; min-height: 32px; }
 .sheet { max-height: 90vh; overflow-y: auto; }
 .sheet label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.dia { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 4px 0 12px; }
+.dia .extras-head { flex-wrap: wrap; }
+.dia-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin: 10px 0; }
+.dia-grid > div { display: flex; flex-direction: column; }
+.dia-grid b { font-size: 20px; }
+.veredicto { display: flex; flex-direction: column; gap: 2px; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+.veredicto b { font-size: 22px; }
+.veredicto.bien { background: var(--sage-soft); color: #3E5233; }
+.veredicto.neutro { background: var(--soft); color: var(--text); }
+.veredicto.mal { background: #F8DEDE; color: var(--err); }
+.veredicto.alerta { background: var(--warn-soft); color: var(--warn); }
+input:disabled { background: var(--soft); color: var(--muted); }
