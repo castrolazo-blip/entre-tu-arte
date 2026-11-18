@@ -163,3 +163,9 @@ input[type=checkbox] { width: auto; min-height: 0; accent-color: var(--accent); 
 .login img { align-self: center; } .login h1 { margin: 0; }
 .login label { text-align: left; font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
 .page-banner { margin: 0 16px 8px; }
+.kcal { color: var(--muted); font-size: 12px; }
+.kcalbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; background: var(--sage-soft); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; }
+.kcalbar > div { display: flex; flex-direction: column; }
+.kcalbar b { font-size: 20px; color: #3E5233; }
+.kcalbar p { grid-column: 1 / -1; margin: 0; }
+.kcalbar.compact { display: block; padding: 8px 12px; font-size: 14px; color: #3E5233; font-weight: 600; }
