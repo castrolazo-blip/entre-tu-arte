@@ -8,6 +8,7 @@ import Shopping from './screens/Shopping';
 import Admin from './screens/Admin';
 import Editor from './screens/Editor';
 import RoleSwitch from './components/RoleSwitch';
+import Perfil from './screens/Perfil';
 import Account from './components/Account';
 import Login from './components/Login';
 import { cloud } from './cloud';
@@ -17,6 +18,7 @@ export type Nav =
   | { screen: 'meal'; meal: MealKey; person: string }
   | { screen: 'shop' }
   | { screen: 'admin' }
+  | { screen: 'perfil' }
   | { screen: 'editor'; planId: string | null };
 
 export default function App() {
@@ -33,7 +35,12 @@ export default function App() {
         <button className="brand" onClick={() => go({ screen: 'home' })}>
           <img src="./icon.svg" alt="" width={28} height={28} /> Menú en Casa
         </button>
-        {(sync === 'listo' || sync === 'local') && <button className="role" onClick={() => setRoleOpen(true)}>{roleLabel}</button>}
+        {(sync === 'listo' || sync === 'local') && (
+          <span className="top-actions">
+            <button className={`perfil-btn ${nav.screen === 'perfil' ? 'on' : ''}`} aria-label="Mi perfil" onClick={() => go({ screen: 'perfil' })}>👤</button>
+            <button className="role" onClick={() => setRoleOpen(true)}>{roleLabel}</button>
+          </span>
+        )}
       </header>
       {error && <p className="banner page-banner">{error} <button className="link" onClick={reload}>Reintentar</button></p>}
       <main>
@@ -48,6 +55,7 @@ export default function App() {
         {nav.screen === 'meal' && <MealScreen date={date} meal={nav.meal} person={nav.person} go={go} />}
         {nav.screen === 'shop' && <Shopping date={date} go={go} />}
         {nav.screen === 'admin' && <Admin go={go} />}
+        {nav.screen === 'perfil' && <Perfil date={date} setDate={setDate} go={go} />}
         {nav.screen === 'editor' && <Editor planId={nav.planId} go={go} />}
         </>}
       </main>
