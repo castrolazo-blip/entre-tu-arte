@@ -6,7 +6,7 @@ import { useStore } from '../store';
 import { aggregate, collect, fmtBuy, fmtPieces, fromStock, stockUnit, toStock, type Group, type UnitSystem } from '../logic';
 import { CATEGORIES } from '../catalog';
 
-type Preset = 'hoy' | 'manana' | 'semana' | 'proxima' | 'quincena' | 'q15' | 'custom';
+type Preset = 'semana' | 'quincena' | 'mes' | 'custom';
 
 /** Quincena del calendario: del 1 al 15, o del 16 al último día del mes. */
 function quincena(d: string): [string, string] {
@@ -29,12 +29,9 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
 
   const [f, t] = (() => {
     switch (preset) {
-      case 'hoy': return [date, date];
-      case 'manana': return [addDays(date, 1), addDays(date, 1)];
+      case 'mes': { const [y, m] = date.split('-').map(Number); return [`${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${new Date(y, m, 0).getDate()}`]; }
       case 'semana': return [mondayOf(date), addDays(mondayOf(date), 6)];
-      case 'proxima': return [date, addDays(date, 6)];
       case 'quincena': return quincena(date);
-      case 'q15': return [date, addDays(date, 14)];
       default: return from <= to ? [from, to] : [to, from];
     }
   })();
@@ -70,8 +67,8 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
         <button className="back" onClick={() => go({ screen: 'home' })}>‹ Inicio</button>
         <div className="crumb"><b>Lista del súper</b><span>{shortDate(f)} – {shortDate(t)}</span></div>
       </div>
-      <div className="seg wrap noprint">
-        {([['quincena', 'Quincena'], ['q15', 'Próximos 15 días'], ['semana', 'Semana (lun–dom)'], ['proxima', 'Próximos 7 días'], ['hoy', 'Este día'], ['manana', 'Día siguiente'], ['custom', 'Personalizado']] as [Preset, string][]).map(([k, l]) => (
+      <div className="seg noprint">
+        {([['semana', 'Semana'], ['quincena', 'Quincena'], ['mes', 'Mes'], ['custom', 'Personalizado']] as [Preset, string][]).map(([k, l]) => (
           <button key={k} className={preset === k ? 'on' : ''} onClick={() => setPreset(k)}>{l}</button>
         ))}
       </div>
