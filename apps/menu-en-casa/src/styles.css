@@ -169,3 +169,10 @@ input[type=checkbox] { width: auto; min-height: 0; accent-color: var(--accent); 
 .kcalbar b { font-size: 20px; color: #3E5233; }
 .kcalbar p { grid-column: 1 / -1; margin: 0; }
 .kcalbar.compact { display: block; padding: 8px 12px; font-size: 14px; color: #3E5233; font-weight: 600; }
+.extras { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 4px 0 12px; }
+.extras-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.extra-row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--soft); }
+.extra-k { white-space: nowrap; font-weight: 600; }
+.x { color: var(--muted); padding: 4px 8px; min-height: 32px; }
+.sheet { max-height: 90vh; overflow-y: auto; }
+.sheet label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
