@@ -41,6 +41,7 @@ legacy/index-anterior.html             El sitio anterior de un solo archivo, com
 ## Otras aplicaciones en la misma base
 
 - **Si nos organizamos!** (`/organizar`): encontrar la fecha en que todos pueden. Ver `docs/organizar/MANUAL.md`.
+- **Menú en Casa** (`/menu`): planes de alimentación de la familia, cocina y lista del súper. Privado (requiere sesión). Código en `apps/menu-en-casa/`. Ver `docs/menu/MANUAL.md`.
 
 ## Desarrollo
 
