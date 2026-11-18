@@ -29,12 +29,8 @@ export default function Members() {
   return (
     <>
       <h2 className="sec">Miembros con acceso</h2>
-      {list.map((m) => (
-        <div key={m.email} className="plan">
-          <div className="plan-head"><span><b>{m.nombre || m.email}</b><br /><span className="small muted">{m.email}</span></span><span className={`badge ${m.rol === 'admin' ? 'activo' : 'archivado'}`}>{m.rol}</span></div>
-          <div className="actions"><button className="btn danger" onClick={() => del(m)}>Quitar acceso</button></div>
-        </div>
-      ))}
+      {list.map((m) => <MemberRow key={m.email} m={m} onSaved={(t) => { setMsg(t); load(); }} onDelete={() => del(m)} />)}
+      <h3 className="sec small">Agregar miembro</h3>
       <div className="grid2">
         <label>Correo<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label>Nombre<input value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
@@ -47,5 +43,46 @@ export default function Members() {
       </div>
       {msg && <p className="banner">{msg}</p>}
     </>
+  );
+}
+
+const ROLES: { v: Role; l: string }[] = [
+  { v: 'cocina', l: 'Cocina' }, { v: 'integrante', l: 'Integrante' }, { v: 'admin', l: 'Administrador' },
+];
+
+/** Un miembro: se puede cambiar nombre y permiso, o quitar el acceso. */
+function MemberRow({ m, onSaved, onDelete }: { m: Miembro; onSaved: (msg: string) => void; onDelete: () => void }) {
+  const [edit, setEdit] = useState(false);
+  const [nombre, setNombre] = useState(m.nombre ?? '');
+  const [rol, setRol] = useState<Role>(m.rol);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    const { error } = await cloud!.rpc('menu_agregar_miembro', { p_email: m.email, p_rol: rol, p_nombre: nombre.trim() || null });
+    setBusy(false);
+    if (error) onSaved(error.message); else { setEdit(false); onSaved(`${nombre || m.email}: cambios guardados.`); }
+  };
+  return (
+    <div className="plan">
+      <div className="plan-head">
+        <span><b>{m.nombre || m.email}</b><br /><span className="small muted">{m.email}</span></span>
+        <span className={`badge ${m.rol === 'admin' ? 'activo' : 'archivado'}`}>{ROLES.find((r) => r.v === m.rol)?.l ?? m.rol}</span>
+      </div>
+      {edit ? (
+        <>
+          <div className="grid2">
+            <label>Nombre<input value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+            <label>Permiso<select value={rol} onChange={(e) => setRol(e.target.value as Role)}>{ROLES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}</select></label>
+          </div>
+          <div className="actions">
+            <button className="btn primary" disabled={busy} onClick={save}>{busy ? 'Guardando…' : 'Guardar'}</button>
+            <button className="btn" onClick={() => { setEdit(false); setNombre(m.nombre ?? ''); setRol(m.rol); }}>Cancelar</button>
+            <button className="btn danger" onClick={onDelete}>Quitar acceso</button>
+          </div>
+        </>
+      ) : (
+        <div className="actions"><button className="btn" onClick={() => setEdit(true)}>Editar</button></div>
+      )}
+    </div>
   );
 }
