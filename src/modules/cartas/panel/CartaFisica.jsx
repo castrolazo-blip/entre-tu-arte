@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Camera, Trash2, Paperclip, Plus, Mail, Package, Link2, Copy } from 'lucide-react'
+import { Camera, Trash2, Paperclip, Plus, Upload, Package, Link2, Copy, Images } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { useBorrador, useVentana } from '../borrador.js'
 import { registrarCartaFisica, tipoDeArchivo, firmaValida } from '../cartasService.js'
@@ -33,7 +33,7 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
   const contactos = remitentes.filter(r => r.pareja_id === parejaId && r.coordinador)
   const set = (i, k, v) => setLineas(ls => ls.map((l, j) => (j === i ? { ...l, [k]: v } : l)))
 
-  async function adjuntar(i, lista) {
+  async function validos(lista) {
     const buenos = []
     for (const file of lista) {
       const tipo = tipoDeArchivo(file)
@@ -41,7 +41,19 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
       if (!tipo.startsWith('image/') && file.size > retiro.max_mb * 1024 * 1024) { toast.error(`«${file.name}» supera ${retiro.max_mb} MB`); continue }
       buenos.push(file)
     }
+    return buenos
+  }
+  async function adjuntar(i, lista) {
+    const buenos = await validos(lista)
     setLineas(ls => ls.map((l, j) => (j === i ? { ...l, archivos: [...l.archivos, ...buenos] } : l)))
+  }
+  // Varias fotos de una vez: una carta por foto (luego se indica quién la envía y para quién)
+  const varias = useRef(null)
+  async function subirVarias(lista) {
+    const buenos = await validos(lista)
+    if (!buenos.length) return
+    setLineas(ls => [...ls.filter(l => l.archivos.length || l.de.trim() || l.relacion.trim()), ...buenos.map(f => ({ ...linea(), archivos: [f] }))])
+    toast.success(`${buenos.length} ${buenos.length === 1 ? 'foto agregada' : 'fotos agregadas'}: indica en cada una quién la envía y para quién`)
   }
 
   async function guardar(e) {
@@ -54,7 +66,7 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
       () => ({ ...l, cantidad: 1, de: l.de.trim() || l.relacion.trim() || 'Sin identificar' })))
     const sinClasificar = finales.filter(l => !l.relacion.trim()).length
     if (sinClasificar && !window.confirm(`${sinClasificar} ${sinClasificar === 1 ? 'carta no tiene' : 'cartas no tienen'} indicado quién la envía. ¿Registrar de todos modos?`)) return
-    if (origen === 'correo' && finales.some(l => !l.archivos.length) && !window.confirm('Hay cartas por correo sin archivo adjunto. Sin el archivo no se podrán imprimir. ¿Registrar de todos modos?')) return
+    if (origen === 'correo' && finales.some(l => !l.archivos.length) && !window.confirm('Hay cartas sin foto ni archivo. Sin el archivo no se podrán imprimir. ¿Registrar de todos modos?')) return
     const coord = contactos.find(c => c.id === coordinadorId)
     setGuardando(`0 de ${finales.length}`)
     let hechas = 0
@@ -87,7 +99,7 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
       <form id="form-fisica" onSubmit={guardar} className="grid gap-4">
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setOrigen('fisica')} className={`chip ${origen === 'fisica' ? 'chip-on' : 'chip-off'}`}><Package size={15} className="mr-1.5" />En papel (paquete)</button>
-          <button type="button" onClick={() => setOrigen('correo')} className={`chip ${origen === 'correo' ? 'chip-on' : 'chip-off'}`}><Mail size={15} className="mr-1.5" />Por correo</button>
+          <button type="button" onClick={() => setOrigen('correo')} className={`chip ${origen === 'correo' ? 'chip-on' : 'chip-off'}`}><Upload size={15} className="mr-1.5" />Subir fotos o archivos</button>
           <button type="button" onClick={() => setOrigen('enlace')} className={`chip ${origen === 'enlace' ? 'chip-on' : 'chip-off'}`}><Link2 size={15} className="mr-1.5" />Por enlace</button>
         </div>
         <label className="etiqueta">Pareja *
@@ -121,15 +133,19 @@ export default function CartaFisica({ parejaInicial, onCerrar, clave }) {
               ))}
             </ul>
             <div className="mt-3 flex flex-wrap gap-2">
+              {origen === 'correo' && <>
+                <button type="button" onClick={() => varias.current?.click()} className={btn.vino}><Images size={16} />Elegir varias fotos</button>
+                <input ref={varias} type="file" accept={ACEPTA} multiple className="hidden" onChange={e => { subirVarias([...e.target.files]); e.target.value = '' }} />
+              </>}
               <button type="button" onClick={() => setLineas(ls => [...ls, linea()])} className={btn.contorno}><Plus size={16} />Agregar otra carta</button>
             </div>
             <p className="mt-2 text-xs text-gris">{origen === 'fisica'
               ? `Ejemplo: «Primo · ${nombreA} · 3» si llegaron tres cartas para ${nombreA}, cada una de un primo distinto.`+' Las cartas en papel no se abren: se clasifican con lo que dice el sobre y van a su sobre.'
-              : 'Adjunta el archivo del correo (PDF, Word o foto del escaneo) para poder imprimirlo. Toma quién la envía del asunto.'}</p>
+              : 'Sube la foto o el archivo de cada carta (los que te mandaron por WhatsApp, correo, etc.). Con «Elegir varias fotos» se crea una carta por foto; luego indica en cada una quién la envía y para quién.'}</p>
           </div>
         )}
         {pareja && puedeLeer && lineas.length === 1 && origen === 'correo' && (
-          <label className="etiqueta">Texto del correo (si la carta vino escrita en el cuerpo)
+          <label className="etiqueta">Texto (si la carta vino escrita en el mensaje, sin foto)
             <textarea rows={4} value={texto} onChange={e => setTexto(e.target.value)} className="campo mt-1.5" />
           </label>
         )}

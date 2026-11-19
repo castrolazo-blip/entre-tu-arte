@@ -101,7 +101,7 @@ export default function Bandeja() {
                   </span>
                   <span className="flex flex-wrap items-center gap-1.5">
                     {c.origen === 'fisica' && <Marca icono={Package} t="Papel" />}
-                    {c.origen === 'correo' && <Marca icono={Mail} t="Correo" />}
+                    {c.origen === 'correo' && <Marca icono={Mail} t="Archivo" />}
                     {c.cca_archivos?.length > 0 && <Marca icono={Paperclip} t={c.cca_archivos.length} />}
                     {c.posible_duplicado && <Marca icono={CopyIcon} t="¿Duplicada?" alerta />}
                     {c.tardia && <Marca icono={Clock} t="Tardía" alerta />}

@@ -128,7 +128,7 @@ export const RELACIONES = ['Papá', 'Mamá', 'Hijo', 'Hija', 'Hermano', 'Hermana
   'Padrino', 'Madrina', 'Ahijado', 'Ahijada', 'Amigo', 'Amiga', 'Compañero de trabajo', 'Sacerdote / religioso']
 // Ya no se ofrecen (cada carta es de una sola persona); se conservan para reconocer datos antiguos
 export const RELACIONES_GRUPO = ['Papás', 'Hijos', 'Hermanos', 'Abuelos', 'Tíos', 'Suegros', 'Amigos', 'Familia']
-export const ORIGENES = { digital: 'Por enlace', fisica: 'En papel', correo: 'Por correo' }
+export const ORIGENES = { digital: 'Por enlace', fisica: 'En papel', correo: 'Foto o archivo' }
 
 // ── Enlaces del portal ──
 const raiz = () => window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '')

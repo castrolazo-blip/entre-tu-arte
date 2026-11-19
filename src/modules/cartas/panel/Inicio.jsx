@@ -20,7 +20,7 @@ export default function Inicio() {
   const botonesSimples = [
     { to: '/cartas/panel/pendientes', Icono: BellRing, titulo: 'Gestión de cartas',
       detalle: `${miEquipo ? misParejas : t.parejas} ${(miEquipo ? misParejas : t.parejas) === 1 ? 'pareja' : 'parejas'} · WhatsApp y llamadas`, principal: true },
-    { accion: () => abrirRegistrar(), Icono: PackagePlus, titulo: 'Registrar cartas recibidas', detalle: 'Las que entregan en papel o llegan por correo' },
+    { accion: () => abrirRegistrar(), Icono: PackagePlus, titulo: 'Registrar cartas recibidas', detalle: 'En papel, o sube las fotos que te mandaron' },
     { to: '/cartas/panel/cartas', Icono: Inbox, titulo: 'Cartas que han llegado', detalle: `${t.recibidas} ${t.recibidas === 1 ? 'carta' : 'cartas'}` },
   ]
   const botonesAdmin = [
