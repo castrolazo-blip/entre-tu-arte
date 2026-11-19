@@ -4,7 +4,7 @@ import { Copy, Download, FileText, Clock, ExternalLink } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { actividadReciente } from '../cartasService.js'
 import { aCSV, descargar, nombreArchivo } from '../archivos.js'
-import { responsableDe, enlacePortal, fecha, folioTexto, nombrePareja, nombreDestinatario, semaforo, ESTADOS_CARTA, TEXTO_SEMAFORO } from '../constantes.js'
+import { responsableDe, nombreEquipo, enlacePortal, fecha, folioTexto, nombrePareja, nombreDestinatario, semaforo, ESTADOS_CARTA, TEXTO_SEMAFORO } from '../constantes.js'
 import { Kpi, Semaforo, Titulo, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 import { Avance } from './Parejas.jsx'
@@ -23,7 +23,10 @@ export default function Tablero() {
     return { p, x, color: semaforo({ retiro, cartasValidas: x.recibidas, pendientes: x.pendientes, x }) }
   }).sort((a, b) => ['rojo', 'amarillo', 'verde'].indexOf(a.color) - ['rojo', 'amarillo', 'verde'].indexOf(b.color) || a.p.codigo.localeCompare(b.p.codigo)), [parejas, indicadores, retiro])
 
-  const conteo = filas.reduce((c, f) => ({ ...c, [f.color]: (c[f.color] || 0) + 1 }), {})
+  // Filtro por matrimonio encargado (solo la lista «Avance por pareja»)
+  const [matrimonio, setMatrimonio] = useState('todos')
+  const visibles = filas.filter(f => matrimonio === 'todos' || (matrimonio === 'sin' ? !f.p.equipo_id : f.p.equipo_id === matrimonio))
+  const conteo = visibles.reduce((c, f) => ({ ...c, [f.color]: (c[f.color] || 0) + 1 }), {})
   const dias = retiro.fecha_limite ? Math.ceil((new Date(retiro.fecha_limite) - Date.now()) / 86400000) : null
 
   const filasReporte = filas.map(({ p, x, color }) => ({ codigo: p.codigo, pareja: nombrePareja(p), responsable: responsableDe(p, equipo), paraA: x.paraA, paraB: x.paraB, faltan: x.faltan, recibidas: x.recibidas, enPapel: x.enPapel, aImprimir: x.aImprimir, esperados: x.esperados, pendientes: x.pendientes, adicionales: x.adicionales, estado: TEXTO_SEMAFORO[color] }))
@@ -83,6 +86,13 @@ export default function Tablero() {
             <span className="flex gap-3 text-xs text-gris">
               {['rojo', 'amarillo', 'verde'].map(c => <span key={c} className="flex items-center gap-1.5"><Semaforo color={c} />{conteo[c] || 0} {TEXTO_SEMAFORO[c].toLowerCase()}</span>)}
             </span>
+            {equipo.length > 0 && (
+              <select value={matrimonio} onChange={e => setMatrimonio(e.target.value)} className="campo h-10 w-full sm:ml-auto sm:w-auto" aria-label="Matrimonio encargado">
+                <option value="todos">Todos los matrimonios · {filas.length}</option>
+                {equipo.map(e => <option key={e.id} value={e.id}>{e.id === miEquipo?.id ? 'Mis parejas · ' : ''}{nombreEquipo(e)} · {filas.filter(f => f.p.equipo_id === e.id).length}</option>)}
+                {filas.some(f => !f.p.equipo_id) && <option value="sin">Sin matrimonio asignado · {filas.filter(f => !f.p.equipo_id).length}</option>}
+              </select>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px] text-sm">
@@ -94,7 +104,7 @@ export default function Tablero() {
                 <th className="px-2 py-2 text-center font-semibold">Contactos</th>
               </tr></thead>
               <tbody className="divide-y divide-crema-borde">
-                {filas.map(({ p, x, color }) => (
+                {visibles.map(({ p, x, color }) => (
                   <tr key={p.id} className="hover:bg-crema-clara">
                     <td className="py-2.5 pr-2"><Semaforo color={color} /></td>
                     <td className="py-2.5 pr-2"><Link to={`/cartas/panel/parejas/${p.id}`} className="font-semibold hover:text-vino"><span className="mr-2 text-xs text-gris">{p.codigo}</span>{nombrePareja(p)}</Link></td>
