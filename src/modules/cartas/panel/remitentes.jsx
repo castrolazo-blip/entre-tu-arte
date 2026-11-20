@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { useBorrador, useVentana } from '../borrador.js'
 import { guardarRemitente, registrarRecordatorio } from '../cartasService.js'
-import { enlacePortal, mensajeRecordatorio, mensajeEnlace, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE, RELACIONES } from '../constantes.js'
+import { enlacePortal, mensajeRecordatorio, mensajeEnlace, mensajeSeguimiento, contactoEquipo, telefonoWhatsApp, mensajeError, nombreDestinatario, ESTADOS_REMITENTE, RELACIONES } from '../constantes.js'
 import { Modal, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 
@@ -63,7 +63,7 @@ export function FormRemitente({ pareja, inicial, coordinador = false, onCerrar }
 
 // Botones para enviar el recordatorio por WhatsApp o correo (se abre la app; nada se envía solo)
 export function AccionesRecordatorio({ remitente, pareja, compacto = false, simple = false, onRegistrado }) {
-  const { retiro, actualizarLocal, equipo } = useCartas()
+  const { retiro, actualizarLocal, equipo, indicadores } = useCartas()
   const { usuario } = useAuth()
   const enlace = enlacePortal(retiro, { remitente })
   const resp = equipo.find(e => e.id === pareja.equipo_id)
@@ -100,13 +100,11 @@ export function AccionesRecordatorio({ remitente, pareja, compacto = false, simp
               className="mb-2 flex items-center gap-3 rounded-2xl border border-crema-borde px-4 py-3 hover:border-vino">
               <Link2 size={20} className="text-vino" /><span><b className="block text-[15px]">Enviar enlace</b><span className="text-xs text-gris">Mensaje corto con el enlace para subir las cartas</span></span>
             </a>
-            {tel ? (
-              <a href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer"
-                onClick={() => { registrar('whatsapp', 'Seguimiento'); setOpciones(false) }}
-                className="flex items-center gap-3 rounded-2xl border border-crema-borde px-4 py-3 hover:border-vino">
-                <MessageCircle size={20} className="text-vino" /><span><b className="block text-[15px]">Mensaje de seguimiento</b><span className="text-xs text-gris">Abre el chat vacío para escribirle tú</span></span>
-              </a>
-            ) : <p className="rounded-2xl bg-crema px-4 py-3 text-xs text-gris">Seguimiento no disponible: este contacto no tiene teléfono.</p>}
+            <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensajeSeguimiento({ retiro, pareja, remitente, enlace, x: indicadores.porPareja[pareja.id] }))}`} target="_blank" rel="noreferrer"
+              onClick={() => { registrar('whatsapp', 'Seguimiento'); setOpciones(false) }}
+              className="flex items-center gap-3 rounded-2xl border border-crema-borde px-4 py-3 hover:border-vino">
+              <MessageCircle size={20} className="text-vino" /><span><b className="block text-[15px]">Mensaje de seguimiento</b><span className="text-xs text-gris">Recordatorio con la fecha límite y cuántas cartas llevan</span></span>
+            </a>
             <button type="button" onClick={() => setOpciones(false)} className="mt-3 h-11 w-full rounded-full text-sm font-semibold text-gris hover:bg-crema">Cancelar</button>
           </div>
         </div>

@@ -235,6 +235,20 @@ ${enlace}${plazo}
 🤫 Es sorpresa. ¡Gracias!`
 }
 
+// Recordatorio de seguimiento: fecha límite y cómo van las cartas de la pareja (x = indicadores.porPareja)
+export function mensajeSeguimiento({ retiro, pareja, remitente, enlace, x }) {
+  const nombre = (remitente?.nombre || '').split(' ')[0]
+  const a = apodo(pareja, 'A'), b = apodo(pareja, 'B')
+  const meta = retiro.meta_por_persona || 0
+  const plazo = retiro.fecha_limite ? ` Tenemos hasta el *${fechaLarga(retiro.fecha_limite)}*.` : ''
+  const estado = x ? `\n\n📊 Así vamos: *${x.recibidas}${meta ? `/${meta * 2}` : ''} cartas* (${a} ${x.paraA}${meta ? `/${meta}` : ''} · ${b} ${x.paraB}${meta ? `/${meta}` : ''})` : ''
+  return `Hola${nombre ? ' ' + nombre : ''} 👋 Te recordamos sobre el envío de las cartas para *${a} y ${b}*.${plazo}${estado}
+
+Si prefieres, puedes subirlas aquí: ${enlace}
+
+Si tienes alguna duda, estamos para apoyarte. ¡Gracias! 🙏`
+}
+
 // Ojo: el mensaje es para familiares y amigos; las parejas no deben enterarse (es sorpresa).
 export function mensajeRecordatorio({ retiro, pareja, remitente, enlace, responsable, entrega }) {
   if (remitente.coordinador) return mensajeFamilias({ retiro, pareja, remitente, enlace, responsable, entrega })
