@@ -140,7 +140,7 @@ export default function Pendientes() {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">{r.nombre} <span className="font-normal text-gris">· {r.relacion}</span></span>
                             <span className={`block text-[11.5px] ${r.estado === 'recibido' ? 'font-semibold text-emerald-700' : 'text-gris'}`}>
-                              {r.estado === 'recibido' ? '✓ Ya entregó cartas' : r.estado === 'exento' ? `No enviará${r.motivo ? ' · ' + r.motivo : ''}` : ultima
+                              {r.estado === 'recibido' ? `✓ Ya entregó cartas${ultima ? ` · última gestión: ${describir(ultima).tipo.toLowerCase()} ${fecha(ultima.created_at)}` : ''}` : r.estado === 'exento' ? `No enviará${r.motivo ? ' · ' + r.motivo : ''}` : ultima
                                 ? `Última: ${describir(ultima).tipo.toLowerCase()} · ${fecha(ultima.created_at, true)}`
                                 : r.ultimo_recordatorio ? `Avisado · ${fecha(r.ultimo_recordatorio, true)}` : 'Aún sin avisar'}
                             </span>
@@ -149,7 +149,7 @@ export default function Pendientes() {
                             <a href={`tel:${String(r.telefono).replace(/[^\d+]/g, '')}`} onClick={() => gestionar(r, 'llamada')} aria-label={`Llamar a ${r.nombre}`} title={`Llamar · ${r.telefono}`}
                               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-crema-borde bg-white text-vino hover:border-vino"><Phone size={16} /></a>
                           )}
-                          {r.estado !== 'recibido' && r.estado !== 'exento' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple onRegistrado={cargarGestiones} />}
+                          {r.estado !== 'exento' && <AccionesRecordatorio remitente={r} pareja={p} compacto simple onRegistrado={cargarGestiones} />}
                         </div>
                         <button onClick={() => setAbierto(abiertoAqui ? null : r.id)} aria-expanded={abiertoAqui}
                           className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-vino">
