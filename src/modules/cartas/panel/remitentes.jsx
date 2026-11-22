@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { MessageCircle, Mail, Copy, Link2 } from 'lucide-react'
+import { MessageCircle, Mail, Copy, Link2, Pencil } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { useBorrador, useVentana } from '../borrador.js'
@@ -105,6 +105,13 @@ export function AccionesRecordatorio({ remitente, pareja, compacto = false, simp
               className="flex items-center gap-3 rounded-2xl border border-crema-borde px-4 py-3 hover:border-vino">
               <MessageCircle size={20} className="text-vino" /><span><b className="block text-[15px]">Mensaje de seguimiento</b><span className="text-xs text-gris">Recordatorio con la fecha límite y cuántas cartas llevan</span></span>
             </a>
+            {tel && (
+              <a href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer"
+                onClick={() => { registrar('whatsapp', 'Libre'); setOpciones(false) }}
+                className="mt-2 flex items-center gap-3 rounded-2xl border border-crema-borde px-4 py-3 hover:border-vino">
+                <Pencil size={20} className="text-vino" /><span><b className="block text-[15px]">Mensaje libre</b><span className="text-xs text-gris">Abre el chat vacío para escribir lo que quieras</span></span>
+              </a>
+            )}
             <button type="button" onClick={() => setOpciones(false)} className="mt-3 h-11 w-full rounded-full text-sm font-semibold text-gris hover:bg-crema">Cancelar</button>
           </div>
         </div>

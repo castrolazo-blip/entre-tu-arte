@@ -45,7 +45,7 @@ export function describirGestion(g) {
     const [, tipo, resto] = g.mensaje.match(/^(Llamada|Nota):?\s*([\s\S]*)$/)
     return { tipo, texto: resto || '' }
   }
-  if (g.canal === 'whatsapp') return { tipo: g.mensaje === 'Seguimiento' ? 'Seguimiento por WhatsApp' : g.mensaje === 'Enlace' ? 'Enlace por WhatsApp' : 'Bienvenida por WhatsApp', texto: '' }
+  if (g.canal === 'whatsapp') return { tipo: g.mensaje === 'Seguimiento' ? 'Seguimiento por WhatsApp' : g.mensaje === 'Enlace' ? 'Enlace por WhatsApp' : g.mensaje === 'Libre' ? 'Mensaje libre por WhatsApp' : 'Bienvenida por WhatsApp', texto: '' }
   return { tipo: TIPOS[g.canal] || 'Gestión', texto: g.canal === 'llamada' || g.canal === 'nota' || g.canal === 'otro' ? g.mensaje || '' : '' }
 }
 

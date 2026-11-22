@@ -82,7 +82,7 @@ export default function Pendientes() {
 
   return (
     <div>
-      <Titulo titulo="Gestión de cartas" subtitulo="Por pareja del retiro. «Enviar» abre WhatsApp con el mensaje listo (bienvenida, enlace o seguimiento), 📞 llama y queda anotado quién hizo cada gestión." />
+      <Titulo titulo="Gestión de cartas" subtitulo="Por pareja del retiro. «Enviar» abre WhatsApp con el mensaje listo (bienvenida, enlace, seguimiento o libre), 📞 llama y queda anotado quién hizo cada gestión." />
 
       {equipo.length > 0 && (
         <select value={matrimonio} onChange={e => { setMatrimonio(e.target.value); setFiltroElegido(true) }} className="campo mb-3" aria-label="Matrimonio asignado">
