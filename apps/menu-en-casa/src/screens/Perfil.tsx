@@ -6,6 +6,7 @@ import { useStore } from '../store';
 import DaySummary from '../components/Fitness';
 import Extras from '../components/Extras';
 import { Historial } from '../components/Peso';
+import NutTable from '../components/NutTable';
 import { getCuerpo, edad } from '../fitness';
 import { ultimaMedicion } from '../bascula';
 
@@ -62,6 +63,8 @@ export default function Perfil({ date, setDate, go }: { date: string; setDate: (
             <button className="arrow" aria-label="Día siguiente" onClick={() => setDate(addDays(date, 1))}>›</button>
           </div>
 
+          <h2 className="sec">Mi consumo del día</h2>
+          <NutTable person={p.id} date={date} />
           <DaySummary person={p.id} date={date} />
           <Extras person={p.id} date={date} meal={comidaAhora()} />
 
