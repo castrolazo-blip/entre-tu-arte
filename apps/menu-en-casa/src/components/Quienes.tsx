@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Person } from '../types';
 import { useStore } from '../store';
 
@@ -17,11 +18,23 @@ export function useQuienes(people: Person[], date: string) {
   return { incluidos: people.filter((p) => !fuera.includes(p.id)), fuera, toggle };
 }
 
-export default function Quienes({ people, fuera, toggle }: { people: Person[]; fuera: string[]; toggle: (id: string) => void }) {
+/** Para la lista del súper: quiénes cuentan en el periodo. Se recuerda en este teléfono. */
+const KEY_COMPRA = 'menu:compras-sin';
+export function useQuienesCompra(people: Person[]) {
+  const [fuera, setFuera] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(KEY_COMPRA) || '[]'); } catch { return []; } });
+  const toggle = (id: string) => setFuera((f) => {
+    const n = f.includes(id) ? f.filter((x) => x !== id) : [...f, id];
+    try { localStorage.setItem(KEY_COMPRA, JSON.stringify(n)); } catch { /* ignore */ }
+    return n;
+  });
+  return { incluidos: people.filter((p) => !fuera.includes(p.id)), fuera, toggle };
+}
+
+export default function Quienes({ people, fuera, toggle, titulo = '¿Quiénes comen?' }: { people: Person[]; fuera: string[]; toggle: (id: string) => void; titulo?: string }) {
   const n = people.filter((p) => !fuera.includes(p.id)).length;
   return (
     <div className="quienes noprint">
-      <p className="optlabel">¿Quiénes comen? <span className="muted">({n} de {people.length})</span></p>
+      <p className="optlabel">{titulo} <span className="muted">({n} de {people.length})</span></p>
       <div className="chips">
         {people.map((p) => {
           const on = !fuera.includes(p.id);
