@@ -6,6 +6,7 @@ import { useStore } from '../store';
 import { aggregate, chosenDishes, choiceKey, collect, dishesFor, fmtPieces, fmtQty, pickItem } from '../logic';
 import { norm } from '../parser';
 import DishCard from '../components/DishCard';
+import Quienes, { useQuienes } from '../components/Quienes';
 import { add, fmtKcal, fmtMacros, mealNut, ZERO } from '../nutrition';
 import Extras, { extrasOf } from '../components/Extras';
 
@@ -55,8 +56,9 @@ function PersonView({ date, meal, p }: { date: string; meal: MealKey; p: Person 
 }
 
 type View = 'persona' | 'platillo' | 'ingrediente';
-function Everyone({ date, meal, people }: { date: string; meal: MealKey; people: Person[] }) {
+function Everyone({ date, meal, people: todos }: { date: string; meal: MealKey; people: Person[] }) {
   const { s, set } = useStore();
+  const { incluidos: people, fuera, toggle } = useQuienes(todos);
   const [view, setView] = useState<View>('platillo');
   const groups = useMemo(() => aggregate(collect(s.plans, people, [date], [meal], s.choices)), [s.plans, s.choices, people, date, meal]);
   const byDish = useMemo(() => {
@@ -79,6 +81,7 @@ function Everyone({ date, meal, people }: { date: string; meal: MealKey; people:
           </button>
         ))}
       </div>
+      <Quienes people={todos} fuera={fuera} toggle={toggle} />
       {missing.length > 0 && <p className="banner">Sin plan activo esta fecha: {missing.map((p) => p.name).join(', ')}.</p>}
       {byDish.length === 0 && <div className="empty">Sin menú programado.</div>}
 

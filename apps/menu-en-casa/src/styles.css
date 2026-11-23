@@ -213,3 +213,7 @@ label.leido input { border-color: var(--sage); background: var(--sage-soft); }
 .nut tfoot tr.pct td { font-weight: 600; color: var(--muted); border-top: 0; padding-top: 2px; }
 .nut .bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; margin: 8px 0; background: var(--soft); }
 .nut .bar span { display: block; height: 100%; }
+.quienes { margin: 4px 0 10px; }
+.chip.quien { border-color: var(--pc); color: var(--pc); font-weight: 600; }
+.chip.quien.on { background: var(--pc); color: #fff; }
+.chip.quien.off { opacity: .6; text-decoration: line-through; }
