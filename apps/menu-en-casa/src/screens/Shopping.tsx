@@ -5,6 +5,7 @@ import { addDays, mondayOf, range, shortDate } from '../dates';
 import { useStore } from '../store';
 import { aggregate, collect, fmtBuy, fmtPieces, fromStock, stockUnit, toStock, type Group, type UnitSystem } from '../logic';
 import { CATEGORIES } from '../catalog';
+import Quienes, { useQuienes } from '../components/Quienes';
 
 type Preset = 'semana' | 'quincena' | 'mes' | 'custom';
 
@@ -35,7 +36,8 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
       default: return from <= to ? [from, to] : [to, from];
     }
   })();
-  const people = s.people.filter((p) => p.active);
+  const todos = s.people.filter((p) => p.active);
+  const { incluidos: people, fuera, toggle } = useQuienes(todos);
   const dates = range(f, t);
   const cs = useMemo(() => collect(s.plans, people, dates, MEALS.map((m) => m.key), s.choices), [s.plans, s.choices, people, f, t]);
   const groups = useMemo(() => aggregate(cs), [cs]);
@@ -46,7 +48,7 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
   const pending = groups.filter((g) => !s.bought[bkey(g)]);
 
   const text = () => {
-    const lines = [`Lista del súper · ${shortDate(f)} a ${shortDate(t)}`];
+    const lines = [`Lista del súper · ${shortDate(f)} a ${shortDate(t)}`, `Para: ${people.map((p) => p.name).join(', ')}`];
     for (const c of CATEGORIES) {
       const gs = groups.filter((g) => g.category === c.key && !s.bought[bkey(g)]);
       if (!gs.length) continue;
@@ -78,6 +80,7 @@ export default function Shopping({ date, go }: { date: string; go: (n: Nav) => v
           <label>Hasta <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
         </div>
       )}
+      <Quienes people={todos} fuera={fuera} toggle={toggle} />
       <div className="seg noprint" role="group" aria-label="Unidades">
         <button className={sys === 'lb' ? 'on' : ''} onClick={() => setSys('lb')}>Libras y onzas</button>
         <button className={sys === 'g' ? 'on' : ''} onClick={() => setSys('g')}>Gramos y kilos</button>
