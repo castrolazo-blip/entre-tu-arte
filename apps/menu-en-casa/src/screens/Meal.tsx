@@ -58,7 +58,7 @@ function PersonView({ date, meal, p }: { date: string; meal: MealKey; p: Person 
 type View = 'persona' | 'platillo' | 'ingrediente';
 function Everyone({ date, meal, people: todos }: { date: string; meal: MealKey; people: Person[] }) {
   const { s, set } = useStore();
-  const { incluidos: people, fuera, toggle } = useQuienes(todos);
+  const { incluidos: people, fuera, toggle } = useQuienes(todos, date);
   const [view, setView] = useState<View>('platillo');
   const groups = useMemo(() => aggregate(collect(s.plans, people, [date], [meal], s.choices)), [s.plans, s.choices, people, date, meal]);
   const byDish = useMemo(() => {
