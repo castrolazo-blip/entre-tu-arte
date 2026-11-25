@@ -21,7 +21,7 @@ export default function Impresion() {
   const [orden, setOrden] = useState([])
   const [seleccion, setSeleccion] = useState(new Set())
   const [conPortada, setConPortada] = useState(true)
-  const [conSeparadores, setConSeparadores] = useState(true)
+  const [conSeparadores, setConSeparadores] = useState(false)
   const [progreso, setProgreso] = useState(null)
   const pareja = parejas.find(p => p.id === parejaId)
   // Los datos pueden llegar después de abrir la pantalla (o al cambiar de retiro)
@@ -150,7 +150,7 @@ export default function Impresion() {
           {activas.map(p => <option key={p.id} value={p.id}>{p.codigo} · {nombrePareja(p)}</option>)}
         </select>
         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={conPortada} onChange={e => setConPortada(e.target.checked)} className="h-4 w-4 accent-[#7a2621]" />Portada</label>
-        <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={conSeparadores} onChange={e => setConSeparadores(e.target.checked)} className="h-4 w-4 accent-[#7a2621]" />Separador por carta</label>
+        <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={conSeparadores} onChange={e => setConSeparadores(e.target.checked)} className="h-4 w-4 accent-[#7a2621]" />Hoja separadora por carta</label>
       </div>
 
       {!puedeLeer && <p className="mb-4 flex items-center gap-2 rounded-2xl bg-crema p-4 text-sm text-gris"><Lock size={16} />Por confidencialidad, tu usuario no puede generar el PDF ni descargar originales. Pídelo a quien tiene permiso de impresión.</p>}
@@ -188,7 +188,7 @@ export default function Impresion() {
       )}
       <div className="mt-5 rounded-[22px] bg-white p-4">
         <p className="text-sm font-semibold">Todo el retiro</p>
-        <p className="mt-0.5 text-xs text-gris">Un solo PDF con todas las parejas, en orden por código, cada una con su portada y una hoja «Para … con amor de …» antes de cada carta.</p>
+        <p className="mt-0.5 text-xs text-gris">Un solo PDF con todas las parejas, en orden por código: la portada de cada pareja y después todas sus cartas. Cada página lleva arriba para quién es y de quién.</p>
         <button onClick={pdfTodas} disabled={!puedeLeer || !!progreso} className={`${btn.vino} mt-3`}><Files size={16} />PDF de todas las parejas</button>
         {progreso && <p className="mt-3 flex items-center gap-2 text-sm text-gris"><Loader2 size={15} className="animate-spin" />{progreso}</p>}
       </div>
