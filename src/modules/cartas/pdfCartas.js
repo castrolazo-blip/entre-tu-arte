@@ -319,8 +319,8 @@ export async function pdfResponsables({ retiro, grupos }) {
   }
 
   // Detalle por matrimonio
-  const xs = [40, 82, 290, 345, 395, 445, 495]
-  const cab = ['Código', 'Pareja', 'Recibidas', 'Esposo', 'Esposa', 'Faltan', 'Contactos']
+  const xs = [40, 82, 340, 420, 490]
+  const cab = ['Código', 'Pareja', 'Cartas', 'Faltan', 'Contactos']
   for (const g of grupos) {
     y -= 18
     espacio(70)
@@ -333,7 +333,7 @@ export async function pdfResponsables({ retiro, grupos }) {
     cabecera()
     for (const f of g.filas) {
       if (espacio(13)) { texto(`${g.nombre} (continúa)`, 40, 9, ctx.f.sansNegrita, VINO); y -= 14; cabecera() }
-      ;[f.codigo, f.pareja, f.recibidas, f.paraA, f.paraB, f.faltan, f.contactos].forEach((v, i) => texto(v, xs[i], 8, ctx.f.sans, null, i === 1 ? 200 : null))
+      ;[f.codigo, f.pareja, f.recibidas, f.faltan, f.contactos].forEach((v, i) => texto(v, xs[i], 8, ctx.f.sans, null, i === 1 ? 250 : null))
       y -= 12
     }
     if (!g.filas.length) { texto('Sin parejas asignadas', 40, 8, ctx.f.sans, GRIS); y -= 12 }
