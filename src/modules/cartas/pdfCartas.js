@@ -286,3 +286,57 @@ export async function pdfEtiquetas({ retiro, personas }) {
   })
   return new Blob([await ctx.doc.save()], { type: 'application/pdf' })
 }
+
+/**
+ * Reporte por matrimonio responsable: primero un resumen de todos y luego el detalle de las parejas de cada uno.
+ * grupos: [{ nombre, contacto, totales: { parejas, recibidas, meta, faltan, contactos, entregaron }, filas: [{ codigo, pareja, recibidas, paraA, paraB, faltan, contactos, estado }] }]
+ */
+export async function pdfResponsables({ retiro, grupos }) {
+  const ctx = await iniciar()
+  let p = ctx.doc.addPage([ANCHO, ALTO]); let y = ALTO - 60
+  const texto = (t, x, tam = 8, fuente = ctx.f.sans, color, max) => {
+    let s = limpiar(String(t ?? ''), fuente)
+    if (max) while (s.length && fuente.widthOfTextAtSize(s, tam) > max) s = s.slice(0, -1)
+    p.drawText(s, { x, y, size: tam, font: fuente, ...(color ? { color: ctx.color(color) } : {}) })
+  }
+  const nuevaPagina = () => { p = ctx.doc.addPage([ANCHO, ALTO]); y = ALTO - 60 }
+  const espacio = n => { if (y - n < 50) { nuevaPagina(); return true } return false }
+
+  texto('Cartas con Amor · Reporte por matrimonio responsable', 40, 15, ctx.f.sansNegrita, VINO); y -= 18
+  texto(`${retiro.nombre}${retiro.inicio ? ' · ' + rangoFechas(retiro.inicio, retiro.fin) : ''}`, 40, 10); y -= 13
+  texto(`Generado el ${fecha(new Date().toISOString(), true)}`, 40, 8, ctx.f.sans, GRIS); y -= 26
+
+  // Resumen
+  const xr = [40, 250, 300, 360, 415, 470, 525]
+  const cabR = ['Matrimonio', 'Parejas', 'Cartas', 'Meta', 'Faltan', 'Avance', 'Contactos']
+  cabR.forEach((t, i) => texto(t, xr[i], 8, ctx.f.sansNegrita)); y -= 14
+  for (const g of grupos) {
+    espacio(14)
+    const t = g.totales
+    ;[g.nombre, t.parejas, t.recibidas, t.meta || '—', t.meta ? t.faltan : '—', t.meta ? `${Math.round(Math.min(1, t.recibidas / t.meta) * 100)}%` : '—', `${t.entregaron}/${t.contactos}`]
+      .forEach((v, i) => texto(v, xr[i], 8, ctx.f.sans, null, i === 0 ? 200 : null))
+    y -= 13
+  }
+
+  // Detalle por matrimonio
+  const xs = [40, 82, 290, 345, 395, 445, 495]
+  const cab = ['Código', 'Pareja', 'Recibidas', 'Esposo', 'Esposa', 'Faltan', 'Contactos']
+  for (const g of grupos) {
+    y -= 18
+    espacio(70)
+    p.drawLine({ start: { x: 40, y: y + 12 }, end: { x: ANCHO - 40, y: y + 12 }, thickness: 0.5, color: ctx.color(ORO) })
+    texto(g.nombre, 40, 12, ctx.f.sansNegrita, VINO); y -= 13
+    if (g.contacto) { texto(g.contacto, 40, 8, ctx.f.sans, GRIS, ANCHO - 80); y -= 12 }
+    const t = g.totales
+    texto(`${t.parejas} ${t.parejas === 1 ? 'pareja' : 'parejas'} · ${t.recibidas} ${t.recibidas === 1 ? 'carta' : 'cartas'}${t.meta ? ` de ${t.meta} · faltan ${t.faltan}` : ''} · contactos que entregaron ${t.entregaron}/${t.contactos}`, 40, 8.5); y -= 16
+    const cabecera = () => { cab.forEach((c, i) => texto(c, xs[i], 8, ctx.f.sansNegrita)); y -= 13 }
+    cabecera()
+    for (const f of g.filas) {
+      if (espacio(13)) { texto(`${g.nombre} (continúa)`, 40, 9, ctx.f.sansNegrita, VINO); y -= 14; cabecera() }
+      ;[f.codigo, f.pareja, f.recibidas, f.paraA, f.paraB, f.faltan, f.contactos].forEach((v, i) => texto(v, xs[i], 8, ctx.f.sans, null, i === 1 ? 200 : null))
+      y -= 12
+    }
+    if (!g.filas.length) { texto('Sin parejas asignadas', 40, 8, ctx.f.sans, GRIS); y -= 12 }
+  }
+  return new Blob([await ctx.doc.save()], { type: 'application/pdf' })
+}
