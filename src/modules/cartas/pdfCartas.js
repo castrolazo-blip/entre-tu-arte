@@ -152,10 +152,36 @@ function separador(ctx, { carta, pareja }) {
 export async function pdfDePareja({ retiro, pareja, cartas, conPortada = true, conSeparadores = true, leerArchivo, alAvanzar }) {
   const ctx = await iniciar()
   const problemas = []
+  await agregarPareja(ctx, { retiro, pareja, cartas, conPortada, conSeparadores, leerArchivo, problemas, alAvanzar: i => alAvanzar?.(i, cartas.length) })
+  ctx.doc.setTitle(`Cartas para ${nombrePareja(pareja)}`)
+  ctx.doc.setCreator('Cartas con Amor')
+  const bytes = await ctx.doc.save()
+  return { blob: new Blob([bytes], { type: 'application/pdf' }), problemas }
+}
+
+/**
+ * Todo el retiro en un solo PDF: grupos = [{ pareja, cartas }] en orden; cada pareja con su portada y separadores.
+ * alAvanzar(i, n, pareja) con i = carta actual de n en total
+ */
+export async function pdfDeRetiro({ retiro, grupos, conPortada = true, conSeparadores = true, leerArchivo, alAvanzar }) {
+  const ctx = await iniciar()
+  const problemas = []
+  const n = grupos.reduce((s, g) => s + g.cartas.length, 0)
+  let hechas = 0
+  for (const { pareja, cartas } of grupos) {
+    await agregarPareja(ctx, { retiro, pareja, cartas, conPortada, conSeparadores, leerArchivo, problemas, alAvanzar: () => alAvanzar?.(++hechas, n, pareja) })
+  }
+  ctx.doc.setTitle(`Cartas con Amor · ${retiro.nombre}`)
+  ctx.doc.setCreator('Cartas con Amor')
+  const bytes = await ctx.doc.save()
+  return { blob: new Blob([bytes], { type: 'application/pdf' }), problemas }
+}
+
+async function agregarPareja(ctx, { retiro, pareja, cartas, conPortada, conSeparadores, leerArchivo, problemas, alAvanzar }) {
   if (conPortada) portada(ctx, { retiro, pareja, total: cartas.length })
   let i = 0
   for (const { carta, texto, archivos } of cartas) {
-    alAvanzar?.(++i, cartas.length)
+    alAvanzar?.(++i)
     const linea = `Para ${paraQuien(pareja, carta.destinatario)} · de ${carta.remitente_nombre} · ${pareja.codigo}`
     if (conSeparadores) separador(ctx, { carta, pareja })
     if (texto?.trim()) escribirTexto(ctx, texto, linea)
@@ -172,10 +198,6 @@ export async function pdfDePareja({ retiro, pareja, cartas, conPortada = true, c
     }
     if (!texto?.trim() && !(archivos || []).length) paginaAviso(ctx, 'Carta sin contenido', folioTexto(carta.folio), linea)
   }
-  ctx.doc.setTitle(`Cartas para ${nombrePareja(pareja)}`)
-  ctx.doc.setCreator('Cartas con Amor')
-  const bytes = await ctx.doc.save()
-  return { blob: new Blob([bytes], { type: 'application/pdf' }), problemas }
 }
 
 // Lista de control para la entrega física (una línea por carta, con casilla)

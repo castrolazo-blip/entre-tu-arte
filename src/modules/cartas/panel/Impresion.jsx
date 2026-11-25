@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ArrowUp, ArrowDown, FileDown, Archive, ListChecks, Lock, Loader2, Save, Tags, Package } from 'lucide-react'
+import { ArrowUp, ArrowDown, FileDown, Archive, ListChecks, Lock, Loader2, Save, Tags, Package, Files } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarCartas, textosCartas, bytesArchivo, registrarAccion } from '../cartasService.js'
@@ -71,6 +71,32 @@ export default function Impresion() {
       await auditar('pdf', { cartas: aImprimir.map(c => c.folio), problemas })
       if (problemas.length) toast.error(`${problemas.length} archivo(s) no se pudieron incluir: el PDF trae un aviso en su lugar`, { duration: 7000 })
       else toast.success('PDF listo')
+    } catch (err) { toast.error(mensajeError(err, 'No se pudo generar el PDF')) }
+    finally { setProgreso(null) }
+  }
+
+  // Un solo PDF con todas las parejas (por código), cada una con su portada y separadores, en su orden guardado
+  async function pdfTodas() {
+    const ordenar = l => [...l].sort((a, b) => (a.orden ?? 1e9) - (b.orden ?? 1e9) || PESO[a.destinatario] - PESO[b.destinatario] || a.created_at.localeCompare(b.created_at))
+    const grupos = [...activas].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
+      .map(p => ({ pareja: p, lista: ordenar(cartas.filter(c => c.pareja_id === p.id && esValida(c) && !sinImprimir(c))) }))
+      .filter(g => g.lista.length)
+    const total = grupos.reduce((n, g) => n + g.lista.length, 0)
+    if (!total) return toast.error('No hay cartas para imprimir')
+    if (!window.confirm(`Se armará un solo PDF con ${total} cartas de ${grupos.length} parejas. Puede tardar varios minutos; mejor desde una computadora. ¿Continuar?`)) return
+    setProgreso('Preparando…')
+    try {
+      const textos = await textosCartas(grupos.flatMap(g => g.lista.map(c => c.id)))
+      const { pdfDeRetiro } = await import('../pdfCartas.js')
+      const { blob, problemas } = await pdfDeRetiro({
+        retiro, conPortada, conSeparadores, leerArchivo: bytesArchivo,
+        grupos: grupos.map(g => ({ pareja: g.pareja, cartas: g.lista.map(c => ({ carta: c, texto: textos[c.id], archivos: c.cca_archivos.filter(a => !a.ilegible) })) })),
+        alAvanzar: (i, n, p) => setProgreso(`Armando carta ${i} de ${n} · ${p.codigo}…`),
+      })
+      descargar(blob, `cartas-todas-${nombreArchivo(retiro.nombre)}.pdf`)
+      await registrarAccion({ retiro_id: retiro.id, usuario_id: usuario.id, entidad: 'impresion', accion: 'pdf', datos: { todas: true, cartas: grupos.flatMap(g => g.lista.map(c => c.folio)), problemas } })
+      if (problemas.length) toast.error(`${problemas.length} archivo(s) no se pudieron incluir: el PDF trae un aviso en su lugar`, { duration: 7000 })
+      else toast.success(`PDF listo: ${total} cartas de ${grupos.length} parejas`)
     } catch (err) { toast.error(mensajeError(err, 'No se pudo generar el PDF')) }
     finally { setProgreso(null) }
   }
@@ -160,6 +186,12 @@ export default function Impresion() {
           </div>
         </>
       )}
+      <div className="mt-5 rounded-[22px] bg-white p-4">
+        <p className="text-sm font-semibold">Todo el retiro</p>
+        <p className="mt-0.5 text-xs text-gris">Un solo PDF con todas las parejas, en orden por código, cada una con su portada y una hoja «Para … con amor de …» antes de cada carta.</p>
+        <button onClick={pdfTodas} disabled={!puedeLeer || !!progreso} className={`${btn.vino} mt-3`}><Files size={16} />PDF de todas las parejas</button>
+        {progreso && <p className="mt-3 flex items-center gap-2 text-sm text-gris"><Loader2 size={15} className="animate-spin" />{progreso}</p>}
+      </div>
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
         <button onClick={etiquetas} className={btn.texto}><Tags size={15} />Etiquetas para los sobres (una por persona, todas las parejas)</button>
         <button onClick={() => listaControl(false)} className={btn.texto}><ListChecks size={15} />Lista de cartas de esta pareja</button>
