@@ -4,7 +4,7 @@ import { Copy, Download, FileText, Clock, ExternalLink } from 'lucide-react'
 import { useCartas } from '../CartasContext.jsx'
 import { actividadReciente } from '../cartasService.js'
 import { aCSV, descargar, nombreArchivo } from '../archivos.js'
-import { responsableDe, nombreEquipo, enlacePortal, fecha, folioTexto, nombrePareja, nombreDestinatario, semaforo, ESTADOS_CARTA, TEXTO_SEMAFORO } from '../constantes.js'
+import { responsableDe, nombreEquipo, contactoEquipo, enlacePortal, fecha, folioTexto, nombrePareja, nombreDestinatario, semaforo, ESTADOS_CARTA, TEXTO_SEMAFORO } from '../constantes.js'
 import { Kpi, Semaforo, Titulo, btn } from '../ui.jsx'
 import { copiar } from './Retiros.jsx'
 import { Avance } from './Parejas.jsx'
@@ -50,6 +50,34 @@ export default function Tablero() {
       { titulo: 'Archivos', valor: c => c.cca_archivos.length }, { titulo: 'Tardía', valor: c => (c.tardia ? 'Sí' : '') },
     ]), `cartas-${nombreArchivo(retiro.nombre)}.csv`)
   }
+  // Reporte por matrimonio responsable (PDF con resumen y detalle; CSV con el resumen)
+  function gruposResponsables() {
+    const meta = retiro.meta_por_persona || 0
+    const grupo = (nombre, contacto, lista) => {
+      const sum = k => lista.reduce((n, f) => n + (f.x[k] || 0), 0)
+      const contactos = sum('contactos'), pendientes = sum('contactosPendientes')
+      return { nombre, contacto, totales: { parejas: lista.length, recibidas: sum('recibidas'), meta: meta * 2 * lista.length, faltan: sum('faltan'), contactos, entregaron: contactos - pendientes },
+        filas: [...lista].sort((a, b) => a.p.codigo.localeCompare(b.p.codigo, 'es', { numeric: true }))
+          .map(({ p, x }) => ({ codigo: p.codigo, pareja: nombrePareja(p), recibidas: meta ? `${x.recibidas}/${meta * 2}` : x.recibidas, paraA: meta ? `${x.paraA}/${meta}` : x.paraA, paraB: meta ? `${x.paraB}/${meta}` : x.paraB, faltan: x.faltan, contactos: `${x.contactos - x.contactosPendientes}/${x.contactos}` })) }
+    }
+    const grupos = equipo.map(e => grupo(nombreEquipo(e), contactoEquipo(e).replace(/^el matrimonio [^(]*\(|\)$/g, ''), filas.filter(f => f.p.equipo_id === e.id)))
+    const sin = filas.filter(f => !f.p.equipo_id)
+    if (sin.length) grupos.push(grupo('Sin matrimonio asignado', '', sin))
+    return grupos
+  }
+  async function pdfResponsablesDescargar() {
+    const { pdfResponsables } = await import('../pdfCartas.js')
+    descargar(await pdfResponsables({ retiro, grupos: gruposResponsables() }), `reporte-responsables-${nombreArchivo(retiro.nombre)}.pdf`)
+  }
+  function csvResponsables() {
+    descargar(aCSV(gruposResponsables(), [
+      { titulo: 'Matrimonio responsable', valor: 'nombre' }, { titulo: 'Contacto', valor: 'contacto' },
+      { titulo: 'Parejas', valor: g => g.totales.parejas }, { titulo: 'Cartas recibidas', valor: g => g.totales.recibidas },
+      { titulo: 'Meta', valor: g => g.totales.meta }, { titulo: 'Faltan', valor: g => g.totales.faltan },
+      { titulo: 'Contactos que entregaron', valor: g => g.totales.entregaron }, { titulo: 'Contactos', valor: g => g.totales.contactos },
+    ]), `reporte-responsables-${nombreArchivo(retiro.nombre)}.csv`)
+  }
+
   async function pdf() {
     const { pdfResumen } = await import('../pdfCartas.js')
     descargar(await pdfResumen({ retiro, filas: filasReporte, totales: {
@@ -131,6 +159,8 @@ export default function Tablero() {
             <h2 className="text-lg font-semibold">Reportes</h2>
             <div className="mt-3 flex flex-col gap-2">
               <button onClick={pdf} className={btn.contorno}><FileText size={16} />Resumen en PDF</button>
+              {equipo.length > 0 && <button onClick={pdfResponsablesDescargar} className={btn.vino}><FileText size={16} />Reporte por matrimonio responsable (PDF)</button>}
+              {equipo.length > 0 && <button onClick={csvResponsables} className={btn.contorno}><Download size={16} />Reporte por responsable (CSV)</button>}
               <button onClick={csvAvance} className={btn.contorno}><Download size={16} />Avance por pareja (CSV)</button>
               <button onClick={csvCartas} className={btn.contorno}><Download size={16} />Listado de cartas (CSV)</button>
               <Link to="/cartas/panel/pendientes" className={btn.contorno}><Download size={16} />Personas pendientes</Link>
