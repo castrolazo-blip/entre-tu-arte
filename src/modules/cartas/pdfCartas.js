@@ -106,10 +106,14 @@ async function agregarImagen(ctx, bytes, tipo, linea) {
   p.drawImage(img, { x: (ANCHO - w) / 2, y: (ALTO - 62 - h) / 2 + 6, width: w, height: h })
 }
 
-async function agregarPdf(ctx, bytes) {
+async function agregarPdf(ctx, bytes, linea) {
   const origen = await ctx.lib.PDFDocument.load(bytes, { ignoreEncryption: true })
   const paginas = await ctx.doc.copyPages(origen, origen.getPageIndices())
-  paginas.forEach(p => ctx.doc.addPage(p))
+  paginas.forEach(p => {
+    ctx.doc.addPage(p)
+    // Identificación discreta arriba de cada página (sin hoja separadora se sabe de quién y para quién es)
+    if (linea) p.drawText(limpiar(linea, ctx.f.cursiva), { x: 20, y: p.getHeight() - 14, size: 7, font: ctx.f.cursiva, color: ctx.color(GRIS) })
+  })
 }
 
 async function textoDocx(bytes) {
@@ -188,7 +192,7 @@ async function agregarPareja(ctx, { retiro, pareja, cartas, conPortada, conSepar
     for (const a of archivos || []) {
       try {
         const bytes = await leerArchivo(a.ruta)
-        if (a.tipo === 'application/pdf') await agregarPdf(ctx, bytes)
+        if (a.tipo === 'application/pdf') await agregarPdf(ctx, bytes, linea)
         else if (a.tipo.startsWith('image/')) await agregarImagen(ctx, bytes, a.tipo, linea)
         else if (a.tipo.includes('wordprocessingml')) escribirTexto(ctx, await textoDocx(bytes), linea)
       } catch (e) {
