@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
 import { actualizarCartas, textosCartas, bytesArchivo, registrarAccion } from '../cartasService.js'
 import { crearZip, descargar, nombreArchivo, aCSV } from '../archivos.js'
-import { esValida, ORIGENES, folioTexto, nombreDestinatario, nombrePareja, nombreCompleto, mensajeError, fecha } from '../constantes.js'
+import { nombreEquipo, esValida, ORIGENES, folioTexto, nombreDestinatario, nombrePareja, nombreCompleto, mensajeError, fecha } from '../constantes.js'
 
 // Las cartas en papel sin archivo ya están impresas: van directo al sobre, no al PDF
 const sinImprimir = c => c.origen === 'fisica' && !c.cca_archivos.length
@@ -14,7 +14,8 @@ import { Titulo, Vacio, btn } from '../ui.jsx'
 const PESO = { A: 0, B: 1, ambos: 2 }
 
 export default function Impresion() {
-  const { retiro, parejas, cartas, puedeLeer, recargar } = useCartas()
+  const { retiro, parejas, cartas, puedeLeer, recargar, equipo } = useCartas()
+  const [matrimonio, setMatrimonio] = useState('todos')
   const { usuario } = useAuth()
   const activas = parejas.filter(p => p.estado === 'activa')
   const [parejaId, setParejaId] = useState(activas[0]?.id || '')
@@ -78,12 +79,13 @@ export default function Impresion() {
   // Un solo PDF con todas las parejas (por código), cada una con su portada y separadores, en su orden guardado
   async function pdfTodas() {
     const ordenar = l => [...l].sort((a, b) => (a.orden ?? 1e9) - (b.orden ?? 1e9) || PESO[a.destinatario] - PESO[b.destinatario] || a.created_at.localeCompare(b.created_at))
-    const grupos = [...activas].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
+    const resp = equipo.find(e => e.id === matrimonio)
+    const grupos = activas.filter(p => matrimonio === 'todos' || (matrimonio === 'sin' ? !p.equipo_id : p.equipo_id === matrimonio)).sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
       .map(p => ({ pareja: p, lista: ordenar(cartas.filter(c => c.pareja_id === p.id && esValida(c) && !sinImprimir(c))) }))
       .filter(g => g.lista.length)
     const total = grupos.reduce((n, g) => n + g.lista.length, 0)
     if (!total) return toast.error('No hay cartas para imprimir')
-    if (!window.confirm(`Se armará un solo PDF con ${total} cartas de ${grupos.length} parejas. Puede tardar varios minutos; mejor desde una computadora. ¿Continuar?`)) return
+    if (!window.confirm(`Se armará un solo PDF${resp ? ` del ${nombreEquipo(resp)}` : matrimonio === 'sin' ? ' de las parejas sin matrimonio asignado' : ''} con ${total} ${total === 1 ? 'carta' : 'cartas'} de ${grupos.length} ${grupos.length === 1 ? 'pareja' : 'parejas'}. Puede tardar varios minutos; mejor desde una computadora. ¿Continuar?`)) return
     setProgreso('Preparando…')
     try {
       const textos = await textosCartas(grupos.flatMap(g => g.lista.map(c => c.id)))
@@ -93,8 +95,8 @@ export default function Impresion() {
         grupos: grupos.map(g => ({ pareja: g.pareja, cartas: g.lista.map(c => ({ carta: c, texto: textos[c.id], archivos: c.cca_archivos.filter(a => !a.ilegible) })) })),
         alAvanzar: (i, n, p) => setProgreso(`Armando carta ${i} de ${n} · ${p.codigo}…`),
       })
-      descargar(blob, `cartas-todas-${nombreArchivo(retiro.nombre)}.pdf`)
-      await registrarAccion({ retiro_id: retiro.id, usuario_id: usuario.id, entidad: 'impresion', accion: 'pdf', datos: { todas: true, cartas: grupos.flatMap(g => g.lista.map(c => c.folio)), problemas } })
+      descargar(blob, `cartas-${nombreArchivo(resp ? nombreEquipo(resp) : matrimonio === 'sin' ? 'sin-matrimonio' : 'todas-' + retiro.nombre)}.pdf`)
+      await registrarAccion({ retiro_id: retiro.id, usuario_id: usuario.id, entidad: 'impresion', accion: 'pdf', datos: { todas: true, matrimonio: resp ? nombreEquipo(resp) : matrimonio, cartas: grupos.flatMap(g => g.lista.map(c => c.folio)), problemas } })
       if (problemas.length) toast.error(`${problemas.length} archivo(s) no se pudieron incluir: el PDF trae un aviso en su lugar`, { duration: 7000 })
       else toast.success(`PDF listo: ${total} cartas de ${grupos.length} parejas`)
     } catch (err) { toast.error(mensajeError(err, 'No se pudo generar el PDF')) }
@@ -187,9 +189,16 @@ export default function Impresion() {
         </>
       )}
       <div className="mt-5 rounded-[22px] bg-white p-4">
-        <p className="text-sm font-semibold">Todo el retiro</p>
-        <p className="mt-0.5 text-xs text-gris">Un solo PDF con todas las parejas, en orden por código: la portada de cada pareja y después todas sus cartas. Cada página lleva arriba para quién es y de quién.</p>
-        <button onClick={pdfTodas} disabled={!puedeLeer || !!progreso} className={`${btn.vino} mt-3`}><Files size={16} />PDF de todas las parejas</button>
+        <p className="text-sm font-semibold">Imprimir por matrimonio responsable</p>
+        <p className="mt-0.5 text-xs text-gris">Elige el matrimonio responsable para imprimir solo las cartas de sus parejas (o todas). En orden por código: la portada de cada pareja y después todas sus cartas. Cada página lleva arriba para quién es y de quién.</p>
+        {equipo.length > 0 && (
+          <select value={matrimonio} onChange={e => setMatrimonio(e.target.value)} className="campo mt-3 max-w-md" aria-label="Matrimonio responsable">
+            <option value="todos">Todas las parejas del retiro · {activas.length}</option>
+            {equipo.map(e => <option key={e.id} value={e.id}>{nombreEquipo(e)} · {(n => `${n} ${n === 1 ? 'pareja' : 'parejas'}`)(activas.filter(p => p.equipo_id === e.id).length)}</option>)}
+            {activas.some(p => !p.equipo_id) && <option value="sin">Sin matrimonio asignado · {activas.filter(p => !p.equipo_id).length}</option>}
+          </select>
+        )}
+        <button onClick={pdfTodas} disabled={!puedeLeer || !!progreso} className={`${btn.vino} mt-3 flex`}><Files size={16} />{matrimonio === 'todos' ? 'PDF de todas las parejas' : `PDF de las cartas del ${nombreEquipo(equipo.find(e => e.id === matrimonio)) || 'grupo sin asignar'}`}</button>
         {progreso && <p className="mt-3 flex items-center gap-2 text-sm text-gris"><Loader2 size={15} className="animate-spin" />{progreso}</p>}
       </div>
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
