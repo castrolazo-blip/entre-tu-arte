@@ -146,6 +146,19 @@ function separador(ctx, { carta, pareja }) {
   centrado(p, carta.remitente_nombre, ALTO / 2 - 42, ctx.f.texto, 20, ctx.color([0.12, 0.12, 0.12]))
   if (carta.relacion) centrado(p, carta.relacion, ALTO / 2 - 64, ctx.f.cursiva, 12, ctx.color(GRIS))
   centrado(p, folioTexto(carta.folio), 60, ctx.f.sans, 7, ctx.color([0.7, 0.7, 0.7]))
+  return p
+}
+
+/** Carátulas para las cartas en papel: una hoja «Para … con amor de …» por carta (items: [{ carta, pareja }]) */
+export async function pdfCaratulas({ retiro, items }) {
+  const ctx = await iniciar()
+  for (const { carta, pareja } of items) {
+    const p = separador(ctx, { carta, pareja })
+    centrado(p, `${pareja.codigo} · ${nombrePareja(pareja)}`, 76, ctx.f.sans, 8, ctx.color(GRIS))
+  }
+  ctx.doc.setTitle(`Carátulas · ${retiro.nombre}`)
+  ctx.doc.setCreator('Cartas con Amor')
+  return new Blob([await ctx.doc.save()], { type: 'application/pdf' })
 }
 
 /**
