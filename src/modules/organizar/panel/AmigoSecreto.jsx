@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Pencil, Loader2, MessageCircle, Copy, Check, Shuffle, Trash2, Lock, ExternalLink, Gift } from 'lucide-react'
+import { Pencil, Loader2, MessageCircle, Copy, Check, Shuffle, Trash2, Lock, ExternalLink, Gift, UserMinus, UserPlus } from 'lucide-react'
 import { ui } from '../marca.jsx'
-import { amigoDeEvento, activarAmigo, actualizarSorteo, sortear, borrarSorteo, mensajeError } from '../servicio.js'
+import { amigoDeEvento, activarAmigo, actualizarSorteo, sortear, borrarSorteo, sacarDelAmigo, agregarAlAmigo, mensajeError } from '../servicio.js'
 import { fechaLarga, hace } from '../fechas.js'
 import { enlacePersonal, urlWhatsApp, msgSorteoInvitacion, msgSorteoListo, textoStatusSorteo } from '../whatsapp.js'
 
 // Amigo secreto DENTRO del evento: participan sus invitados (se ajusta solo si cambian)
-export default function AmigoSecreto({ ev, numInvitados }) {
+export default function AmigoSecreto({ ev, invitados = [] }) {
+  const numInvitados = invitados.length
   const [s, setS] = useState(undefined)   // undefined = cargando · null = no activado
   const [error, setError] = useState('')
   const [trabajando, setTrabajando] = useState(false)
@@ -64,7 +65,7 @@ export default function AmigoSecreto({ ev, numInvitados }) {
         ) : (
           <>
             <h2 className="flex items-center gap-2 text-lg font-bold"><Gift size={20} className="text-rose-600" />Agregar amigo secreto</h2>
-            <p className="mb-4 mt-1 text-sm text-slate-500">Participan los {numInvitados} invitados del evento. Si invitás o quitás a alguien, se ajusta solo.</p>
+            <p className="mb-4 mt-1 text-sm text-slate-500">Participan los {numInvitados} invitados del evento. Si invitás o quitás a alguien, se ajusta solo; también podés sacar a alguien solo del amigo secreto.</p>
             {campos}
             <div className="mt-4 flex flex-wrap gap-2">
               <button disabled={trabajando || numInvitados < 3} onClick={activar} className={ui.btn}>{trabajando ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}Activar</button>
@@ -78,12 +79,32 @@ export default function AmigoSecreto({ ev, numInvitados }) {
   }
 
   const sorteado = s.estado === 'sorteado'
+  const fuera = invitados.filter(i => !s.participantes.some(p => p.persona_id === i.persona_id))
   const n = s.participantes.length
   const vistos = s.participantes.filter(p => p.visto_en)
 
   async function hacerSorteo() {
     setTrabajando(true); setConfirmar(false)
     try { await sortear(s.id); await recargar(); toast.success('¡Sorteo hecho! Avisale a cada quien por WhatsApp.') }
+    catch (e) { toast.error(mensajeError(e)) }
+    finally { setTrabajando(false) }
+  }
+  async function sacar(p) {
+    const aviso = sorteado
+      ? `¿Sacar a ${p.nombre} del amigo secreto?\n\nSigue invitado al evento. No hay que volver a sortear: quien le regalaba a ${p.nombre.split(' ')[0]} pasa a regalarle a otra persona y aparecerá como «No ha visto». Avisale con «Avisar sorteo».`
+      : `¿Sacar a ${p.nombre} del amigo secreto? Sigue invitado al evento.`
+    if (!window.confirm(aviso)) return
+    setTrabajando(true)
+    try {
+      await sacarDelAmigo(s.id, p.persona_id); await recargar()
+      toast.success(sorteado ? 'Listo. Mandá «Avisar sorteo» a quien aparezca como «No ha visto».' : `${p.nombre.split(' ')[0]} ya no participa`, { duration: 6000 })
+    } catch (e) { toast.error(mensajeError(e)) }
+    finally { setTrabajando(false) }
+  }
+  async function meter(i) {
+    if (sorteado && !window.confirm(`¿Agregar a ${i.nombre} al amigo secreto? No hay que volver a sortear: ${i.nombre.split(' ')[0]} y una persona más quedarán como «No ha visto» para avisarles.`)) return
+    setTrabajando(true)
+    try { await agregarAlAmigo(s.id, i.persona_id); await recargar(); toast.success(`${i.nombre.split(' ')[0]} participa en el amigo secreto`) }
     catch (e) { toast.error(mensajeError(e)) }
     finally { setTrabajando(false) }
   }
@@ -171,11 +192,25 @@ export default function AmigoSecreto({ ev, numInvitados }) {
                     : <button onClick={() => copiar(texto, p.persona_id + 'm')} className={ui.btnMini}>{copiado === p.persona_id + 'm' ? <Check size={14} /> : <Copy size={14} />}{etiqueta} (copiar)</button>}
                   <button onClick={() => copiar(url, p.persona_id)} className={ui.btnMini} title="Copiar enlace">{copiado === p.persona_id ? <Check size={14} /> : <Copy size={14} />}</button>
                   <a href={url} target="_blank" rel="noreferrer" className={ui.btnMini} title="Abrir como esta persona (si lo abrís, ves a quién le tocó)"><ExternalLink size={14} /></a>
+                  <button disabled={trabajando} onClick={() => sacar(p)} className={`${ui.btnMini} text-rose-700`} title="Sacar del amigo secreto (sigue invitado al evento)" aria-label={`Sacar a ${p.nombre} del amigo secreto`}><UserMinus size={14} /></button>
                 </div>
               </li>
             )
           })}
         </ul>
+        {fuera.length > 0 && (
+          <div className="mt-3 rounded-2xl bg-slate-50 p-3">
+            <p className="text-sm font-bold text-slate-600">Invitados que no participan ({fuera.length})</p>
+            <ul className="mt-1.5 space-y-1.5">
+              {fuera.map(i => (
+                <li key={i.persona_id} className="flex items-center gap-2 text-sm">
+                  <span className="flex-1 text-slate-600">{i.nombre}</span>
+                  <button disabled={trabajando} onClick={() => meter(i)} className={ui.btnMini}><UserPlus size={14} />Agregar</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <p className="mt-2 text-[12px] text-slate-500">Ojo: si abrís el enlace de otra persona y tocás «Descubrir», vas a ver a quién le tocó y contará como visto.</p>
         <button onClick={quitar} className={`${ui.btnMini} mt-3 text-rose-700`}><Trash2 size={14} />Quitar amigo secreto</button>
     </section>
