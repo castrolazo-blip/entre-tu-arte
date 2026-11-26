@@ -107,13 +107,13 @@ export default function Impresion() {
   async function caratulas() {
     const delFiltro = activas.filter(p => matrimonio === 'todos' || (matrimonio === 'sin' ? !p.equipo_id : p.equipo_id === matrimonio))
       .sort((a, b) => a.codigo.localeCompare(b.codigo, 'es', { numeric: true }))
-    const items = delFiltro.flatMap(p => cartas.filter(c => c.pareja_id === p.id && esValida(c) && c.origen === 'fisica')
-      .sort((a, b) => PESO[a.destinatario] - PESO[b.destinatario] || a.created_at.localeCompare(b.created_at)).map(c => ({ carta: c, pareja: p })))
-    if (!items.length) return toast.error('No hay cartas en papel para este filtro')
+    const items = delFiltro.map(p => ({ pareja: p, total: cartas.filter(c => c.pareja_id === p.id && esValida(c) && c.origen === 'fisica').length }))
+      .filter(x => x.total)
+    if (!items.length) return toast.error('No hay parejas con cartas en papel para este filtro')
     const resp = equipo.find(e => e.id === matrimonio)
     const { pdfCaratulas } = await import('../pdfCartas.js')
     descargar(await pdfCaratulas({ retiro, items }), `caratulas-papel-${nombreArchivo(resp ? nombreEquipo(resp) : matrimonio === 'sin' ? 'sin-matrimonio' : retiro.nombre)}.pdf`)
-    toast.success(`${items.length} ${items.length === 1 ? 'carátula' : 'carátulas'} de cartas en papel`)
+    toast.success(`${items.length} ${items.length === 1 ? 'carátula' : 'carátulas'}: una por pareja con cartas en papel`)
   }
 
   async function zipOriginales() {
@@ -213,7 +213,7 @@ export default function Impresion() {
         )}
         <button onClick={pdfTodas} disabled={!puedeLeer || !!progreso} className={`${btn.vino} mt-3 flex`}><Files size={16} />{matrimonio === 'todos' ? 'PDF de todas las parejas' : `PDF de las cartas del ${nombreEquipo(equipo.find(e => e.id === matrimonio)) || 'grupo sin asignar'}`}</button>
         <button onClick={caratulas} disabled={!!progreso} className={`${btn.contorno} mt-2 flex`}><Package size={16} />Carátulas de las cartas en papel</button>
-        <p className="mt-1 text-xs text-gris">Una hoja «Para … con amor de …» por cada carta que llegó en papel, para ponerla con la carta física.</p>
+        <p className="mt-1 text-xs text-gris">Una portada por cada pareja que tiene cartas en papel, para ponerla encima de sus cartas físicas.</p>
         {progreso && <p className="mt-3 flex items-center gap-2 text-sm text-gris"><Loader2 size={15} className="animate-spin" />{progreso}</p>}
       </div>
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
