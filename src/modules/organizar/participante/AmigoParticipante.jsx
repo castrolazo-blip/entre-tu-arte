@@ -34,7 +34,7 @@ export default function AmigoParticipante({ s, token, deseo, recargar }) {
           <>
             <Gift size={34} />
             <p className="mt-3 text-xl font-bold">Todavía no se ha hecho el sorteo</p>
-            <p className="mt-1 text-white/85">Cuando el organizador sortee, aquí vas a descubrir a quién te tocó. Mientras tanto, escribí tu lista de deseos.</p>
+            <p className="mt-1 text-white/85">Cuando el organizador sortee, aquí vas a descubrir a quién te tocó. Mientras tanto, si querés, podés dejar tu lista de deseos (es opcional).</p>
           </>
         ) : amigo ? (
           <>

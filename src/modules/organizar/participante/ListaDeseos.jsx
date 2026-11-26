@@ -19,8 +19,8 @@ export default function ListaDeseos({ token, deseo, recargar }) {
 
   return (
     <div className={ui.tarjeta}>
-      <h3 className="flex items-center gap-2 text-lg font-bold"><Gift size={19} className="text-rose-600" />Mi lista de deseos</h3>
-      <p className="mt-1 text-[14px] text-slate-600">Escribila una vez: sirve para todos tus amigos secretos. Solo la ve quien te regale.</p>
+      <h3 className="flex items-center gap-2 text-lg font-bold"><Gift size={19} className="text-rose-600" />Mi lista de deseos <span className="text-sm font-normal text-slate-400">(opcional)</span></h3>
+      <p className="mt-1 text-[14px] text-slate-600">No es obligatoria: si querés, dejá ideas de lo que te gustaría recibir. Sirve para todos tus amigos secretos y solo la ve quien te regale.</p>
       <textarea id="deseo" rows={4} maxLength={500} value={texto} onChange={e => setTexto(e.target.value)}
         placeholder="Ej.: termo para el gym, audífonos, algo de café… Talla M, calzado 38." className={`${ui.campo} mt-3 h-auto py-3`} />
       <div className="mt-3 flex items-center justify-between gap-2">

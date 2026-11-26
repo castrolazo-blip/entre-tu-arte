@@ -174,7 +174,7 @@ export default function AmigoSecreto({ ev, invitados = [] }) {
           {s.participantes.map(p => {
             const url = enlacePersonal(p.token, ev.id)
             const texto = sorteado ? msgSorteoListo(p.nombre, s, url) : msgSorteoInvitacion(p.nombre, s, url)
-            const etiqueta = sorteado ? (p.visto_en ? 'Reenviar' : 'Avisar sorteo') : 'Pedir deseos'
+            const etiqueta = sorteado ? (p.visto_en ? 'Reenviar' : 'Avisar sorteo') : 'Invitar'
             return (
               <li key={p.persona_id} className="flex flex-wrap items-center gap-2 py-3">
                 <div className="min-w-0 flex-1 basis-48">
