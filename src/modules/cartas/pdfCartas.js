@@ -149,13 +149,10 @@ function separador(ctx, { carta, pareja }) {
   return p
 }
 
-/** Carátulas para las cartas en papel: una hoja «Para … con amor de …» por carta (items: [{ carta, pareja }]) */
+/** Carátulas para las cartas en papel: la portada de cada pareja (items: [{ pareja, total }]) */
 export async function pdfCaratulas({ retiro, items }) {
   const ctx = await iniciar()
-  for (const { carta, pareja } of items) {
-    const p = separador(ctx, { carta, pareja })
-    centrado(p, `${pareja.codigo} · ${nombrePareja(pareja)}`, 76, ctx.f.sans, 8, ctx.color(GRIS))
-  }
+  for (const { pareja, total } of items) portada(ctx, { retiro, pareja, total })
   ctx.doc.setTitle(`Carátulas · ${retiro.nombre}`)
   ctx.doc.setCreator('Cartas con Amor')
   return new Blob([await ctx.doc.save()], { type: 'application/pdf' })
