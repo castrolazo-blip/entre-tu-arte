@@ -133,7 +133,7 @@ function ListaEventos({ eventos, abrir }) {
               <p className={`mt-2 text-sm font-bold ${p.c}`}>{p.t}</p>
               {Object.values(e.comida || {}).some(q => q.estado === 'abierta' && !q.mi_voto) && <p className="mt-1 text-sm font-bold text-amber-700">🍽️ Votá qué comemos</p>}
               {(e.encargos || []).some(i => i.responsables.some(r => r.yo)) && <p className="mt-1 text-sm font-bold text-teal-700">🧾 Llevás: {e.encargos.filter(i => i.responsables.some(r => r.yo)).map(i => i.nombre).join(', ')}</p>}
-              {e.amigo && <p className="mt-1 text-sm font-bold text-rose-600">🎁 {e.amigo.estado !== 'sorteado' ? 'Amigo secreto: escribí tu lista de deseos' : e.amigo.visto ? 'Amigo secreto: ver a quién te tocó' : '¡Descubrí tu amigo secreto!'}</p>}
+              {e.amigo && <p className="mt-1 text-sm font-bold text-rose-600">🎁 {e.amigo.estado !== 'sorteado' ? 'Amigo secreto: todavía no se sortea' : e.amigo.visto ? 'Amigo secreto: ver a quién te tocó' : '¡Descubrí tu amigo secreto!'}</p>}
             </div>
             <ChevronRight className="shrink-0 text-slate-400" />
           </button>

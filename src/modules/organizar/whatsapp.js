@@ -93,7 +93,7 @@ const detallesSorteo = s => [s.monto ? `💵 Monto: ${s.monto}` : '', s.fecha_in
 
 export function msgSorteoInvitacion(nombre, s, url) {
   const d = detallesSorteo(s)
-  return `Hola ${primerNombre(nombre)} 🎁 En *${s.titulo.replace(/^Amigo secreto · /, '')}* vamos a hacer amigo secreto.${d ? `\n${d}` : ''}\n\nEn tu enlace privado escribí tu lista de deseos (la verá solo quien te regale). Cuando hagamos el sorteo te aviso:\n${url}` + firma
+  return `Hola ${primerNombre(nombre)} 🎁 En *${s.titulo.replace(/^Amigo secreto · /, '')}* vamos a hacer amigo secreto.${d ? `\n${d}` : ''}\n\nSi querés, en tu enlace privado podés escribir una lista de deseos (es opcional y la verá solo quien te regale). Cuando hagamos el sorteo te aviso:\n${url}` + firma
 }
 
 export function msgSorteoListo(nombre, s, url) {
