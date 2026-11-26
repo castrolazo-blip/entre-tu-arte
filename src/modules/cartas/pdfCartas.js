@@ -116,7 +116,7 @@ async function agregarPdf(ctx, bytes, linea) {
   })
 }
 
-async function textoDocx(bytes) {
+export async function textoDocx(bytes) {
   const mammoth = (await import('mammoth/mammoth.browser.js')).default
   const { value } = await mammoth.extractRawText({ arrayBuffer: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) })
   return value

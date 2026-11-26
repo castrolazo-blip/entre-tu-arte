@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import { ExternalLink, Download, EyeOff, Eye, AlertTriangle, History, Lock, Loader2 } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext.jsx'
 import { useCartas } from '../CartasContext.jsx'
-import { actualizarCarta, textoCarta, historial, enlaceArchivo, marcarArchivo, registrarAccion } from '../cartasService.js'
+import { actualizarCarta, textoCarta, historial, enlaceArchivo, bytesArchivo, marcarArchivo, registrarAccion } from '../cartasService.js'
 import { ESTADOS_CARTA, ORIGENES, esValida, folioTexto, fecha, nombreDestinatario, nombreCompleto, nombrePareja, tamanoTexto, mensajeError } from '../constantes.js'
 import { Etiqueta, Modal, SelectRelacion, btn } from '../ui.jsx'
 import { describirActividad, quien } from '../actividad.js'
@@ -165,9 +165,17 @@ export default function DetalleCarta({ cartaId, onCerrar }) {
 function Archivo({ archivo, puedeLeer, onCambio }) {
   const [vista, setVista] = useState(null)
   const esImagen = archivo.tipo.startsWith('image/')
+  // Word: el celular no lo abre, así que se muestra su texto aquí mismo
+  const esWord = archivo.tipo.includes('wordprocessingml')
+  const [textoWord, setTextoWord] = useState(null)
   useEffect(() => {
     if (puedeLeer && esImagen) enlaceArchivo(archivo.ruta).then(setVista).catch(() => setVista(false))
-  }, [archivo.ruta, puedeLeer, esImagen])
+    if (puedeLeer && esWord) {
+      setTextoWord(undefined)
+      Promise.all([bytesArchivo(archivo.ruta), import('../pdfCartas.js')])
+        .then(([bytes, { textoDocx }]) => textoDocx(bytes)).then(t => setTextoWord(t || '')).catch(() => setTextoWord(false))
+    }
+  }, [archivo.ruta, puedeLeer, esImagen, esWord])
 
   async function abrir(descargar) {
     // La pestaña se abre antes de pedir el enlace para que el navegador no la bloquee
@@ -185,6 +193,10 @@ function Archivo({ archivo, puedeLeer, onCambio }) {
   return (
     <li className="rounded-2xl border border-crema-borde p-3">
       {esImagen && vista && <img src={vista} alt={archivo.nombre_original} className="mb-3 max-h-[420px] w-full rounded-xl bg-crema object-contain" />}
+      {esWord && textoWord === undefined && <p className="mb-3 flex items-center gap-2 text-sm text-gris"><Loader2 size={15} className="animate-spin" />Leyendo el documento de Word…</p>}
+      {esWord && textoWord && <div style={serif} className="mb-3 max-h-[50vh] overflow-y-auto whitespace-pre-wrap rounded-2xl bg-[#fbf8f4] p-5 text-[17px] leading-relaxed">{textoWord}</div>}
+      {esWord && textoWord === '' && <p className="mb-3 text-sm text-gris">El documento de Word no tiene texto (puede traer solo imágenes): descárgalo para verlo.</p>}
+      {esWord && textoWord === false && <p className="mb-3 text-sm text-rose-700">No se pudo leer el documento de Word: descárgalo para verlo.</p>}
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="min-w-0 flex-1 truncate font-semibold">{archivo.nombre_original}</span>
         <span className="text-xs text-gris">{tamanoTexto(archivo.tamano)}</span>
