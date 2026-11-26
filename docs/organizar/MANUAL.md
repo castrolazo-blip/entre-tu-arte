@@ -29,8 +29,10 @@ Se puede ejecutar más de una vez. El administrador de Entre tu Arte queda como 
 
 ## Amigo secreto (dentro de cada evento)
 En el detalle del evento › **Agregar amigo secreto** (monto, fecha del intercambio y mensaje, opcionales).
-Participan los invitados del evento: si se invita o quita a alguien, se ajusta solo (y si ya se había sorteado,
-se anula para volver a sortear). **Sortear** reparte al azar en un círculo: nadie se saca a sí mismo.
+Participan los invitados del evento: si se invita o quita a alguien, se ajusta solo. También se puede sacar a
+alguien solo del amigo secreto (sigue invitado) o volver a agregarlo. Si ya se sorteó, NO se vuelve a sortear:
+al sacar a X, quien le regalaba pasa a regalarle a quien X tenía; al agregar a N, entra al círculo entre dos
+personas. Solo quienes cambian quedan como «No ha visto» para avisarles (`20261126000000_amigo_sin_resortear.sql`). **Sortear** reparte al azar en un círculo: nadie se saca a sí mismo.
 Cada participante abre el evento con su enlace y toca «Descubrir» para ver a quién le tocó y su lista de deseos.
 La lista de deseos es general de cada persona (`sno_personas.deseo`): se escribe una vez y sirve para todos sus sorteos.
 Las asignaciones (`sno_sorteo_asignaciones`) no tienen reglas de lectura: ni el panel las muestra; solo dice

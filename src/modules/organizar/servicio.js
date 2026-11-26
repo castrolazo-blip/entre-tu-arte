@@ -158,6 +158,17 @@ export async function actualizarSorteo(id, cambios) {
   if (error) throw error
 }
 
+// Sacar o volver a meter a alguien del amigo secreto (sigue invitado al evento).
+// Si ya se sorteó, la base ajusta el círculo sin volver a sortear a todos.
+export async function sacarDelAmigo(sorteoId, personaId) {
+  const { error } = await supabase.from('sno_sorteo_participantes').delete().eq('sorteo_id', sorteoId).eq('persona_id', personaId)
+  if (error) throw error
+}
+export async function agregarAlAmigo(sorteoId, personaId) {
+  const { error } = await supabase.from('sno_sorteo_participantes').insert({ sorteo_id: sorteoId, persona_id: personaId })
+  if (error) throw error
+}
+
 export async function borrarSorteo(id) {
   const { error } = await supabase.from('sno_sorteos').delete().eq('id', id)
   if (error) throw error

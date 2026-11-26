@@ -204,7 +204,7 @@ export default function DetalleEvento() {
       {ev.estado !== 'cancelado' && <Encargados ev={ev} invitados={d.invitados} />}
 
       {/* Amigo secreto (dentro del evento) */}
-      {ev.estado !== 'cancelado' && <AmigoSecreto ev={ev} numInvitados={d.invitados.length} />}
+      {ev.estado !== 'cancelado' && <AmigoSecreto ev={ev} invitados={d.invitados} />}
 
       {/* Más acciones */}
       <section className="flex flex-wrap gap-2">
