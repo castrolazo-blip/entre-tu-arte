@@ -116,6 +116,12 @@ export default function Impresion() {
     toast.success(`${items.length} ${items.length === 1 ? 'carátula' : 'carátulas'}: una por pareja con cartas en papel`)
   }
 
+  // Solo la portada de la pareja elegida (no requiere cartas ni permiso de lectura)
+  async function soloPortada() {
+    const { pdfCaratulas } = await import('../pdfCartas.js')
+    descargar(await pdfCaratulas({ retiro, items: [{ pareja, total: validas.length }] }), `portada-${nombreArchivo(pareja.codigo + '-' + nombrePareja(pareja))}.pdf`)
+  }
+
   async function zipOriginales() {
     if (!elegidas.length) return toast.error('Selecciona al menos una carta')
     setProgreso('Descargando originales…')
@@ -166,6 +172,7 @@ export default function Impresion() {
         </select>
         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={conPortada} onChange={e => setConPortada(e.target.checked)} className="h-4 w-4 accent-[#7a2621]" />Portada</label>
         <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={conSeparadores} onChange={e => setConSeparadores(e.target.checked)} className="h-4 w-4 accent-[#7a2621]" />Hoja separadora por carta</label>
+        <button onClick={soloPortada} className={btn.contorno}><FileDown size={16} />Solo la portada</button>
       </div>
 
       {!puedeLeer && <p className="mb-4 flex items-center gap-2 rounded-2xl bg-crema p-4 text-sm text-gris"><Lock size={16} />Por confidencialidad, tu usuario no puede generar el PDF ni descargar originales. Pídelo a quien tiene permiso de impresión.</p>}
